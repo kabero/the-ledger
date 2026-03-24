@@ -31,7 +31,7 @@ export function EntryList({ tab }: EntryListProps) {
     },
   });
 
-  const items = (entries.data ?? []).filter((e) => tab === "all" ? e.type !== "trash" : true);
+  const items = (entries.data ?? []).filter((e) => (tab === "all" ? e.type !== "trash" : true));
 
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
@@ -43,6 +43,7 @@ export function EntryList({ tab }: EntryListProps) {
         <div key={entry.id} className={`entry ${entry.status === "done" ? "done" : ""}`}>
           {entry.type === "task" && (
             <button
+              type="button"
               className="checkbox"
               onClick={() =>
                 updateEntry.mutate({
@@ -57,7 +58,9 @@ export function EntryList({ tab }: EntryListProps) {
           <div className="entry-title">
             <div>
               {entry.image_path && (
-                <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">[IMG]</span>
+                <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">
+                  [IMG]
+                </span>
               )}
               {entry.title ?? entry.raw_text}
             </div>
@@ -80,6 +83,7 @@ export function EntryList({ tab }: EntryListProps) {
             </div>
           </div>
           <button
+            type="button"
             className="btn-del"
             onClick={() => deleteEntry.mutate({ id: entry.id })}
           >

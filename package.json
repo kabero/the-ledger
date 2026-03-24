@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "lint": "turbo lint"
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -14,6 +16,7 @@
     ]
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
     "turbo": "^2"
   }
 }

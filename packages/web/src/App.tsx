@@ -1,18 +1,14 @@
 import { useState } from "react";
-import { trpc } from "./trpc";
 import { EntryInput } from "./components/EntryInput";
-
 import { EntryList } from "./components/EntryList";
+import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "event" | "note" | "wish" | "done";
 
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("all");
 
-  const unprocessed = trpc.getUnprocessed.useQuery(
-    { limit: 50 },
-    { refetchInterval: 10_000 }
-  );
+  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 10_000 });
   const unprocessedCount = unprocessed.data?.length ?? 0;
 
   const tabs: { key: Tab; label: string }[] = [
@@ -43,6 +39,7 @@ export function App() {
         <div className="tabs">
           {tabs.map((tab) => (
             <button
+              type="button"
               key={tab.key}
               className={`tab ${activeTab === tab.key ? "active" : ""}`}
               onClick={() => setActiveTab(tab.key)}

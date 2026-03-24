@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { trpc } from "../trpc";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
@@ -119,6 +119,7 @@ export function EntryInput() {
   };
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: drop zone for file drag-and-drop
     <div className="box" onDrop={handleDrop} onDragOver={handleDragOver}>
       <span className="box-title">なんでも投げろ</span>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -145,6 +146,7 @@ export function EntryInput() {
           }}
         />
         <button
+          type="button"
           className="btn-img"
           onClick={() => fileInputRef.current?.click()}
           title="画像を添付"
@@ -164,8 +166,12 @@ export function EntryInput() {
             }}
           />
           <button
+            type="button"
             className="btn-del"
-            onClick={() => { setImageFile(null); setImagePreview(null); }}
+            onClick={() => {
+              setImageFile(null);
+              setImagePreview(null);
+            }}
             style={{ fontSize: 14 }}
           >
             x
@@ -173,9 +179,7 @@ export function EntryInput() {
         </div>
       )}
       {uploading && (
-        <div style={{ marginTop: 4, fontSize: 12, color: "#aaa" }}>
-          アップロード中...
-        </div>
+        <div style={{ marginTop: 4, fontSize: 12, color: "#aaa" }}>アップロード中...</div>
       )}
     </div>
   );

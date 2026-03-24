@@ -1,8 +1,8 @@
-import { initTRPC } from "@trpc/server";
-import { z } from "zod";
-import superjson from "superjson";
 import type { EntryService } from "@theledger/core";
 import { ENTRY_TYPES, TASK_STATUSES } from "@theledger/core";
+import { initTRPC } from "@trpc/server";
+import superjson from "superjson";
+import { z } from "zod";
 
 export interface Context {
   service: EntryService;
@@ -18,11 +18,13 @@ const taskStatusEnum = z.enum(TASK_STATUSES);
 
 export const appRouter = t.router({
   addEntry: t.procedure
-    .input(z.object({
-      raw_text: z.string().min(1),
-      image: z.string().optional(),
-      image_ext: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        raw_text: z.string().min(1),
+        image: z.string().optional(),
+        image_ext: z.string().optional(),
+      }),
+    )
     .mutation(({ input, ctx }) => {
       if (input.image && input.image_ext) {
         const imageData = Buffer.from(input.image, "base64");
@@ -31,11 +33,9 @@ export const appRouter = t.router({
       return ctx.service.createEntry({ raw_text: input.raw_text });
     }),
 
-  getEntry: t.procedure
-    .input(z.object({ id: z.string() }))
-    .query(({ input, ctx }) => {
-      return ctx.service.getEntry(input.id);
-    }),
+  getEntry: t.procedure.input(z.object({ id: z.string() })).query(({ input, ctx }) => {
+    return ctx.service.getEntry(input.id);
+  }),
 
   listEntries: t.procedure
     .input(
@@ -50,7 +50,7 @@ export const appRouter = t.router({
           limit: z.number().int().positive().max(100).optional(),
           offset: z.number().int().nonnegative().optional(),
         })
-        .optional()
+        .optional(),
     )
     .query(({ input, ctx }) => {
       return ctx.service.listEntries(input ?? {});
@@ -72,7 +72,7 @@ export const appRouter = t.router({
         priority: z.number().int().min(1).max(5).nullable(),
         due_date: z.string().nullable(),
         delegatable: z.boolean().default(false),
-      })
+      }),
     )
     .mutation(({ input, ctx }) => {
       return ctx.service.submitProcessed(input);
@@ -89,17 +89,15 @@ export const appRouter = t.router({
         status: taskStatusEnum.optional(),
         type: entryTypeEnum.optional(),
         delegatable: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(({ input, ctx }) => {
       return ctx.service.updateEntry(input);
     }),
 
-  deleteEntry: t.procedure
-    .input(z.object({ id: z.string() }))
-    .mutation(({ input, ctx }) => {
-      return ctx.service.deleteEntry(input.id);
-    }),
+  deleteEntry: t.procedure.input(z.object({ id: z.string() })).mutation(({ input, ctx }) => {
+    return ctx.service.deleteEntry(input.id);
+  }),
 
   getTodayTasks: t.procedure
     .input(z.object({ limit: z.number().int().positive().max(10).optional() }).optional())

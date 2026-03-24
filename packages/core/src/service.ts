@@ -1,15 +1,15 @@
-import path from "node:path";
-import os from "node:os";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
+import type { EntryRepository } from "./repository.js";
 import type {
-  Entry,
   CreateEntryInput,
+  Entry,
+  ListEntriesFilter,
   SubmitProcessedInput,
   UpdateEntryInput,
-  ListEntriesFilter,
 } from "./types.js";
-import type { EntryRepository } from "./repository.js";
 
 const IMAGES_DIR = path.join(os.homedir(), ".theledger", "images");
 const ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
@@ -53,7 +53,9 @@ export class EntryService {
   saveImage(data: Buffer, entryId: string, ext: string): string {
     const normalizedExt = ext.toLowerCase().replace(/^\./, "");
     if (!ALLOWED_EXTENSIONS.includes(normalizedExt)) {
-      throw new Error(`Unsupported image format: ${normalizedExt}. Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`);
+      throw new Error(
+        `Unsupported image format: ${normalizedExt}. Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`,
+      );
     }
     if (data.length > MAX_IMAGE_SIZE) {
       throw new Error(`Image too large: ${(data.length / 1024 / 1024).toFixed(1)}MB. Max: 10MB`);

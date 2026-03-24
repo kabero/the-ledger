@@ -1,10 +1,10 @@
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
 import { createDatabase, EntryRepository, EntryService } from "@theledger/core";
-import { appRouter } from "./router.js";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
 import type { Context } from "./router.js";
+import { appRouter } from "./router.js";
 
 const db = createDatabase();
 const repository = new EntryRepository(db);
@@ -19,7 +19,7 @@ app.use(
   trpcServer({
     router: appRouter,
     createContext: (): Context => ({ service }),
-  })
+  }),
 );
 
 app.get("/health", (c) => c.json({ ok: true }));
@@ -58,7 +58,7 @@ app.post("/upload", async (c) => {
 // Simple JSON endpoint for iOS Shortcuts (base64 image)
 app.post("/api/quick-add", async (c) => {
   try {
-    const body = await c.req.json() as { raw_text?: string; image?: string; image_ext?: string };
+    const body = (await c.req.json()) as { raw_text?: string; image?: string; image_ext?: string };
     const rawText = body.raw_text || "";
     const image = body.image;
     const ext = body.image_ext || "png";
@@ -87,4 +87,4 @@ serve({ fetch: app.fetch, hostname: "0.0.0.0", port }, () => {
   console.log(`The Ledger API running on http://0.0.0.0:${port}`);
 });
 
-export { appRouter, type AppRouter } from "./router.js";
+export { type AppRouter, appRouter } from "./router.js";

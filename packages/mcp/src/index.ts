@@ -2,14 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 import {
   createDatabase,
+  ENTRY_TYPES,
+  type Entry,
   EntryRepository,
   EntryService,
-  ENTRY_TYPES,
   TASK_STATUSES,
 } from "@theledger/core";
+import { z } from "zod";
 
 const db = createDatabase();
 const repository = new EntryRepository(db);
@@ -28,10 +29,13 @@ server.tool(
   {
     raw_text: z.string().describe("The raw text of the thought, idea, task, etc."),
     image: z.string().optional().describe("Base64-encoded image data (optional)"),
-    image_ext: z.string().optional().describe("Image file extension: png, jpg, jpeg, gif, webp (optional)"),
+    image_ext: z
+      .string()
+      .optional()
+      .describe("Image file extension: png, jpg, jpeg, gif, webp (optional)"),
   },
   async ({ raw_text, image, image_ext }) => {
-    let entry;
+    let entry: Entry;
     if (image && image_ext) {
       const imageData = Buffer.from(image, "base64");
       entry = service.createEntryWithImage(raw_text, imageData, image_ext);
@@ -39,11 +43,9 @@ server.tool(
       entry = service.createEntry({ raw_text });
     }
     return {
-      content: [
-        { type: "text", text: JSON.stringify(entry, null, 2) },
-      ],
+      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
     };
-  }
+  },
 );
 
 server.tool(
@@ -54,9 +56,9 @@ server.tool(
   },
   async ({ limit }) => {
     const entries = service.getUnprocessed(limit);
-    const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [
-      { type: "text", text: JSON.stringify(entries, null, 2) },
-    ];
+    const content: Array<
+      { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
+    > = [{ type: "text", text: JSON.stringify(entries, null, 2) }];
     for (const entry of entries) {
       if (entry.image_path && fs.existsSync(entry.image_path)) {
         const ext = path.extname(entry.image_path).slice(1).toLowerCase();
@@ -70,7 +72,7 @@ server.tool(
       }
     }
     return { content };
-  }
+  },
 );
 
 server.tool(
@@ -98,13 +100,19 @@ server.tool(
       .describe("Whether this task can be delegated to an LLM"),
   },
   async ({ id, type, title, tags, priority, due_date, delegatable }) => {
-    const entry = service.submitProcessed({ id, type, title, tags, priority, due_date, delegatable });
+    const entry = service.submitProcessed({
+      id,
+      type,
+      title,
+      tags,
+      priority,
+      due_date,
+      delegatable,
+    });
     return {
-      content: [
-        { type: "text", text: JSON.stringify(entry, null, 2) },
-      ],
+      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
     };
-  }
+  },
 );
 
 server.tool(
@@ -123,11 +131,9 @@ server.tool(
   async (params) => {
     const entries = service.listEntries(params);
     return {
-      content: [
-        { type: "text", text: JSON.stringify(entries, null, 2) },
-      ],
+      content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
     };
-  }
+  },
 );
 
 server.tool(
@@ -145,11 +151,9 @@ server.tool(
   async ({ id, ...updates }) => {
     const entry = service.updateEntry({ id, ...updates });
     return {
-      content: [
-        { type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" },
-      ],
+      content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
     };
-  }
+  },
 );
 
 server.tool(
@@ -161,11 +165,9 @@ server.tool(
   async ({ id }) => {
     const deleted = service.deleteEntry(id);
     return {
-      content: [
-        { type: "text", text: deleted ? "Deleted" : "Entry not found" },
-      ],
+      content: [{ type: "text", text: deleted ? "Deleted" : "Entry not found" }],
     };
-  }
+  },
 );
 
 server.tool(
@@ -177,11 +179,9 @@ server.tool(
   async ({ limit }) => {
     const tasks = service.getTodayTasks(limit);
     return {
-      content: [
-        { type: "text", text: JSON.stringify(tasks, null, 2) },
-      ],
+      content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
     };
-  }
+  },
 );
 
 // --- Start ---

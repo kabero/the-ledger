@@ -1,11 +1,11 @@
 import type Database from "better-sqlite3";
 import { v4 as uuidv4 } from "uuid";
 import type {
-  Entry,
   CreateEntryInput,
+  Entry,
+  ListEntriesFilter,
   SubmitProcessedInput,
   UpdateEntryInput,
-  ListEntriesFilter,
 } from "./types.js";
 
 interface EntryRow {
@@ -29,25 +29,19 @@ export class EntryRepository {
     const id = uuidv4();
     if (input.image_path) {
       this.db
-        .prepare(
-          `INSERT INTO entries (id, raw_text, image_path) VALUES (?, ?, ?)`
-        )
+        .prepare(`INSERT INTO entries (id, raw_text, image_path) VALUES (?, ?, ?)`)
         .run(id, input.raw_text, input.image_path);
     } else {
-      this.db
-        .prepare(
-          `INSERT INTO entries (id, raw_text) VALUES (?, ?)`
-        )
-        .run(id, input.raw_text);
+      this.db.prepare(`INSERT INTO entries (id, raw_text) VALUES (?, ?)`).run(id, input.raw_text);
     }
 
     return this.getById(id)!;
   }
 
   getById(id: string): Entry | null {
-    const row = this.db
-      .prepare(`SELECT * FROM entries WHERE id = ?`)
-      .get(id) as EntryRow | undefined;
+    const row = this.db.prepare(`SELECT * FROM entries WHERE id = ?`).get(id) as
+      | EntryRow
+      | undefined;
     if (!row) return null;
     return this.rowToEntry(row);
   }
@@ -73,13 +67,13 @@ export class EntryRepository {
       params.push(filter.delegatable ? 1 : 0);
     }
     if (filter.tag !== undefined) {
-      conditions.push("EXISTS (SELECT 1 FROM entry_tags et WHERE et.entry_id = e.id AND et.tag = ?)");
+      conditions.push(
+        "EXISTS (SELECT 1 FROM entry_tags et WHERE et.entry_id = e.id AND et.tag = ?)",
+      );
       params.push(filter.tag);
     }
     if (filter.query !== undefined) {
-      conditions.push(
-        "e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)"
-      );
+      conditions.push("e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)");
       params.push(filter.query);
     }
 
@@ -88,9 +82,7 @@ export class EntryRepository {
     const offset = filter.offset ?? 0;
 
     const rows = this.db
-      .prepare(
-        `SELECT e.* FROM entries e ${where} ORDER BY e.created_at DESC LIMIT ? OFFSET ?`
-      )
+      .prepare(`SELECT e.* FROM entries e ${where} ORDER BY e.created_at DESC LIMIT ? OFFSET ?`)
       .all(...params, limit, offset) as EntryRow[];
 
     return rows.map((row) => this.rowToEntry(row));
@@ -98,9 +90,7 @@ export class EntryRepository {
 
   getUnprocessed(limit: number = 20): Entry[] {
     const rows = this.db
-      .prepare(
-        `SELECT * FROM entries WHERE processed = 0 ORDER BY created_at ASC LIMIT ?`
-      )
+      .prepare(`SELECT * FROM entries WHERE processed = 0 ORDER BY created_at ASC LIMIT ?`)
       .all(limit) as EntryRow[];
     return rows.map((row) => this.rowToEntry(row));
   }
@@ -108,7 +98,7 @@ export class EntryRepository {
   submitProcessed(input: SubmitProcessedInput): Entry {
     this.db
       .prepare(
-        `UPDATE entries SET processed = 1, type = ?, title = ?, priority = ?, due_date = ?, status = ?, delegatable = ? WHERE id = ?`
+        `UPDATE entries SET processed = 1, type = ?, title = ?, priority = ?, due_date = ?, status = ?, delegatable = ? WHERE id = ?`,
       )
       .run(
         input.type,
@@ -117,14 +107,12 @@ export class EntryRepository {
         input.due_date,
         input.type === "task" ? "pending" : null,
         input.delegatable ? 1 : 0,
-        input.id
+        input.id,
       );
 
     // Replace tags
     this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(input.id);
-    const insertTag = this.db.prepare(
-      `INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`
-    );
+    const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);
     for (const tag of input.tags) {
       insertTag.run(input.id, tag);
     }
@@ -163,16 +151,12 @@ export class EntryRepository {
 
     if (sets.length > 0) {
       params.push(input.id);
-      this.db
-        .prepare(`UPDATE entries SET ${sets.join(", ")} WHERE id = ?`)
-        .run(...params);
+      this.db.prepare(`UPDATE entries SET ${sets.join(", ")} WHERE id = ?`).run(...params);
     }
 
     if (input.tags !== undefined) {
       this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(input.id);
-      const insertTag = this.db.prepare(
-        `INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`
-      );
+      const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);
       for (const tag of input.tags) {
         insertTag.run(input.id, tag);
       }
@@ -182,9 +166,7 @@ export class EntryRepository {
   }
 
   delete(id: string): boolean {
-    const result = this.db
-      .prepare(`DELETE FROM entries WHERE id = ?`)
-      .run(id);
+    const result = this.db.prepare(`DELETE FROM entries WHERE id = ?`).run(id);
     return result.changes > 0;
   }
 
@@ -210,16 +192,16 @@ export class EntryRepository {
             ELSE 0
           END +
           MAX(0, 5.0 - (julianday('now') - julianday(created_at)))) DESC
-        LIMIT ?`
+        LIMIT ?`,
       )
       .all(limit) as EntryRow[];
     return rows.map((row) => this.rowToEntry(row));
   }
 
   private rowToEntry(row: EntryRow): Entry {
-    const tags = this.db
-      .prepare(`SELECT tag FROM entry_tags WHERE entry_id = ?`)
-      .all(row.id) as { tag: string }[];
+    const tags = this.db.prepare(`SELECT tag FROM entry_tags WHERE entry_id = ?`).all(row.id) as {
+      tag: string;
+    }[];
 
     return {
       id: row.id,

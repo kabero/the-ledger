@@ -28,6 +28,7 @@ export function TodayTasks() {
       {tasks.map((task) => (
         <div key={task.id} className={`entry ${task.status === "done" ? "done" : ""}`}>
           <button
+            type="button"
             className="checkbox"
             onClick={() =>
               updateEntry.mutate({

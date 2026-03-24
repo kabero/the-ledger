@@ -108,6 +108,10 @@ export const appRouter = t.router({
       return ctx.service.getTodayTasks(input?.limit);
     }),
 
+  getStats: t.procedure.query(({ ctx }) => {
+    return ctx.service.getStats();
+  }),
+
   // スケジュールおつかい
   createScheduledTask: t.procedure
     .input(

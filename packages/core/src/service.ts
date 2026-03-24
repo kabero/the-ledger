@@ -110,6 +110,10 @@ export class EntryService {
     return this.ensureScheduledTaskRepo().delete(id);
   }
 
+  getStats() {
+    return this.repository.getStats();
+  }
+
   runDueScheduledTasks(): Entry[] {
     const repo = this.ensureScheduledTaskRepo();
     const dueTasks = repo.getDue();

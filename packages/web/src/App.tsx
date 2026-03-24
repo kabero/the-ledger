@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
-import { GraphView } from "./components/GraphView";
+import { Gallery } from "./components/Gallery";
 import { Settings, applyFont } from "./components/Settings";
 import { trpc } from "./trpc";
 
@@ -16,7 +16,7 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
 
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("task");
-  const [showGraph, setShowGraph] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => { applyFont(); }, []);
@@ -43,24 +43,33 @@ export function App() {
     }
   }, [activeIndex]);
 
-  if (showGraph) {
-    return (
-      <div className="graph-fullscreen">
-        <button type="button" className="graph-close" onClick={() => setShowGraph(false)}>
-          x
-        </button>
-        <GraphView fullscreen />
-      </div>
-    );
+  if (showGallery) {
+    return <Gallery onClose={() => setShowGallery(false)} />;
   }
 
   return (
     <div className="container">
       <div className="sticky-top">
         <div className="header">
-          <button type="button" className="header-title" onClick={() => setShowGraph(true)}>
-            * THE LEDGER *
-          </button>
+          <div className="header-title-row">
+            {unprocessedCount > 0 ? (
+              <button
+                type="button"
+                className="header-unprocessed"
+                onClick={() =>
+                  setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")
+                }
+              >
+                {unprocessedCount}
+              </button>
+            ) : (
+              <span className="header-unprocessed-spacer" />
+            )}
+            <button type="button" className="header-title" onClick={() => setShowGallery(true)}>
+              * THE LEDGER *
+            </button>
+            <span className="header-unprocessed-spacer" />
+          </div>
           <div className="header-sub">
             <button
               type="button"
@@ -78,23 +87,12 @@ export function App() {
             </button>
             <button
               type="button"
-              className="header-link"
+              className="header-link header-gear"
               onClick={() => setShowSettings(true)}
+              title="設定"
             >
-              設定
+              {"\u2699"}
             </button>
-            {unprocessedCount > 0 && (
-              <button
-                type="button"
-                className="badge"
-                onClick={() =>
-                  setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")
-                }
-                style={{ cursor: "pointer", border: "none" }}
-              >
-                {unprocessedCount} 件 未処理
-              </button>
-            )}
           </div>
         </div>
         <EntryInput />

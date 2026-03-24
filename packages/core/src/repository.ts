@@ -207,6 +207,112 @@ export class EntryRepository {
     return this.rowsToEntries(rows);
   }
 
+  getStats(): {
+    streak: number;
+    weeklyCompletions: { week: string; count: number }[];
+    leadTimeDistribution: { bucket: string; count: number }[];
+    hourlyCompletions: { hour: number; count: number }[];
+  } {
+    // 1. Streak: 今日から遡って連続で完了タスクがある日数
+    const streakRows = this.db
+      .prepare(
+        `SELECT DISTINCT date(completed_at, 'localtime') AS d
+         FROM entries
+         WHERE completed_at IS NOT NULL
+         ORDER BY d DESC`,
+      )
+      .all() as { d: string }[];
+
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < streakRows.length; i++) {
+      const expected = new Date(today);
+      expected.setDate(expected.getDate() - i);
+      const expectedStr = expected.toISOString().slice(0, 10);
+      if (streakRows[i].d === expectedStr) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    // 2. Weekly completions: 過去4週分
+    const weeklyRows = this.db
+      .prepare(
+        `SELECT
+           CAST((julianday('now', 'localtime', 'start of day') - julianday(date(completed_at, 'localtime'))) / 7 AS INTEGER) AS week_ago,
+           COUNT(*) AS count
+         FROM entries
+         WHERE completed_at IS NOT NULL
+           AND date(completed_at, 'localtime') >= date('now', 'localtime', '-27 days')
+         GROUP BY week_ago
+         ORDER BY week_ago DESC`,
+      )
+      .all() as { week_ago: number; count: number }[];
+
+    const weeklyMap = new Map<number, number>();
+    for (const row of weeklyRows) {
+      weeklyMap.set(row.week_ago, row.count);
+    }
+    const weeklyCompletions: { week: string; count: number }[] = [];
+    for (let w = 3; w >= 0; w--) {
+      const start = new Date(today);
+      start.setDate(start.getDate() - w * 7);
+      // 週の開始日のラベル (M/D)
+      const label = `${start.getMonth() + 1}/${start.getDate()}`;
+      weeklyCompletions.push({ week: label, count: weeklyMap.get(w) ?? 0 });
+    }
+
+    // 3. Lead time distribution
+    const leadRows = this.db
+      .prepare(
+        `SELECT
+           CAST(julianday(completed_at) - julianday(created_at) AS INTEGER) AS days
+         FROM entries
+         WHERE completed_at IS NOT NULL`,
+      )
+      .all() as { days: number }[];
+
+    const buckets = ["当日", "1日", "2-3日", "4-7日", "8日以上"];
+    const bucketCounts = [0, 0, 0, 0, 0];
+    for (const row of leadRows) {
+      const d = row.days;
+      if (d <= 0) bucketCounts[0]++;
+      else if (d === 1) bucketCounts[1]++;
+      else if (d <= 3) bucketCounts[2]++;
+      else if (d <= 7) bucketCounts[3]++;
+      else bucketCounts[4]++;
+    }
+    const leadTimeDistribution = buckets.map((bucket, i) => ({
+      bucket,
+      count: bucketCounts[i],
+    }));
+
+    // 4. Hourly completions
+    const hourlyRows = this.db
+      .prepare(
+        `SELECT
+           CAST(strftime('%H', completed_at, 'localtime') AS INTEGER) AS hour,
+           COUNT(*) AS count
+         FROM entries
+         WHERE completed_at IS NOT NULL
+         GROUP BY hour`,
+      )
+      .all() as { hour: number; count: number }[];
+
+    const hourlyMap = new Map<number, number>();
+    for (const row of hourlyRows) {
+      hourlyMap.set(row.hour, row.count);
+    }
+    const hourlyCompletions: { hour: number; count: number }[] = [];
+    for (let h = 0; h < 24; h++) {
+      hourlyCompletions.push({ hour: h, count: hourlyMap.get(h) ?? 0 });
+    }
+
+    return { streak, weeklyCompletions, leadTimeDistribution, hourlyCompletions };
+  }
+
   private replaceTags(entryId: string, tags: string[]): void {
     this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(entryId);
     const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);

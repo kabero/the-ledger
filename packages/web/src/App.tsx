@@ -22,16 +22,15 @@ export function App() {
 
   return (
     <div className="container">
-      <div className="header">
-        * THE LEDGER *
-        {unprocessedCount > 0 && (
-          <span style={{ marginLeft: 12 }}>
-            <span className="badge">{unprocessedCount} 件 未処理</span>
-          </span>
-        )}
-      </div>
-
-      <div className="section">
+      <div className="sticky-top">
+        <div className="header">
+          * THE LEDGER *
+          {unprocessedCount > 0 && (
+            <span style={{ marginLeft: 12 }}>
+              <span className="badge">{unprocessedCount} 件 未処理</span>
+            </span>
+          )}
+        </div>
         <EntryInput />
       </div>
 

@@ -18,6 +18,7 @@ export function createDatabase(dbPath?: string): Database.Database {
   db.pragma("busy_timeout = 5000");
   db.pragma("foreign_keys = ON");
   migrate(db);
+  runMigrations(db);
   return db;
 }
 
@@ -32,7 +33,8 @@ function migrate(db: Database.Database): void {
       title TEXT,
       priority INTEGER,
       due_date TEXT,
-      status TEXT
+      status TEXT,
+      delegatable INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS entry_tags (
@@ -65,4 +67,13 @@ function migrate(db: Database.Database): void {
       VALUES (new.rowid, new.raw_text, new.title);
     END;
   `);
+}
+
+function runMigrations(db: Database.Database): void {
+  const columns = db.pragma("table_info(entries)") as { name: string }[];
+  const hasCol = (name: string) => columns.some((c) => c.name === name);
+
+  if (!hasCol("delegatable")) {
+    db.exec("ALTER TABLE entries ADD COLUMN delegatable INTEGER NOT NULL DEFAULT 0");
+  }
 }

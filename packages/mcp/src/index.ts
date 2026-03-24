@@ -71,9 +71,13 @@ server.tool(
       .string()
       .nullable()
       .describe("ISO date string for deadline (tasks/events, null otherwise)"),
+    delegatable: z
+      .boolean()
+      .default(false)
+      .describe("Whether this task can be delegated to an LLM"),
   },
-  async ({ id, type, title, tags, priority, due_date }) => {
-    const entry = service.submitProcessed({ id, type, title, tags, priority, due_date });
+  async ({ id, type, title, tags, priority, due_date, delegatable }) => {
+    const entry = service.submitProcessed({ id, type, title, tags, priority, due_date, delegatable });
     return {
       content: [
         { type: "text", text: JSON.stringify(entry, null, 2) },
@@ -91,6 +95,7 @@ server.tool(
     tag: z.string().optional().describe("Filter by tag"),
     query: z.string().optional().describe("Full-text search query"),
     processed: z.boolean().optional().describe("Filter by processed status"),
+    delegatable: z.boolean().optional().describe("Filter by LLM-delegatable tasks"),
     limit: z.number().int().positive().max(100).default(20).describe("Max results"),
     offset: z.number().int().nonnegative().default(0).describe("Offset for pagination"),
   },

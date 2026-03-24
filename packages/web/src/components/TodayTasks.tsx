@@ -42,7 +42,7 @@ export function TodayTasks() {
             <div className="entry-title">{task.title ?? task.raw_text}</div>
             {task.priority && (
               <span className={`priority ${task.priority >= 4 ? "high" : ""}`}>
-                P{task.priority}
+                {"!".repeat(task.priority)}
               </span>
             )}
             {task.due_date && (

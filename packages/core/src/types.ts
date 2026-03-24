@@ -27,6 +27,7 @@ export interface Entry extends RawEntry {
   priority: number | null;
   due_date: string | null;
   status: TaskStatus | null;
+  delegatable: boolean;
 }
 
 export interface CreateEntryInput {
@@ -40,6 +41,7 @@ export interface SubmitProcessedInput {
   tags: string[];
   priority: number | null;
   due_date: string | null;
+  delegatable: boolean;
 }
 
 export interface UpdateEntryInput {
@@ -50,6 +52,7 @@ export interface UpdateEntryInput {
   due_date?: string | null;
   status?: TaskStatus;
   type?: EntryType;
+  delegatable?: boolean;
 }
 
 export interface ListEntriesFilter {
@@ -58,6 +61,7 @@ export interface ListEntriesFilter {
   tag?: string;
   query?: string;
   processed?: boolean;
+  delegatable?: boolean;
   limit?: number;
   offset?: number;
 }

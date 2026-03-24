@@ -18,6 +18,7 @@ interface EntryRow {
   priority: number | null;
   due_date: string | null;
   status: string | null;
+  delegatable: number;
 }
 
 export class EntryRepository {
@@ -58,6 +59,10 @@ export class EntryRepository {
       conditions.push("e.processed = ?");
       params.push(filter.processed ? 1 : 0);
     }
+    if (filter.delegatable !== undefined) {
+      conditions.push("e.delegatable = ?");
+      params.push(filter.delegatable ? 1 : 0);
+    }
     if (filter.tag !== undefined) {
       conditions.push("EXISTS (SELECT 1 FROM entry_tags et WHERE et.entry_id = e.id AND et.tag = ?)");
       params.push(filter.tag);
@@ -94,7 +99,7 @@ export class EntryRepository {
   submitProcessed(input: SubmitProcessedInput): Entry {
     this.db
       .prepare(
-        `UPDATE entries SET processed = 1, type = ?, title = ?, priority = ?, due_date = ?, status = ? WHERE id = ?`
+        `UPDATE entries SET processed = 1, type = ?, title = ?, priority = ?, due_date = ?, status = ?, delegatable = ? WHERE id = ?`
       )
       .run(
         input.type,
@@ -102,6 +107,7 @@ export class EntryRepository {
         input.priority,
         input.due_date,
         input.type === "task" ? "pending" : null,
+        input.delegatable ? 1 : 0,
         input.id
       );
 
@@ -140,6 +146,10 @@ export class EntryRepository {
     if (input.type !== undefined) {
       sets.push("type = ?");
       params.push(input.type);
+    }
+    if (input.delegatable !== undefined) {
+      sets.push("delegatable = ?");
+      params.push(input.delegatable ? 1 : 0);
     }
 
     if (sets.length > 0) {
@@ -213,6 +223,7 @@ export class EntryRepository {
       priority: row.priority,
       due_date: row.due_date,
       status: row.status as Entry["status"],
+      delegatable: row.delegatable === 1,
     };
   }
 }

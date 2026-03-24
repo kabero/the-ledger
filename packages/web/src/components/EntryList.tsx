@@ -69,7 +69,7 @@ export function EntryList({ tab }: EntryListProps) {
               )}
               {entry.priority && (
                 <span className={`priority ${entry.priority >= 4 ? "high" : ""}`}>
-                  P{entry.priority}
+                  {"!".repeat(entry.priority)}
                 </span>
               )}
             </div>

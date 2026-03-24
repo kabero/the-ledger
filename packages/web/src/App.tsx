@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "./trpc";
 import { EntryInput } from "./components/EntryInput";
-import { TodayTasks } from "./components/TodayTasks";
+
 import { EntryList } from "./components/EntryList";
 
 type Tab = "all" | "task" | "event" | "note" | "wish" | "done";
@@ -37,10 +37,6 @@ export function App() {
 
       <div className="section">
         <EntryInput />
-      </div>
-
-      <div className="section">
-        <TodayTasks />
       </div>
 
       <div className="section">

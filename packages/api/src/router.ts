@@ -38,6 +38,7 @@ export const appRouter = t.router({
           tag: z.string().optional(),
           query: z.string().optional(),
           processed: z.boolean().optional(),
+          delegatable: z.boolean().optional(),
           limit: z.number().int().positive().max(100).optional(),
           offset: z.number().int().nonnegative().optional(),
         })
@@ -62,6 +63,7 @@ export const appRouter = t.router({
         tags: z.array(z.string()),
         priority: z.number().int().min(1).max(5).nullable(),
         due_date: z.string().nullable(),
+        delegatable: z.boolean().default(false),
       })
     )
     .mutation(({ input, ctx }) => {
@@ -78,6 +80,7 @@ export const appRouter = t.router({
         due_date: z.string().nullable().optional(),
         status: taskStatusEnum.optional(),
         type: entryTypeEnum.optional(),
+        delegatable: z.boolean().optional(),
       })
     )
     .mutation(({ input, ctx }) => {

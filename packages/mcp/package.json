@@ -1,0 +1,24 @@
+{
+  "name": "@theledger/mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "theledger-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1",
+    "@theledger/core": "workspace:*",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "tsup": "^8",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

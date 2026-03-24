@@ -1,0 +1,25 @@
+{
+  "name": "@theledger/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.11",
+    "@hono/trpc-server": "^0.3",
+    "@theledger/core": "workspace:*",
+    "@trpc/server": "^11",
+    "hono": "^4",
+    "superjson": "^2",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "tsup": "^8",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

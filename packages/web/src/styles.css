@@ -1,0 +1,248 @@
+@import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #000;
+  --fg: #fff;
+  --border: #aaa;
+  --accent: #ff0;
+  --dim: #666;
+  --done: #0f0;
+  --danger: #f00;
+  --font: "DotGothic16", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.8;
+  min-height: 100vh;
+}
+
+/* Undertale-style dialog box */
+.box {
+  border: 3px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 12px 0;
+  position: relative;
+}
+
+.box-title {
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  background: var(--bg);
+  padding: 0 8px;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+/* Input */
+.input-box {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.8;
+  outline: none;
+  resize: none;
+}
+
+.input-box::placeholder {
+  color: var(--dim);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 0;
+  border: 2px solid var(--border);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: color 0.1s;
+}
+
+.tab + .tab {
+  border-left: none;
+}
+
+.tab:hover {
+  color: var(--fg);
+}
+
+.tab.active {
+  color: var(--accent);
+  background: var(--bg);
+  border-bottom: 3px solid var(--bg);
+  margin-bottom: -3px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Entry list container */
+.entry-list-box {
+  border: 2px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  padding: 16px 20px;
+}
+
+/* Entry items */
+.entry {
+  padding: 10px 0;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.entry:last-child {
+  border-bottom: none;
+}
+
+.entry-title {
+  flex: 1;
+  font-size: 15px;
+}
+
+.entry-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.tag {
+  font-size: 12px;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.tag::before {
+  content: "#";
+}
+
+/* Checkbox */
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 3px;
+  font-size: 14px;
+  background: transparent;
+  color: var(--done);
+  font-family: var(--font);
+  transition: border-color 0.1s;
+}
+
+.checkbox:hover {
+  border-color: var(--accent);
+}
+
+/* Badge */
+.badge {
+  font-size: 12px;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Priority */
+.priority {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.priority.high {
+  color: var(--danger);
+}
+
+/* Type badge */
+.type-badge {
+  font-size: 11px;
+  color: var(--dim);
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+/* Layout */
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+/* Done entry */
+.entry.done .entry-title {
+  color: var(--dim);
+  text-decoration: line-through;
+}
+
+/* Unprocessed indicator */
+.unprocessed-text {
+  color: var(--dim);
+  font-size: 14px;
+}
+
+/* Delete button */
+.btn-del {
+  background: transparent;
+  border: none;
+  color: #444;
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.1s;
+}
+
+.btn-del:hover {
+  color: var(--danger);
+}
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 16px 0 28px;
+  font-size: 20px;
+  letter-spacing: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}

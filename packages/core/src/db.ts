@@ -71,6 +71,18 @@ function migrate(db: Database.Database): void {
       INSERT INTO entries_fts(rowid, raw_text, title)
       VALUES (new.rowid, new.raw_text, new.title);
     END;
+
+    CREATE TABLE IF NOT EXISTS scheduled_tasks (
+      id TEXT PRIMARY KEY,
+      raw_text TEXT NOT NULL,
+      frequency TEXT NOT NULL,
+      day_of_week INTEGER,
+      day_of_month INTEGER,
+      hour INTEGER NOT NULL DEFAULT 8,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_run_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 }
 

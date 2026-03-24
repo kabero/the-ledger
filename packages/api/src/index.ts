@@ -7,6 +7,7 @@ import {
   EntryRepository,
   EntryService,
   MAX_IMAGE_SIZE,
+  ScheduledTaskRepository,
 } from "@theledger/core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -15,7 +16,8 @@ import { appRouter } from "./router.js";
 
 const db = createDatabase();
 const repository = new EntryRepository(db);
-const service = new EntryService(repository);
+const scheduledTaskRepository = new ScheduledTaskRepository(db);
+const service = new EntryService(repository, scheduledTaskRepository);
 
 const app = new Hono();
 

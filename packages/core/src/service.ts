@@ -3,20 +3,27 @@ import os from "node:os";
 import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import type { EntryRepository } from "./repository.js";
+import type { ScheduledTaskRepository } from "./scheduled-task-repository.js";
 import {
   ALLOWED_IMAGE_EXTENSIONS,
   type CreateEntryInput,
+  type CreateScheduledTaskInput,
   type Entry,
   type ListEntriesFilter,
   MAX_IMAGE_SIZE,
+  type ScheduledTask,
   type SubmitProcessedInput,
   type UpdateEntryInput,
+  type UpdateScheduledTaskInput,
 } from "./types.js";
 
 const IMAGES_DIR = path.join(os.homedir(), ".theledger", "images");
 
 export class EntryService {
-  constructor(private repository: EntryRepository) {}
+  constructor(
+    private repository: EntryRepository,
+    private scheduledTaskRepository?: ScheduledTaskRepository,
+  ) {}
 
   createEntry(input: CreateEntryInput): Entry {
     return this.repository.create(input);
@@ -74,5 +81,44 @@ export class EntryService {
     const tempId = uuidv4();
     const imagePath = this.saveImage(imageData, tempId, ext);
     return this.repository.create({ raw_text: rawText || "(画像)", image_path: imagePath });
+  }
+
+  private ensureScheduledTaskRepo(): ScheduledTaskRepository {
+    if (!this.scheduledTaskRepository) {
+      throw new Error("ScheduledTaskRepository is not configured");
+    }
+    return this.scheduledTaskRepository;
+  }
+
+  createScheduledTask(input: CreateScheduledTaskInput): ScheduledTask {
+    return this.ensureScheduledTaskRepo().create(input);
+  }
+
+  listScheduledTasks(): ScheduledTask[] {
+    return this.ensureScheduledTaskRepo().list();
+  }
+
+  getScheduledTask(id: string): ScheduledTask | null {
+    return this.ensureScheduledTaskRepo().getById(id);
+  }
+
+  updateScheduledTask(input: UpdateScheduledTaskInput): ScheduledTask | null {
+    return this.ensureScheduledTaskRepo().update(input);
+  }
+
+  deleteScheduledTask(id: string): boolean {
+    return this.ensureScheduledTaskRepo().delete(id);
+  }
+
+  runDueScheduledTasks(): Entry[] {
+    const repo = this.ensureScheduledTaskRepo();
+    const dueTasks = repo.getDue();
+    const createdEntries: Entry[] = [];
+    for (const task of dueTasks) {
+      const entry = this.createEntry({ raw_text: task.raw_text });
+      createdEntries.push(entry);
+      repo.markRun(task.id);
+    }
+    return createdEntries;
   }
 }

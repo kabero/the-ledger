@@ -76,3 +76,35 @@ export interface ListEntriesFilter {
   offset?: number;
   sort?: "created_at" | "updated_at" | "completed_at";
 }
+
+export type ScheduleFrequency = "daily" | "weekly" | "monthly";
+
+export interface ScheduledTask {
+  id: string;
+  raw_text: string;
+  frequency: ScheduleFrequency;
+  day_of_week: number | null;
+  day_of_month: number | null;
+  hour: number;
+  enabled: boolean;
+  last_run_at: string | null;
+  created_at: string;
+}
+
+export interface CreateScheduledTaskInput {
+  raw_text: string;
+  frequency: ScheduleFrequency;
+  day_of_week?: number | null;
+  day_of_month?: number | null;
+  hour?: number;
+}
+
+export interface UpdateScheduledTaskInput {
+  id: string;
+  raw_text?: string;
+  frequency?: ScheduleFrequency;
+  day_of_week?: number | null;
+  day_of_month?: number | null;
+  hour?: number;
+  enabled?: boolean;
+}

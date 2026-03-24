@@ -8,13 +8,15 @@ import {
   type Entry,
   EntryRepository,
   EntryService,
+  ScheduledTaskRepository,
   TASK_STATUSES,
 } from "@theledger/core";
 import { z } from "zod";
 
 const db = createDatabase();
 const repository = new EntryRepository(db);
-const service = new EntryService(repository);
+const scheduledTaskRepository = new ScheduledTaskRepository(db);
+const service = new EntryService(repository, scheduledTaskRepository);
 
 const server = new McpServer({
   name: "theledger",

@@ -107,6 +107,51 @@ export const appRouter = t.router({
     .query(({ input, ctx }) => {
       return ctx.service.getTodayTasks(input?.limit);
     }),
+
+  // スケジュールおつかい
+  createScheduledTask: t.procedure
+    .input(
+      z.object({
+        raw_text: z.string().min(1),
+        frequency: z.enum(["daily", "weekly", "monthly"]),
+        day_of_week: z.number().int().min(0).max(6).nullable().optional(),
+        day_of_month: z.number().int().min(1).max(31).nullable().optional(),
+        hour: z.number().int().min(0).max(23).optional(),
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      return ctx.service.createScheduledTask(input);
+    }),
+
+  listScheduledTasks: t.procedure.query(({ ctx }) => {
+    return ctx.service.listScheduledTasks();
+  }),
+
+  updateScheduledTask: t.procedure
+    .input(
+      z.object({
+        id: z.string(),
+        raw_text: z.string().min(1).optional(),
+        frequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+        day_of_week: z.number().int().min(0).max(6).nullable().optional(),
+        day_of_month: z.number().int().min(1).max(31).nullable().optional(),
+        hour: z.number().int().min(0).max(23).optional(),
+        enabled: z.boolean().optional(),
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      return ctx.service.updateScheduledTask(input);
+    }),
+
+  deleteScheduledTask: t.procedure
+    .input(z.object({ id: z.string() }))
+    .mutation(({ input, ctx }) => {
+      return ctx.service.deleteScheduledTask(input.id);
+    }),
+
+  runDueScheduledTasks: t.procedure.mutation(({ ctx }) => {
+    return ctx.service.runDueScheduledTasks();
+  }),
 });
 
 export type AppRouter = typeof appRouter;

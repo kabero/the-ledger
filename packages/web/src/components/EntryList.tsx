@@ -50,11 +50,12 @@ export function EntryList({ tab }: EntryListProps) {
   }
 
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onOk: () => void } | null>(null);
 
   useEffect(() => {
-    document.body.style.overflow = modalEntry ? "hidden" : "";
+    document.body.style.overflow = (modalEntry || confirmAction) ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [modalEntry]);
+  }, [modalEntry, confirmAction]);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -98,6 +99,13 @@ export function EntryList({ tab }: EntryListProps) {
 
   return (
     <>
+      {confirmAction && (
+        <ConfirmModal
+          message={confirmAction.message}
+          onOk={confirmAction.onOk}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
       {modalEntry && (
         <ResultModal
           title={modalEntry.title}
@@ -114,6 +122,20 @@ export function EntryList({ tab }: EntryListProps) {
                 className="checkbox"
                 onClick={() => {
                   const newStatus = entry.status === "done" ? "pending" : "done";
+                  if (tab === "llm" && newStatus === "pending") {
+                    setConfirmAction({
+                      message: "おつかいの成果があるけど、未完了に戻しますか？",
+                      onOk: () => {
+                        setLocalStatus((prev) => ({
+                          ...prev,
+                          [entry.id]: { status: "pending", completed_at: null },
+                        }));
+                        updateEntry.mutate({ id: entry.id, status: "pending" });
+                        setConfirmAction(null);
+                      },
+                    });
+                    return;
+                  }
                   setLocalStatus((prev) => ({
                     ...prev,
                     [entry.id]: {
@@ -138,13 +160,17 @@ export function EntryList({ tab }: EntryListProps) {
                   <button
                     type="button"
                     className="btn-result-title"
-                    onClick={() =>
+                    onClick={() => {
                       setModalEntry({
                         title: entry.title ?? entry.raw_text,
                         result: entry.result as string,
-                      })
-                    }
+                      });
+                      if (!entry.result_seen) {
+                        updateEntry.mutate({ id: entry.id, result_seen: true });
+                      }
+                    }}
                   >
+                    {!entry.result_seen && <span className="badge-new">NEW</span>}
                     {entry.title ?? entry.raw_text}
                   </button>
                 ) : (
@@ -205,6 +231,35 @@ function ResultModal({
         <div className="result-modal-title">{title}</div>
         <div className="result-modal-body">
           <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({
+  message,
+  onOk,
+  onCancel,
+}: {
+  message: string;
+  onOk: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="result-overlay"
+      role="dialog"
+      onClick={onCancel}
+      onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
+    >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
+      <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="confirm-message">{message}</div>
+        <div className="confirm-buttons">
+          <button type="button" className="confirm-btn confirm-btn-cancel" onClick={onCancel}>やめる</button>
+          <button type="button" className="confirm-btn confirm-btn-ok" onClick={onOk}>戻す</button>
         </div>
       </div>
     </div>

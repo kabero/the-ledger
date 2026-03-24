@@ -21,6 +21,7 @@ interface EntryRow {
   delegatable: number;
   image_path: string | null;
   result: string | null;
+  result_seen: number;
   updated_at: string | null;
   completed_at: string | null;
 }
@@ -155,6 +156,11 @@ export class EntryRepository {
     if (input.result !== undefined) {
       sets.push("result = ?");
       params.push(input.result);
+      sets.push("result_seen = 0");
+    }
+    if (input.result_seen !== undefined) {
+      sets.push("result_seen = ?");
+      params.push(input.result_seen ? 1 : 0);
     }
 
     sets.push("updated_at = datetime('now')");
@@ -242,6 +248,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
+      result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
     }));
   }
@@ -265,6 +272,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
+      result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
     };
   }

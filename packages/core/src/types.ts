@@ -33,6 +33,7 @@ export interface Entry extends RawEntry {
   delegatable: boolean;
   image_path: string | null;
   result: string | null;
+  result_seen: boolean;
   completed_at: string | null;
 }
 
@@ -61,6 +62,7 @@ export interface UpdateEntryInput {
   type?: EntryType;
   delegatable?: boolean;
   result?: string;
+  result_seen?: boolean;
 }
 
 export interface ListEntriesFilter {

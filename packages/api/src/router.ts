@@ -18,9 +18,17 @@ const taskStatusEnum = z.enum(TASK_STATUSES);
 
 export const appRouter = t.router({
   addEntry: t.procedure
-    .input(z.object({ raw_text: z.string().min(1) }))
+    .input(z.object({
+      raw_text: z.string().min(1),
+      image: z.string().optional(),
+      image_ext: z.string().optional(),
+    }))
     .mutation(({ input, ctx }) => {
-      return ctx.service.createEntry(input);
+      if (input.image && input.image_ext) {
+        const imageData = Buffer.from(input.image, "base64");
+        return ctx.service.createEntryWithImage(input.raw_text, imageData, input.image_ext);
+      }
+      return ctx.service.createEntry({ raw_text: input.raw_text });
     }),
 
   getEntry: t.procedure

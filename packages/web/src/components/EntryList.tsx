@@ -55,7 +55,12 @@ export function EntryList({ tab }: EntryListProps) {
             </button>
           )}
           <div className="entry-title">
-            <div>{entry.title ?? entry.raw_text}</div>
+            <div>
+              {entry.image_path && (
+                <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">[IMG]</span>
+              )}
+              {entry.title ?? entry.raw_text}
+            </div>
             <div className="entry-tags">
               {entry.tags?.map((tag) => (
                 <span key={tag} className="tag">

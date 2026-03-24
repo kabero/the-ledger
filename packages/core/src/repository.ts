@@ -19,6 +19,7 @@ interface EntryRow {
   due_date: string | null;
   status: string | null;
   delegatable: number;
+  image_path: string | null;
 }
 
 export class EntryRepository {
@@ -26,11 +27,19 @@ export class EntryRepository {
 
   create(input: CreateEntryInput): Entry {
     const id = uuidv4();
-    this.db
-      .prepare(
-        `INSERT INTO entries (id, raw_text) VALUES (?, ?)`
-      )
-      .run(id, input.raw_text);
+    if (input.image_path) {
+      this.db
+        .prepare(
+          `INSERT INTO entries (id, raw_text, image_path) VALUES (?, ?, ?)`
+        )
+        .run(id, input.raw_text, input.image_path);
+    } else {
+      this.db
+        .prepare(
+          `INSERT INTO entries (id, raw_text) VALUES (?, ?)`
+        )
+        .run(id, input.raw_text);
+    }
 
     return this.getById(id)!;
   }
@@ -224,6 +233,7 @@ export class EntryRepository {
       due_date: row.due_date,
       status: row.status as Entry["status"],
       delegatable: row.delegatable === 1,
+      image_path: row.image_path ?? null,
     };
   }
 }

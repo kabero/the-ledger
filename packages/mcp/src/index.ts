@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -22,12 +24,20 @@ const server = new McpServer({
 
 server.tool(
   "add_entry",
-  "Add a new raw entry to The Ledger. Just throw in whatever you're thinking.",
+  "Add a new raw entry to The Ledger. Just throw in whatever you're thinking. Optionally attach an image.",
   {
     raw_text: z.string().describe("The raw text of the thought, idea, task, etc."),
+    image: z.string().optional().describe("Base64-encoded image data (optional)"),
+    image_ext: z.string().optional().describe("Image file extension: png, jpg, jpeg, gif, webp (optional)"),
   },
-  async ({ raw_text }) => {
-    const entry = service.createEntry({ raw_text });
+  async ({ raw_text, image, image_ext }) => {
+    let entry;
+    if (image && image_ext) {
+      const imageData = Buffer.from(image, "base64");
+      entry = service.createEntryWithImage(raw_text, imageData, image_ext);
+    } else {
+      entry = service.createEntry({ raw_text });
+    }
     return {
       content: [
         { type: "text", text: JSON.stringify(entry, null, 2) },
@@ -38,17 +48,28 @@ server.tool(
 
 server.tool(
   "get_unprocessed",
-  "Get unprocessed entries that need LLM classification (type, tags, title, priority).",
+  "Get unprocessed entries that need LLM classification (type, tags, title, priority). Entries with images include base64 image content.",
   {
     limit: z.number().int().positive().max(50).default(20).describe("Max entries to return"),
   },
   async ({ limit }) => {
     const entries = service.getUnprocessed(limit);
-    return {
-      content: [
-        { type: "text", text: JSON.stringify(entries, null, 2) },
-      ],
-    };
+    const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [
+      { type: "text", text: JSON.stringify(entries, null, 2) },
+    ];
+    for (const entry of entries) {
+      if (entry.image_path && fs.existsSync(entry.image_path)) {
+        const ext = path.extname(entry.image_path).slice(1).toLowerCase();
+        const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
+        const data = fs.readFileSync(entry.image_path).toString("base64");
+        content.push({
+          type: "image",
+          data,
+          mimeType,
+        });
+      }
+    }
+    return { content };
   }
 );
 

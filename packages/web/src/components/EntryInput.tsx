@@ -1,28 +1,89 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { trpc } from "../trpc";
+
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+function getExtFromMime(mime: string): string {
+  const map: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+  };
+  return map[mime] || "png";
+}
 
 export function EntryInput() {
   const [text, setText] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
 
   const addEntry = trpc.addEntry.useMutation({
     onSuccess: () => {
-      setText("");
-      utils.listEntries.invalidate();
-      utils.getUnprocessed.invalidate();
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
+      reset();
     },
   });
+
+  const reset = useCallback(() => {
+    setText("");
+    setImageFile(null);
+    setImagePreview(null);
+    utils.listEntries.invalidate();
+    utils.getUnprocessed.invalidate();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }, [utils]);
+
+  const attachImage = useCallback((file: File) => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert("未対応の画像形式です。png, jpg, gif, webp のみ対応。");
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      alert("画像サイズが10MBを超えています。");
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    if (!text.trim() && !imageFile) return;
+
+    if (imageFile) {
+      // Use /upload endpoint for image uploads
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("raw_text", text.trim() || "");
+        formData.append("image", imageFile);
+        const res = await fetch("/upload", { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "アップロード失敗");
+        }
+        reset();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "アップロード失敗");
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      addEntry.mutate({ raw_text: text.trim() });
+    }
+  }, [text, imageFile, addEntry, reset]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (text.trim()) {
-        addEntry.mutate({ raw_text: text.trim() });
-      }
+      handleSubmit();
     }
   };
 
@@ -32,18 +93,69 @@ export function EntryInput() {
     e.target.style.height = e.target.scrollHeight + "px";
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) attachImage(file);
+        return;
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith("image/")) {
+      attachImage(files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <div className="box">
+    <div className="box" onDrop={handleDrop} onDragOver={handleDragOver}>
       <span className="box-title">なんでも投げろ</span>
       <textarea
         ref={textareaRef}
         className="input-box"
-        placeholder="頭の中にあること..."
+        placeholder="頭の中にあること... (画像もペースト/ドロップOK)"
         value={text}
         onChange={handleInput}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         rows={1}
       />
+      {imagePreview && (
+        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+          <img
+            src={imagePreview}
+            alt="preview"
+            style={{
+              maxWidth: 120,
+              maxHeight: 80,
+              border: "2px solid #fff",
+              imageRendering: "pixelated",
+            }}
+          />
+          <button
+            className="btn-del"
+            onClick={() => { setImageFile(null); setImagePreview(null); }}
+            style={{ fontSize: 14 }}
+          >
+            x
+          </button>
+        </div>
+      )}
+      {(imageFile || uploading) && (
+        <div style={{ marginTop: 4, fontSize: 12, color: "#aaa" }}>
+          {uploading ? "アップロード中..." : `画像添付済み (${getExtFromMime(imageFile!.type)})`}
+        </div>
+      )}
     </div>
   );
 }

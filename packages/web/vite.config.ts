@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts,
       proxy: {
         "/trpc": "http://localhost:3000",
+        "/upload": "http://localhost:3000",
       },
     },
   };

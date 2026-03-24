@@ -28,10 +28,12 @@ export interface Entry extends RawEntry {
   due_date: string | null;
   status: TaskStatus | null;
   delegatable: boolean;
+  image_path: string | null;
 }
 
 export interface CreateEntryInput {
   raw_text: string;
+  image_path?: string;
 }
 
 export interface SubmitProcessedInput {

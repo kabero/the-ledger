@@ -24,6 +24,37 @@ app.use(
 
 app.get("/health", (c) => c.json({ ok: true }));
 
+app.post("/upload", async (c) => {
+  try {
+    const body = await c.req.parseBody();
+    const rawText = (body["raw_text"] as string) || "";
+    const file = body["image"];
+
+    if (!file || !(file instanceof File)) {
+      return c.json({ error: "画像ファイルが必要です" }, 400);
+    }
+
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      return c.json({ error: "画像サイズが10MBを超えています" }, 400);
+    }
+
+    const ext = file.name.split(".").pop() || "png";
+    const allowed = ["png", "jpg", "jpeg", "gif", "webp"];
+    if (!allowed.includes(ext.toLowerCase())) {
+      return c.json({ error: `未対応の画像形式: ${ext}` }, 400);
+    }
+
+    const arrayBuf = await file.arrayBuffer();
+    const imageData = Buffer.from(arrayBuf);
+    const entry = service.createEntryWithImage(rawText, imageData, ext);
+    return c.json(entry);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 const port = Number(process.env.PORT) || 3000;
 
 serve({ fetch: app.fetch, hostname: "0.0.0.0", port }, () => {

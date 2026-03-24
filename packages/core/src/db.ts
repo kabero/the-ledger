@@ -34,7 +34,8 @@ function migrate(db: Database.Database): void {
       priority INTEGER,
       due_date TEXT,
       status TEXT,
-      delegatable INTEGER NOT NULL DEFAULT 0
+      delegatable INTEGER NOT NULL DEFAULT 0,
+      image_path TEXT
     );
 
     CREATE TABLE IF NOT EXISTS entry_tags (
@@ -75,5 +76,8 @@ function runMigrations(db: Database.Database): void {
 
   if (!hasCol("delegatable")) {
     db.exec("ALTER TABLE entries ADD COLUMN delegatable INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!hasCol("image_path")) {
+    db.exec("ALTER TABLE entries ADD COLUMN image_path TEXT");
   }
 }

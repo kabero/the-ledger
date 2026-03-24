@@ -97,8 +97,10 @@ body {
   border-left: none;
 }
 
-.tab:hover {
-  color: var(--fg);
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--fg);
+  }
 }
 
 .tab.active {
@@ -265,9 +267,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.result-modal-close:hover {
-  color: var(--danger);
-  border-color: var(--danger);
+@media (hover: hover) {
+  .result-modal-close:hover {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
 }
 
 .completed-at {
@@ -479,9 +483,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.btn-img:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+@media (hover: hover) {
+  .btn-img:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
 }
 
 /* Delete button */
@@ -497,8 +503,10 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.btn-del:hover {
-  color: var(--danger);
+@media (hover: hover) {
+  .btn-del:hover {
+    color: var(--danger);
+  }
 }
 
 /* Sticky top area */
@@ -545,8 +553,10 @@ body {
   transition: color 0.1s;
 }
 
-.header-link:hover {
-  color: var(--fg);
+@media (hover: hover) {
+  .header-link:hover {
+    color: var(--fg);
+  }
 }
 
 .header-link.active {
@@ -567,8 +577,10 @@ body {
   transition: color 0.2s;
 }
 
-.header-title:hover {
-  color: var(--accent);
+@media (hover: hover) {
+  .header-title:hover {
+    color: var(--accent);
+  }
 }
 
 /* Graph fullscreen overlay */
@@ -598,9 +610,11 @@ body {
     border-color 0.1s;
 }
 
-.graph-close:hover {
-  color: var(--danger);
-  border-color: var(--danger);
+@media (hover: hover) {
+  .graph-close:hover {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
 }
 
 /* Schedule section */
@@ -674,8 +688,10 @@ body {
   transition: color 0.1s;
 }
 
-.schedule-delete:hover {
-  color: var(--danger);
+@media (hover: hover) {
+  .schedule-delete:hover {
+    color: var(--danger);
+  }
 }
 
 .schedule-add-btn {
@@ -691,9 +707,11 @@ body {
   transition: color 0.1s, border-color 0.1s;
 }
 
-.schedule-add-btn:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+@media (hover: hover) {
+  .schedule-add-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
 }
 
 .schedule-form {
@@ -820,8 +838,10 @@ body {
   transition: background 0.1s;
 }
 
-.schedule-submit:hover {
-  background: #222;
+@media (hover: hover) {
+  .schedule-submit:hover {
+    background: #222;
+  }
 }
 
 .schedule-empty {

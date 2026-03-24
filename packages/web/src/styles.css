@@ -178,8 +178,8 @@ body {
 
 .result-modal-body {
   color: var(--fg);
-  font-size: 14px;
-  line-height: 1.8;
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .result-modal-body p {
@@ -224,7 +224,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 8px;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .result-modal-body th,

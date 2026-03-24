@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { trpc } from "../trpc";
@@ -39,6 +39,11 @@ export function EntryList({ tab }: EntryListProps) {
   });
 
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = modalEntry ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [modalEntry]);
 
   const items = (entries.data ?? []).filter((e) => {
     if (tab === "unprocessed") return true;

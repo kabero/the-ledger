@@ -5,7 +5,6 @@ import { trpc } from "../trpc";
 
 const TYPE_COLORS: Record<string, string> = {
   task: "#ff0",
-  event: "#08f",
   note: "#fff",
   wish: "#0f0",
 };

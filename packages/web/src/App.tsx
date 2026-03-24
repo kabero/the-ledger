@@ -4,12 +4,11 @@ import { EntryList } from "./components/EntryList";
 import { GraphView } from "./components/GraphView";
 import { trpc } from "./trpc";
 
-type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed" | "llm";
+type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "すべて" },
   { key: "task", label: "タスク" },
-  { key: "event", label: "予定" },
   { key: "note", label: "メモ" },
   { key: "wish", label: "ほしい" },
   { key: "done", label: "完了" },

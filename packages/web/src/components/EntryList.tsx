@@ -2,7 +2,7 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 import { trpc } from "../trpc";
 
-type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed" | "llm";
+type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
 
 interface EntryListProps {
   tab: Tab;
@@ -18,7 +18,7 @@ export function EntryList({ tab }: EntryListProps) {
           ? { processed: false }
           : tab === "llm"
             ? { delegatable: true }
-            : { type: tab as "task" | "event" | "note" | "wish" };
+            : { type: tab as "task" | "note" | "wish" };
 
   const entries = trpc.listEntries.useQuery(filter, { refetchInterval: 10_000 });
   const utils = trpc.useUtils();

@@ -1,7 +1,7 @@
 export const ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"] as const;
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-export const ENTRY_TYPES = ["task", "event", "note", "wish", "trash"] as const;
+export const ENTRY_TYPES = ["task", "note", "wish", "trash"] as const;
 export type EntryType = (typeof ENTRY_TYPES)[number];
 
 export const TASK_STATUSES = ["pending", "done"] as const;
@@ -19,7 +19,7 @@ export interface ProcessedFields {
   title: string;
   tags: string[];
   urgent: boolean;
-  due_date: string | null; // ISO string, task/event only
+  due_date: string | null; // ISO string, task only
   status: TaskStatus | null; // task only
 }
 

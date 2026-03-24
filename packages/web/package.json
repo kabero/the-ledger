@@ -9,12 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5",
     "@theledger/api": "workspace:*",
     "@trpc/client": "^11",
     "@trpc/react-query": "^11",
-    "@tanstack/react-query": "^5",
     "react": "^19",
     "react-dom": "^19",
+    "react-force-graph-2d": "^1.29.1",
     "superjson": "^2"
   },
   "devDependencies": {

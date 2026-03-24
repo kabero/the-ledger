@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
+import { GraphView } from "./components/GraphView";
 import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed";
@@ -16,6 +17,7 @@ const TABS: { key: Tab; label: string }[] = [
 
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("all");
+  const [showGraph, setShowGraph] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -36,17 +38,30 @@ export function App() {
     }
   }, [activeIndex]);
 
+  if (showGraph) {
+    return (
+      <div className="graph-fullscreen">
+        <button type="button" className="graph-close" onClick={() => setShowGraph(false)}>
+          x
+        </button>
+        <GraphView fullscreen />
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <div className="sticky-top">
         <div className="header">
-          * THE LEDGER *
+          <button type="button" className="header-title" onClick={() => setShowGraph(true)}>
+            * THE LEDGER *
+          </button>
           {unprocessedCount > 0 && (
             <button
               type="button"
               className="badge"
               onClick={() => setActiveTab(activeTab === "unprocessed" ? "all" : "unprocessed")}
-              style={{ marginLeft: 12, cursor: "pointer", border: "none" }}
+              style={{ cursor: "pointer", border: "none" }}
             >
               {unprocessedCount} 件 未処理
             </button>

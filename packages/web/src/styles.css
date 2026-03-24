@@ -293,6 +293,56 @@ body {
   flex-wrap: wrap;
 }
 
+/* Header title button */
+.header-title {
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s;
+}
+
+.header-title:hover {
+  color: var(--accent);
+}
+
+/* Graph fullscreen overlay */
+.graph-fullscreen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 100;
+}
+
+.graph-close {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 101;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px 12px;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
+}
+
+.graph-close:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   .container {

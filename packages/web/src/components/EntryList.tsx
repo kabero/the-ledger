@@ -83,7 +83,13 @@ export function EntryList({ tab }: EntryListProps) {
                 </span>
               )}
               {entry.urgent && <span className="priority high">!</span>}
+              {entry.delegatable && (
+                <span className="priority" style={{ marginLeft: 4 }}>
+                  LLM
+                </span>
+              )}
             </div>
+            {entry.result && <div className="entry-result">{entry.result}</div>}
           </div>
           <button
             type="button"

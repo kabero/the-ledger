@@ -132,7 +132,7 @@ server.tool(
 
 server.tool(
   "update_entry",
-  "Update an entry's fields: title, tags, urgent, due_date, status, type.",
+  "Update an entry's fields: title, tags, urgent, due_date, status, type, result.",
   {
     id: z.string().describe("Entry ID"),
     title: z.string().optional().describe("New title"),
@@ -141,9 +141,10 @@ server.tool(
     due_date: z.string().nullable().optional().describe("New due date"),
     status: z.enum(TASK_STATUSES).optional().describe("New status (tasks only)"),
     type: z.enum(ENTRY_TYPES).optional().describe("Change type"),
+    result: z.string().optional().describe("Summary of completed work (for delegatable tasks)"),
   },
-  async ({ id, title, tags, urgent, due_date, status, type }) => {
-    const entry = service.updateEntry({ id, title, tags, urgent, due_date, status, type });
+  async ({ id, title, tags, urgent, due_date, status, type, result }) => {
+    const entry = service.updateEntry({ id, title, tags, urgent, due_date, status, type, result });
     return {
       content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
     };

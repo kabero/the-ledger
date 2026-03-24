@@ -89,6 +89,7 @@ export const appRouter = t.router({
         status: taskStatusEnum.optional(),
         type: entryTypeEnum.optional(),
         delegatable: z.boolean().optional(),
+        result: z.string().optional(),
       }),
     )
     .mutation(({ input, ctx }) => {

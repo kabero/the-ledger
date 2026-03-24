@@ -20,6 +20,7 @@ interface EntryRow {
   status: string | null;
   delegatable: number;
   image_path: string | null;
+  result: string | null;
 }
 
 export class EntryRepository {
@@ -143,6 +144,10 @@ export class EntryRepository {
       sets.push("delegatable = ?");
       params.push(input.delegatable ? 1 : 0);
     }
+    if (input.result !== undefined) {
+      sets.push("result = ?");
+      params.push(input.result);
+    }
 
     if (sets.length > 0) {
       params.push(input.id);
@@ -227,6 +232,7 @@ export class EntryRepository {
       status: row.status as Entry["status"],
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
+      result: row.result ?? null,
     }));
   }
 
@@ -248,6 +254,7 @@ export class EntryRepository {
       status: row.status as Entry["status"],
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
+      result: row.result ?? null,
     };
   }
 }

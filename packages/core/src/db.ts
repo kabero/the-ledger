@@ -35,7 +35,8 @@ function migrate(db: Database.Database): void {
       due_date TEXT,
       status TEXT,
       delegatable INTEGER NOT NULL DEFAULT 0,
-      image_path TEXT
+      image_path TEXT,
+      result TEXT
     );
 
     CREATE TABLE IF NOT EXISTS entry_tags (
@@ -82,6 +83,9 @@ function runMigrations(db: Database.Database): void {
   }
   if (!hasCol("urgent")) {
     db.exec("ALTER TABLE entries ADD COLUMN urgent INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!hasCol("result")) {
+    db.exec("ALTER TABLE entries ADD COLUMN result TEXT");
   }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {

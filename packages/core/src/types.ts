@@ -32,6 +32,7 @@ export interface Entry extends RawEntry {
   status: TaskStatus | null;
   delegatable: boolean;
   image_path: string | null;
+  result: string | null;
 }
 
 export interface CreateEntryInput {
@@ -58,6 +59,7 @@ export interface UpdateEntryInput {
   status?: TaskStatus;
   type?: EntryType;
   delegatable?: boolean;
+  result?: string;
 }
 
 export interface ListEntriesFilter {

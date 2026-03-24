@@ -28,8 +28,10 @@ export function App() {
   const activeIndex = TABS.findIndex((t) => t.key === activeTab);
 
   const handleSwipe = useCallback(() => {
+    // touchEndX stays at initial value if no move occurred (pure tap)
+    if (touchEndX.current === -1) return;
     const diff = touchStartX.current - touchEndX.current;
-    const threshold = 50;
+    const threshold = 80;
     if (Math.abs(diff) < threshold) return;
 
     if (diff > 0 && activeIndex < TABS.length - 1) {
@@ -89,6 +91,7 @@ export function App() {
           className="entry-list-box"
           onTouchStart={(e) => {
             touchStartX.current = e.touches[0].clientX;
+            touchEndX.current = -1;
           }}
           onTouchMove={(e) => {
             touchEndX.current = e.touches[0].clientX;

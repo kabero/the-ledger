@@ -55,6 +55,32 @@ app.post("/upload", async (c) => {
   }
 });
 
+// Simple JSON endpoint for iOS Shortcuts (base64 image)
+app.post("/api/quick-add", async (c) => {
+  try {
+    const body = await c.req.json() as { raw_text?: string; image?: string; image_ext?: string };
+    const rawText = body.raw_text || "";
+    const image = body.image;
+    const ext = body.image_ext || "png";
+
+    if (image) {
+      const imageData = Buffer.from(image, "base64");
+      const entry = service.createEntryWithImage(rawText, imageData, ext);
+      return c.json({ ok: true, entry });
+    }
+
+    if (!rawText) {
+      return c.json({ error: "テキストか画像が必要です" }, 400);
+    }
+
+    const entry = service.createEntry({ raw_text: rawText });
+    return c.json({ ok: true, entry });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 const port = Number(process.env.PORT) || 3000;
 
 serve({ fetch: app.fetch, hostname: "0.0.0.0", port }, () => {

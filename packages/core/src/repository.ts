@@ -21,6 +21,7 @@ interface EntryRow {
   delegatable: number;
   image_path: string | null;
   result: string | null;
+  updated_at: string | null;
 }
 
 export class EntryRepository {
@@ -30,10 +31,10 @@ export class EntryRepository {
     const id = uuidv4();
     if (input.image_path) {
       this.db
-        .prepare(`INSERT INTO entries (id, raw_text, image_path) VALUES (?, ?, ?)`)
+        .prepare(`INSERT INTO entries (id, raw_text, image_path, updated_at) VALUES (?, ?, ?, datetime('now'))`)
         .run(id, input.raw_text, input.image_path);
     } else {
-      this.db.prepare(`INSERT INTO entries (id, raw_text) VALUES (?, ?)`).run(id, input.raw_text);
+      this.db.prepare(`INSERT INTO entries (id, raw_text, updated_at) VALUES (?, ?, datetime('now'))`).run(id, input.raw_text);
     }
 
     return this.getById(id)!;
@@ -81,9 +82,10 @@ export class EntryRepository {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = filter.limit ?? 100;
     const offset = filter.offset ?? 0;
+    const sortCol = filter.sort === "updated_at" ? "e.updated_at" : "e.created_at";
 
     const rows = this.db
-      .prepare(`SELECT e.* FROM entries e ${where} ORDER BY e.created_at DESC LIMIT ? OFFSET ?`)
+      .prepare(`SELECT e.* FROM entries e ${where} ORDER BY ${sortCol} DESC LIMIT ? OFFSET ?`)
       .all(...params, limit, offset) as EntryRow[];
 
     return this.rowsToEntries(rows);
@@ -99,7 +101,7 @@ export class EntryRepository {
   submitProcessed(input: SubmitProcessedInput): Entry {
     this.db
       .prepare(
-        `UPDATE entries SET processed = 1, type = ?, title = ?, urgent = ?, due_date = ?, status = ?, delegatable = ? WHERE id = ?`,
+        `UPDATE entries SET processed = 1, type = ?, title = ?, urgent = ?, due_date = ?, status = ?, delegatable = ?, updated_at = datetime('now') WHERE id = ?`,
       )
       .run(
         input.type,
@@ -149,6 +151,7 @@ export class EntryRepository {
       params.push(input.result);
     }
 
+    sets.push("updated_at = datetime('now')");
     if (sets.length > 0) {
       params.push(input.id);
       this.db.prepare(`UPDATE entries SET ${sets.join(", ")} WHERE id = ?`).run(...params);

@@ -71,4 +71,5 @@ export interface ListEntriesFilter {
   delegatable?: boolean;
   limit?: number;
   offset?: number;
+  sort?: "created_at" | "updated_at";
 }

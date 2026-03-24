@@ -13,7 +13,7 @@ export function EntryList({ tab }: EntryListProps) {
     tab === "all"
       ? { processed: true }
       : tab === "done"
-        ? { status: "done" as const }
+        ? { status: "done" as const, sort: "updated_at" as const }
         : tab === "unprocessed"
           ? { processed: false }
           : tab === "llm"
@@ -106,22 +106,12 @@ export function EntryList({ tab }: EntryListProps) {
                     {tag}
                   </span>
                 ))}
-                {entry.type && (
+                {entry.type && (tab === "all" || tab === "done") && (
                   <span className="priority" style={{ marginLeft: 4 }}>
                     [{entry.type}]
                   </span>
                 )}
                 {entry.urgent && <span className="priority high">!</span>}
-                {entry.status === "done" && (
-                  <span className="priority" style={{ marginLeft: 4, color: "var(--done)" }}>
-                    done
-                  </span>
-                )}
-                {entry.status === "pending" && tab === "llm" && (
-                  <span className="priority" style={{ marginLeft: 4, color: "var(--accent)" }}>
-                    pending
-                  </span>
-                )}
               </div>
             </div>
             <button

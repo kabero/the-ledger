@@ -186,6 +186,25 @@ server.tool(
   },
 );
 
+server.tool(
+  "complete_task",
+  "Complete a delegatable task by writing the result. Automatically sets status to done. Use this when you finish working on a delegatable task.",
+  {
+    id: z.string().describe("Entry ID of the task to complete"),
+    result: z
+      .string()
+      .describe(
+        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure.",
+      ),
+  },
+  async ({ id, result }) => {
+    const entry = service.updateEntry({ id, status: "done", result });
+    return {
+      content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
+    };
+  },
+);
+
 // --- Start ---
 
 async function main() {

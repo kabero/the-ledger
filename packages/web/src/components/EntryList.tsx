@@ -246,6 +246,29 @@ function ResultModal({
   result: string;
   onClose: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = result;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      navigator.clipboard.writeText(result).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    }
+  };
+
   return (
     <div
       className="result-overlay"
@@ -258,9 +281,14 @@ function ResultModal({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
       <div className="result-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="result-modal-close" onClick={onClose}>
-          x
-        </button>
+        <div className="result-modal-header">
+          <button type="button" className={`result-modal-copy ${copied ? "copied" : ""}`} onClick={handleCopy}>
+            {copied ? "\u2713 copied" : "copy"}
+          </button>
+          <button type="button" className="result-modal-close" onClick={onClose}>
+            x
+          </button>
+        </div>
         <div className="result-modal-title">{title}</div>
         <div className="result-modal-body">
           <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>

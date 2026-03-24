@@ -144,14 +144,113 @@ body {
   margin-top: 4px;
 }
 
-.entry-result {
-  margin-top: 6px;
-  padding: 8px 10px;
-  border-left: 2px solid var(--accent);
-  color: var(--dim);
+/* Result modal */
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.result-modal {
+  background: var(--bg);
+  border: 3px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.result-modal-title {
+  color: var(--accent);
+  font-size: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.result-modal-body {
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.result-modal-body p {
+  margin-bottom: 8px;
+}
+
+.result-modal-body strong {
+  color: var(--accent);
+}
+
+.result-modal-body ul,
+.result-modal-body ol {
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.result-modal-body li {
+  margin-bottom: 4px;
+}
+
+.result-modal-body code {
+  background: #222;
+  padding: 1px 4px;
+  border-radius: 2px;
   font-size: 13px;
-  white-space: pre-wrap;
-  word-break: break-word;
+}
+
+.result-modal-body pre {
+  background: #111;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+
+.result-modal-body pre code {
+  background: none;
+  padding: 0;
+}
+
+.result-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.result-modal-close:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn-result {
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 1px 6px;
+  margin-left: 6px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tag {
@@ -230,7 +329,7 @@ body {
 }
 
 /* Done entry */
-.entry.done .entry-title {
+.entry.done .entry-title > div:first-child {
   color: var(--dim);
   text-decoration: line-through;
 }

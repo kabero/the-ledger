@@ -4,7 +4,7 @@ import { EntryList } from "./components/EntryList";
 import { GraphView } from "./components/GraphView";
 import { trpc } from "./trpc";
 
-type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed";
+type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed" | "llm";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "すべて" },
@@ -13,6 +13,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "note", label: "メモ" },
   { key: "wish", label: "ほしい" },
   { key: "done", label: "完了" },
+  { key: "llm", label: "LLM" },
 ];
 
 export function App() {

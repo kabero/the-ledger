@@ -1,6 +1,8 @@
+import { useState } from "react";
+import Markdown from "react-markdown";
 import { trpc } from "../trpc";
 
-type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed";
+type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed" | "llm";
 
 interface EntryListProps {
   tab: Tab;
@@ -14,7 +16,9 @@ export function EntryList({ tab }: EntryListProps) {
         ? { status: "done" as const }
         : tab === "unprocessed"
           ? { processed: false }
-          : { type: tab as "task" | "event" | "note" | "wish" };
+          : tab === "llm"
+            ? { delegatable: true }
+            : { type: tab as "task" | "event" | "note" | "wish" };
 
   const entries = trpc.listEntries.useQuery(filter, { refetchInterval: 10_000 });
   const utils = trpc.useUtils();
@@ -33,8 +37,11 @@ export function EntryList({ tab }: EntryListProps) {
     },
   });
 
+  const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
+
   const items = (entries.data ?? []).filter((e) => {
     if (tab === "unprocessed") return true;
+    if (tab === "llm") return e.type !== "trash";
     if (e.type === "trash") return false;
     if (tab !== "done" && e.status === "done") return false;
     return true;
@@ -45,61 +52,121 @@ export function EntryList({ tab }: EntryListProps) {
   }
 
   return (
-    <div>
-      {items.map((entry) => (
-        <div key={entry.id} className={`entry ${entry.status === "done" ? "done" : ""}`}>
-          {entry.type === "task" && (
+    <>
+      {modalEntry && (
+        <ResultModal
+          title={modalEntry.title}
+          result={modalEntry.result}
+          onClose={() => setModalEntry(null)}
+        />
+      )}
+      <div>
+        {items.map((entry) => (
+          <div key={entry.id} className={`entry ${entry.status === "done" ? "done" : ""}`}>
+            {entry.type === "task" && (
+              <button
+                type="button"
+                className="checkbox"
+                onClick={() =>
+                  updateEntry.mutate({
+                    id: entry.id,
+                    status: entry.status === "done" ? "pending" : "done",
+                  })
+                }
+              >
+                {entry.status === "done" ? "x" : ""}
+              </button>
+            )}
+            <div className="entry-title">
+              <div>
+                {entry.image_path && (
+                  <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">
+                    [IMG]
+                  </span>
+                )}
+                {entry.title ?? entry.raw_text}
+                {entry.result && (
+                  <button
+                    type="button"
+                    className="btn-result"
+                    onClick={() =>
+                      setModalEntry({
+                        title: entry.title ?? entry.raw_text,
+                        result: entry.result as string,
+                      })
+                    }
+                  >
+                    結果
+                  </button>
+                )}
+              </div>
+              <div className="entry-tags">
+                {entry.tags?.map((tag) => (
+                  <span key={tag} className="tag">
+                    {tag}
+                  </span>
+                ))}
+                {entry.type && (
+                  <span className="priority" style={{ marginLeft: 4 }}>
+                    [{entry.type}]
+                  </span>
+                )}
+                {entry.urgent && <span className="priority high">!</span>}
+                {entry.status === "done" && (
+                  <span className="priority" style={{ marginLeft: 4, color: "var(--done)" }}>
+                    done
+                  </span>
+                )}
+                {entry.status === "pending" && tab === "llm" && (
+                  <span className="priority" style={{ marginLeft: 4, color: "var(--accent)" }}>
+                    pending
+                  </span>
+                )}
+              </div>
+            </div>
             <button
               type="button"
-              className="checkbox"
-              onClick={() =>
-                updateEntry.mutate({
-                  id: entry.id,
-                  status: entry.status === "done" ? "pending" : "done",
-                })
-              }
+              className="btn-del"
+              onClick={() => deleteEntry.mutate({ id: entry.id })}
             >
-              {entry.status === "done" ? "x" : ""}
+              x
             </button>
-          )}
-          <div className="entry-title">
-            <div>
-              {entry.image_path && (
-                <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">
-                  [IMG]
-                </span>
-              )}
-              {entry.title ?? entry.raw_text}
-            </div>
-            <div className="entry-tags">
-              {entry.tags?.map((tag) => (
-                <span key={tag} className="tag">
-                  {tag}
-                </span>
-              ))}
-              {entry.type && (
-                <span className="priority" style={{ marginLeft: 4 }}>
-                  [{entry.type}]
-                </span>
-              )}
-              {entry.urgent && <span className="priority high">!</span>}
-              {entry.delegatable && (
-                <span className="priority" style={{ marginLeft: 4 }}>
-                  LLM
-                </span>
-              )}
-            </div>
-            {entry.result && <div className="entry-result">{entry.result}</div>}
           </div>
-          <button
-            type="button"
-            className="btn-del"
-            onClick={() => deleteEntry.mutate({ id: entry.id })}
-          >
-            x
-          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ResultModal({
+  title,
+  result,
+  onClose,
+}: {
+  title: string;
+  result: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="result-overlay"
+      role="dialog"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
+      <div className="result-modal" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="result-modal-close" onClick={onClose}>
+          x
+        </button>
+        <div className="result-modal-title">{title}</div>
+        <div className="result-modal-body">
+          <Markdown>{result}</Markdown>
         </div>
-      ))}
+      </div>
     </div>
   );
 }

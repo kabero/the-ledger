@@ -16,6 +16,7 @@
     "react": "^19",
     "react-dom": "^19",
     "react-force-graph-2d": "^1.29.1",
+    "react-markdown": "^10.1.0",
     "superjson": "^2"
   },
   "devDependencies": {

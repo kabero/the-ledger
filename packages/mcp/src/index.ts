@@ -141,7 +141,12 @@ server.tool(
     due_date: z.string().nullable().optional().describe("New due date"),
     status: z.enum(TASK_STATUSES).optional().describe("New status (tasks only)"),
     type: z.enum(ENTRY_TYPES).optional().describe("Change type"),
-    result: z.string().optional().describe("Summary of completed work (for delegatable tasks)"),
+    result: z
+      .string()
+      .optional()
+      .describe(
+        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure. Written when completing a delegatable task.",
+      ),
   },
   async ({ id, title, tags, urgent, due_date, status, type, result }) => {
     const entry = service.updateEntry({ id, title, tags, urgent, due_date, status, type, result });

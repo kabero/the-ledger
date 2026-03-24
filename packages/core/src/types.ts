@@ -15,7 +15,7 @@ export interface ProcessedFields {
   type: EntryType;
   title: string;
   tags: string[];
-  priority: number | null; // 1-5, task only
+  urgent: boolean;
   due_date: string | null; // ISO string, task/event only
   status: TaskStatus | null; // task only
 }
@@ -24,7 +24,7 @@ export interface Entry extends RawEntry {
   type: EntryType | null;
   title: string | null;
   tags: string[];
-  priority: number | null;
+  urgent: boolean;
   due_date: string | null;
   status: TaskStatus | null;
   delegatable: boolean;
@@ -41,7 +41,7 @@ export interface SubmitProcessedInput {
   type: EntryType;
   title: string;
   tags: string[];
-  priority: number | null;
+  urgent: boolean;
   due_date: string | null;
   delegatable: boolean;
 }
@@ -50,7 +50,7 @@ export interface UpdateEntryInput {
   id: string;
   title?: string;
   tags?: string[];
-  priority?: number;
+  urgent?: boolean;
   due_date?: string | null;
   status?: TaskStatus;
   type?: EntryType;

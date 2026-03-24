@@ -15,7 +15,7 @@ interface EntryRow {
   processed: number;
   type: string | null;
   title: string | null;
-  priority: number | null;
+  urgent: number;
   due_date: string | null;
   status: string | null;
   delegatable: number;
@@ -98,12 +98,12 @@ export class EntryRepository {
   submitProcessed(input: SubmitProcessedInput): Entry {
     this.db
       .prepare(
-        `UPDATE entries SET processed = 1, type = ?, title = ?, priority = ?, due_date = ?, status = ?, delegatable = ? WHERE id = ?`,
+        `UPDATE entries SET processed = 1, type = ?, title = ?, urgent = ?, due_date = ?, status = ?, delegatable = ? WHERE id = ?`,
       )
       .run(
         input.type,
         input.title,
-        input.priority,
+        input.urgent ? 1 : 0,
         input.due_date,
         input.type === "task" ? "pending" : null,
         input.delegatable ? 1 : 0,
@@ -128,9 +128,9 @@ export class EntryRepository {
       sets.push("title = ?");
       params.push(input.title);
     }
-    if (input.priority !== undefined) {
-      sets.push("priority = ?");
-      params.push(input.priority);
+    if (input.urgent !== undefined) {
+      sets.push("urgent = ?");
+      params.push(input.urgent ? 1 : 0);
     }
     if (input.due_date !== undefined) {
       sets.push("due_date = ?");
@@ -171,21 +171,19 @@ export class EntryRepository {
   }
 
   getTodayTasks(limit: number = 3): Entry[] {
-    // Score = priority weight + due date urgency + freshness
-    // Higher score = should do first
     const rows = this.db
       .prepare(
         `SELECT *,
-          COALESCE(priority, 3) * 2.0 AS priority_score,
+          urgent * 10.0 AS urgent_score,
           CASE
             WHEN due_date IS NOT NULL THEN
               MAX(0, 10.0 - (julianday(due_date) - julianday('now')))
             ELSE 0
-          END AS urgency_score,
+          END AS due_score,
           MAX(0, 5.0 - (julianday('now') - julianday(created_at))) AS freshness_score
         FROM entries
         WHERE type = 'task' AND (status IS NULL OR status = 'pending')
-        ORDER BY (COALESCE(priority, 3) * 2.0 +
+        ORDER BY (urgent * 10.0 +
           CASE
             WHEN due_date IS NOT NULL THEN
               MAX(0, 10.0 - (julianday(due_date) - julianday('now')))
@@ -211,7 +209,7 @@ export class EntryRepository {
       type: row.type as Entry["type"],
       title: row.title,
       tags: tags.map((t) => t.tag),
-      priority: row.priority,
+      urgent: row.urgent === 1,
       due_date: row.due_date,
       status: row.status as Entry["status"],
       delegatable: row.delegatable === 1,

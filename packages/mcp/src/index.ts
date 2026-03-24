@@ -77,19 +77,13 @@ server.tool(
 
 server.tool(
   "submit_processed",
-  "Submit LLM processing results for an entry: type, title, tags, priority.",
+  "Submit LLM processing results for an entry: type, title, tags, urgent, delegatable.",
   {
     id: z.string().describe("Entry ID"),
     type: z.enum(ENTRY_TYPES).describe("Classified type: task, event, note, or wish"),
     title: z.string().describe("Short title summarizing the entry"),
     tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
-    priority: z
-      .number()
-      .int()
-      .min(1)
-      .max(5)
-      .nullable()
-      .describe("Priority 1-5 (for tasks only, null otherwise)"),
+    urgent: z.boolean().default(false).describe("Whether this is urgent"),
     due_date: z
       .string()
       .nullable()
@@ -99,13 +93,13 @@ server.tool(
       .default(false)
       .describe("Whether this task can be delegated to an LLM"),
   },
-  async ({ id, type, title, tags, priority, due_date, delegatable }) => {
+  async ({ id, type, title, tags, urgent, due_date, delegatable }) => {
     const entry = service.submitProcessed({
       id,
       type,
       title,
       tags,
-      priority,
+      urgent,
       due_date,
       delegatable,
     });

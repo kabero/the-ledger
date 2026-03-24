@@ -31,7 +31,7 @@ function migrate(db: Database.Database): void {
       processed INTEGER NOT NULL DEFAULT 0,
       type TEXT,
       title TEXT,
-      priority INTEGER,
+      urgent INTEGER NOT NULL DEFAULT 0,
       due_date TEXT,
       status TEXT,
       delegatable INTEGER NOT NULL DEFAULT 0,
@@ -79,5 +79,14 @@ function runMigrations(db: Database.Database): void {
   }
   if (!hasCol("image_path")) {
     db.exec("ALTER TABLE entries ADD COLUMN image_path TEXT");
+  }
+  if (!hasCol("urgent")) {
+    db.exec("ALTER TABLE entries ADD COLUMN urgent INTEGER NOT NULL DEFAULT 0");
+  }
+  // migrate priority -> urgent (if priority column still exists)
+  if (hasCol("priority")) {
+    db.exec(
+      "UPDATE entries SET urgent = CASE WHEN priority >= 4 THEN 1 ELSE 0 END WHERE priority IS NOT NULL",
+    );
   }
 }

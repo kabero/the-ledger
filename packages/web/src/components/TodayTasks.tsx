@@ -41,11 +41,7 @@ export function TodayTasks() {
           </button>
           <div>
             <div className="entry-title">{task.title ?? task.raw_text}</div>
-            {task.priority && (
-              <span className={`priority ${task.priority >= 4 ? "high" : ""}`}>
-                {"!".repeat(task.priority)}
-              </span>
-            )}
+            {task.urgent && <span className="priority high">!</span>}
             {task.due_date && (
               <span className="priority" style={{ marginLeft: 8 }}>
                 {task.due_date}

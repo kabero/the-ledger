@@ -6,17 +6,15 @@ import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "all", label: "すべて" },
+const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "task", label: "タスク" },
   { key: "note", label: "メモ" },
   { key: "wish", label: "ほしい" },
-  { key: "done", label: "完了" },
   { key: "llm", label: "LLM" },
 ];
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("all");
+  const [activeTab, setActiveTab] = useState<Tab>("task");
   const [showGraph, setShowGraph] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -24,19 +22,20 @@ export function App() {
   const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 10_000 });
   const unprocessedCount = unprocessed.data?.length ?? 0;
 
-  const activeIndex = TABS.findIndex((t) => t.key === activeTab);
+  const activeIndex = MAIN_TABS.findIndex((t) => t.key === activeTab);
 
   const handleSwipe = useCallback(() => {
-    // touchEndX stays at initial value if no move occurred (pure tap)
     if (touchEndX.current === -1) return;
     const diff = touchStartX.current - touchEndX.current;
     const threshold = 80;
     if (Math.abs(diff) < threshold) return;
 
-    if (diff > 0 && activeIndex < TABS.length - 1) {
-      setActiveTab(TABS[activeIndex + 1].key);
+    // Only swipe between main tabs
+    if (activeIndex === -1) return;
+    if (diff > 0 && activeIndex < MAIN_TABS.length - 1) {
+      setActiveTab(MAIN_TABS[activeIndex + 1].key);
     } else if (diff < 0 && activeIndex > 0) {
-      setActiveTab(TABS[activeIndex - 1].key);
+      setActiveTab(MAIN_TABS[activeIndex - 1].key);
     }
   }, [activeIndex]);
 
@@ -58,23 +57,41 @@ export function App() {
           <button type="button" className="header-title" onClick={() => setShowGraph(true)}>
             * THE LEDGER *
           </button>
-          {unprocessedCount > 0 && (
+          <div className="header-sub">
             <button
               type="button"
-              className="badge"
-              onClick={() => setActiveTab(activeTab === "unprocessed" ? "all" : "unprocessed")}
-              style={{ cursor: "pointer", border: "none" }}
+              className={`header-link ${activeTab === "all" ? "active" : ""}`}
+              onClick={() => setActiveTab(activeTab === "all" ? "task" : "all")}
             >
-              {unprocessedCount} 件 未処理
+              すべて
             </button>
-          )}
+            <button
+              type="button"
+              className={`header-link ${activeTab === "done" ? "active" : ""}`}
+              onClick={() => setActiveTab(activeTab === "done" ? "task" : "done")}
+            >
+              完了
+            </button>
+            {unprocessedCount > 0 && (
+              <button
+                type="button"
+                className="badge"
+                onClick={() =>
+                  setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")
+                }
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                {unprocessedCount} 件 未処理
+              </button>
+            )}
+          </div>
         </div>
         <EntryInput />
       </div>
 
       <div className="section">
         <div className="tabs">
-          {TABS.map((tab) => (
+          {MAIN_TABS.map((tab) => (
             <button
               type="button"
               key={tab.key}

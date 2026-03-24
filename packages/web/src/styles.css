@@ -400,6 +400,36 @@ body {
   justify-content: center;
   gap: 16px;
   flex-wrap: wrap;
+  position: relative;
+}
+
+/* Header sub-links (すべて / 完了) */
+.header-sub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: absolute;
+  right: 20px;
+}
+
+.header-link {
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.1s;
+}
+
+.header-link:hover {
+  color: var(--fg);
+}
+
+.header-link.active {
+  color: var(--accent);
 }
 
 /* Header title button */
@@ -472,6 +502,15 @@ body {
     font-size: 16px;
     letter-spacing: 2px;
     padding: 8px 0;
+  }
+
+  .header-sub {
+    right: 12px;
+    gap: 8px;
+  }
+
+  .header-link {
+    font-size: 10px;
   }
 
   .tab {

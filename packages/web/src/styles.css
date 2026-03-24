@@ -121,7 +121,9 @@ body {
 /* Entry items */
 .entry {
   padding: 10px 0;
+  padding-left: 8px;
   border-bottom: 1px solid #222;
+  border-left: 3px solid transparent;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -129,6 +131,10 @@ body {
 
 .entry:last-child {
   border-bottom: none;
+}
+
+.entry.urgent {
+  border-left-color: var(--danger);
 }
 
 .entry-title {
@@ -316,8 +322,10 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.checkbox:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .checkbox:hover {
+    border-color: var(--accent);
+  }
 }
 
 /* Badge */

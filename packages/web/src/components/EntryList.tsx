@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { trpc } from "../trpc";
@@ -24,9 +24,11 @@ export function EntryList({ tab }: EntryListProps) {
   const entries = trpc.listEntries.useQuery(filter, { refetchInterval: 10_000 });
   const utils = trpc.useUtils();
 
+  // ローカルのステータス上書き（チェック直後の見た目用、次回refetchでクリア）
+  const [localStatus, setLocalStatus] = useState<Record<string, { status: string; completed_at: string | null }>>({});
+
   const updateEntry = trpc.updateEntry.useMutation({
     onSuccess: () => {
-      utils.listEntries.invalidate();
       utils.getTodayTasks.invalidate();
     },
   });
@@ -38,6 +40,15 @@ export function EntryList({ tab }: EntryListProps) {
     },
   });
 
+  // refetch時にローカル上書きをクリア
+  const prevDataRef = useRef(entries.data);
+  if (entries.data !== prevDataRef.current) {
+    prevDataRef.current = entries.data;
+    if (Object.keys(localStatus).length > 0) {
+      setLocalStatus({});
+    }
+  }
+
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
 
   useEffect(() => {
@@ -45,13 +56,40 @@ export function EntryList({ tab }: EntryListProps) {
     return () => { document.body.style.overflow = ""; };
   }, [modalEntry]);
 
-  const items = (entries.data ?? []).filter((e) => {
-    if (tab === "unprocessed") return true;
-    if (tab === "llm") return e.type !== "trash";
-    if (e.type === "trash") return false;
-    if (tab !== "done" && e.status === "done") return false;
-    return true;
-  });
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const items = useMemo(() => {
+    const now = Date.now();
+    const raw = entries.data ?? [];
+    // まずサーバーデータでフィルタ・ソート（位置確定）
+    const filtered = raw.filter((e) => {
+      if (tab === "unprocessed") return true;
+      if (tab === "llm") return e.type !== "trash";
+      if (e.type === "trash") return false;
+      if (tab === "task" && e.status === "done") {
+        if (!e.completed_at) return false;
+        return now - new Date(e.completed_at + "Z").getTime() < DAY_MS;
+      }
+      if (tab !== "done" && tab !== "task" && e.status === "done") return false;
+      return true;
+    });
+    const sorted = tab === "task"
+      ? [...filtered].sort((a, b) => {
+          const aDone = a.status === "done" ? 1 : 0;
+          const bDone = b.status === "done" ? 1 : 0;
+          if (aDone !== bDone) return aDone - bDone;
+          if (aDone && bDone) {
+            return (b.completed_at ?? "").localeCompare(a.completed_at ?? "");
+          }
+          return 0;
+        })
+      : filtered;
+    // 最後にローカル上書きを適用（位置は変えない）
+    return sorted.map((e) => {
+      const local = localStatus[e.id];
+      return local ? { ...e, status: local.status as typeof e.status, completed_at: local.completed_at } : e;
+    });
+  }, [entries.data, localStatus, tab]);
 
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
@@ -68,17 +106,22 @@ export function EntryList({ tab }: EntryListProps) {
       )}
       <div>
         {items.map((entry) => (
-          <div key={entry.id} className={`entry ${entry.status === "done" ? "done" : ""}`}>
+          <div key={entry.id} className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}>
             {entry.type === "task" && (
               <button
                 type="button"
                 className="checkbox"
-                onClick={() =>
-                  updateEntry.mutate({
-                    id: entry.id,
-                    status: entry.status === "done" ? "pending" : "done",
-                  })
-                }
+                onClick={() => {
+                  const newStatus = entry.status === "done" ? "pending" : "done";
+                  setLocalStatus((prev) => ({
+                    ...prev,
+                    [entry.id]: {
+                      status: newStatus,
+                      completed_at: newStatus === "done" ? new Date().toISOString().replace("T", " ").slice(0, 19) : null,
+                    },
+                  }));
+                  updateEntry.mutate({ id: entry.id, status: newStatus });
+                }}
               >
                 {entry.status === "done" ? "x" : ""}
               </button>
@@ -108,18 +151,12 @@ export function EntryList({ tab }: EntryListProps) {
                 )}
               </div>
               <div className="entry-tags">
-                {entry.tags?.map((tag) => (
-                  <span key={tag} className="tag">
-                    {tag}
-                  </span>
-                ))}
                 {entry.type && tab === "all" && (
                   <span className="priority" style={{ marginLeft: 4 }}>
                     [{entry.type}]
                   </span>
                 )}
-                {entry.urgent && <span className="priority high">!</span>}
-                {entry.completed_at && (tab === "done" || tab === "llm") && (
+                {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
                   <span className="completed-at">
                     {new Date(entry.completed_at + "Z").toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </span>

@@ -20,6 +20,7 @@ export function EntryInput() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
 
   const addEntry = trpc.addEntry.useMutation({
@@ -120,16 +121,37 @@ export function EntryInput() {
   return (
     <div className="box" onDrop={handleDrop} onDragOver={handleDragOver}>
       <span className="box-title">なんでも投げろ</span>
-      <textarea
-        ref={textareaRef}
-        className="input-box"
-        placeholder="頭の中にあること... (画像もペースト/ドロップOK)"
-        value={text}
-        onChange={handleInput}
-        onKeyDown={handleKeyDown}
-        onPaste={handlePaste}
-        rows={1}
-      />
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+        <textarea
+          ref={textareaRef}
+          className="input-box"
+          placeholder="頭の中にあること..."
+          value={text}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          rows={1}
+          style={{ flex: 1 }}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) attachImage(file);
+            e.target.value = "";
+          }}
+        />
+        <button
+          className="btn-img"
+          onClick={() => fileInputRef.current?.click()}
+          title="画像を添付"
+        >
+          IMG
+        </button>
+      </div>
       {imagePreview && (
         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
           <img
@@ -138,8 +160,7 @@ export function EntryInput() {
             style={{
               maxWidth: 120,
               maxHeight: 80,
-              border: "2px solid #fff",
-              imageRendering: "pixelated",
+              border: "2px solid var(--border)",
             }}
           />
           <button
@@ -151,9 +172,9 @@ export function EntryInput() {
           </button>
         </div>
       )}
-      {(imageFile || uploading) && (
+      {uploading && (
         <div style={{ marginTop: 4, fontSize: 12, color: "#aaa" }}>
-          {uploading ? "アップロード中..." : `画像添付済み (${getExtFromMime(imageFile!.type)})`}
+          アップロード中...
         </div>
       )}
     </div>

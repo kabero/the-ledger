@@ -232,6 +232,27 @@ body {
   font-size: 14px;
 }
 
+/* Image attach button */
+.btn-img {
+  background: transparent;
+  border: 2px solid var(--dim);
+  border-radius: 4px;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 6px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.1s, border-color 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-img:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* Delete button */
 .btn-del {
   background: transparent;

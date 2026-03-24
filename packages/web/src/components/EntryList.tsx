@@ -31,7 +31,11 @@ export function EntryList({ tab }: EntryListProps) {
     },
   });
 
-  const items = (entries.data ?? []).filter((e) => (tab === "all" ? e.type !== "trash" : true));
+  const items = (entries.data ?? []).filter((e) => {
+    if (e.type === "trash") return false;
+    if (tab !== "done" && e.status === "done") return false;
+    return true;
+  });
 
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;

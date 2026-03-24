@@ -12,4 +12,4 @@ export type {
   TaskStatus,
   UpdateEntryInput,
 } from "./types.js";
-export { ENTRY_TYPES, TASK_STATUSES } from "./types.js";
+export { ALLOWED_IMAGE_EXTENSIONS, ENTRY_TYPES, MAX_IMAGE_SIZE, TASK_STATUSES } from "./types.js";

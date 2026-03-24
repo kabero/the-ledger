@@ -1,3 +1,6 @@
+export const ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"] as const;
+export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export const ENTRY_TYPES = ["task", "event", "note", "wish", "trash"] as const;
 export type EntryType = (typeof ENTRY_TYPES)[number];
 

@@ -85,14 +85,14 @@ export class EntryRepository {
       .prepare(`SELECT e.* FROM entries e ${where} ORDER BY e.created_at DESC LIMIT ? OFFSET ?`)
       .all(...params, limit, offset) as EntryRow[];
 
-    return rows.map((row) => this.rowToEntry(row));
+    return this.rowsToEntries(rows);
   }
 
   getUnprocessed(limit: number = 20): Entry[] {
     const rows = this.db
       .prepare(`SELECT * FROM entries WHERE processed = 0 ORDER BY created_at ASC LIMIT ?`)
       .all(limit) as EntryRow[];
-    return rows.map((row) => this.rowToEntry(row));
+    return this.rowsToEntries(rows);
   }
 
   submitProcessed(input: SubmitProcessedInput): Entry {
@@ -110,12 +110,7 @@ export class EntryRepository {
         input.id,
       );
 
-    // Replace tags
-    this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(input.id);
-    const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);
-    for (const tag of input.tags) {
-      insertTag.run(input.id, tag);
-    }
+    this.replaceTags(input.id, input.tags);
 
     return this.getById(input.id)!;
   }
@@ -155,11 +150,7 @@ export class EntryRepository {
     }
 
     if (input.tags !== undefined) {
-      this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(input.id);
-      const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);
-      for (const tag of input.tags) {
-        insertTag.run(input.id, tag);
-      }
+      this.replaceTags(input.id, input.tags);
     }
 
     return this.getById(input.id);
@@ -193,7 +184,50 @@ export class EntryRepository {
         LIMIT ?`,
       )
       .all(limit) as EntryRow[];
-    return rows.map((row) => this.rowToEntry(row));
+    return this.rowsToEntries(rows);
+  }
+
+  private replaceTags(entryId: string, tags: string[]): void {
+    this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(entryId);
+    const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);
+    for (const tag of tags) {
+      insertTag.run(entryId, tag);
+    }
+  }
+
+  private rowsToEntries(rows: EntryRow[]): Entry[] {
+    if (rows.length === 0) return [];
+
+    const ids = rows.map((r) => r.id);
+    const placeholders = ids.map(() => "?").join(", ");
+    const tagRows = this.db
+      .prepare(`SELECT entry_id, tag FROM entry_tags WHERE entry_id IN (${placeholders})`)
+      .all(...ids) as { entry_id: string; tag: string }[];
+
+    const tagMap = new Map<string, string[]>();
+    for (const t of tagRows) {
+      const arr = tagMap.get(t.entry_id);
+      if (arr) {
+        arr.push(t.tag);
+      } else {
+        tagMap.set(t.entry_id, [t.tag]);
+      }
+    }
+
+    return rows.map((row) => ({
+      id: row.id,
+      raw_text: row.raw_text,
+      created_at: row.created_at,
+      processed: row.processed === 1,
+      type: row.type as Entry["type"],
+      title: row.title,
+      tags: tagMap.get(row.id) ?? [],
+      urgent: row.urgent === 1,
+      due_date: row.due_date,
+      status: row.status as Entry["status"],
+      delegatable: row.delegatable === 1,
+      image_path: row.image_path ?? null,
+    }));
   }
 
   private rowToEntry(row: EntryRow): Entry {

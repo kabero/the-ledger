@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { trpc } from "../trpc";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+// サイズ上限は @theledger/core の MAX_IMAGE_SIZE と同期すること
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 function getExtFromMime(mime: string): string {

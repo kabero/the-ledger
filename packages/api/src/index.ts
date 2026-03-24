@@ -1,6 +1,13 @@
 import { serve } from "@hono/node-server";
 import { trpcServer } from "@hono/trpc-server";
-import { createDatabase, EntryRepository, EntryService } from "@theledger/core";
+import {
+  ALLOWED_IMAGE_EXTENSIONS,
+  createDatabase,
+  type Entry,
+  EntryRepository,
+  EntryService,
+  MAX_IMAGE_SIZE,
+} from "@theledger/core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "./router.js";
@@ -24,6 +31,24 @@ app.use(
 
 app.get("/health", (c) => c.json({ ok: true }));
 
+function validateAndCreateEntryFromImage(
+  svc: EntryService,
+  rawText: string,
+  imageData: Buffer,
+  ext: string,
+): Entry {
+  const normalizedExt = ext.toLowerCase().replace(/^\./, "");
+  if (
+    !ALLOWED_IMAGE_EXTENSIONS.includes(normalizedExt as (typeof ALLOWED_IMAGE_EXTENSIONS)[number])
+  ) {
+    throw new Error(`未対応の画像形式: ${normalizedExt}`);
+  }
+  if (imageData.length > MAX_IMAGE_SIZE) {
+    throw new Error("画像サイズが10MBを超えています");
+  }
+  return svc.createEntryWithImage(rawText, imageData, normalizedExt);
+}
+
 app.post("/upload", async (c) => {
   try {
     const body = await c.req.parseBody();
@@ -34,20 +59,10 @@ app.post("/upload", async (c) => {
       return c.json({ error: "画像ファイルが必要です" }, 400);
     }
 
-    const MAX_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      return c.json({ error: "画像サイズが10MBを超えています" }, 400);
-    }
-
     const ext = file.name.split(".").pop() || "png";
-    const allowed = ["png", "jpg", "jpeg", "gif", "webp"];
-    if (!allowed.includes(ext.toLowerCase())) {
-      return c.json({ error: `未対応の画像形式: ${ext}` }, 400);
-    }
-
     const arrayBuf = await file.arrayBuffer();
     const imageData = Buffer.from(arrayBuf);
-    const entry = service.createEntryWithImage(rawText, imageData, ext);
+    const entry = validateAndCreateEntryFromImage(service, rawText, imageData, ext);
     return c.json(entry);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -65,7 +80,7 @@ app.post("/api/quick-add", async (c) => {
 
     if (image) {
       const imageData = Buffer.from(image, "base64");
-      const entry = service.createEntryWithImage(rawText, imageData, ext);
+      const entry = validateAndCreateEntryFromImage(service, rawText, imageData, ext);
       return c.json({ ok: true, entry });
     }
 

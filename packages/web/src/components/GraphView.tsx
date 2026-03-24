@@ -63,18 +63,12 @@ export function GraphView({ fullscreen }: GraphViewProps) {
     color: TYPE_COLORS[e.type ?? "note"] ?? "#fff",
   }));
 
-  // Tag frequency map
+  // Tag frequency map and tag -> entry ids index (single pass)
   const tagCount: Record<string, number> = {};
-  for (const e of items) {
-    for (const tag of e.tags ?? []) {
-      tagCount[tag] = (tagCount[tag] ?? 0) + 1;
-    }
-  }
-
-  // Tag -> entry ids index
   const tagEntries: Record<string, string[]> = {};
   for (const e of items) {
     for (const tag of e.tags ?? []) {
+      tagCount[tag] = (tagCount[tag] ?? 0) + 1;
       if (!tagEntries[tag]) tagEntries[tag] = [];
       tagEntries[tag].push(e.id);
     }

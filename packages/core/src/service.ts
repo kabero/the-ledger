@@ -3,17 +3,17 @@ import os from "node:os";
 import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import type { EntryRepository } from "./repository.js";
-import type {
-  CreateEntryInput,
-  Entry,
-  ListEntriesFilter,
-  SubmitProcessedInput,
-  UpdateEntryInput,
+import {
+  ALLOWED_IMAGE_EXTENSIONS,
+  type CreateEntryInput,
+  type Entry,
+  type ListEntriesFilter,
+  MAX_IMAGE_SIZE,
+  type SubmitProcessedInput,
+  type UpdateEntryInput,
 } from "./types.js";
 
 const IMAGES_DIR = path.join(os.homedir(), ".theledger", "images");
-const ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export class EntryService {
   constructor(private repository: EntryRepository) {}
@@ -52,9 +52,11 @@ export class EntryService {
 
   saveImage(data: Buffer, entryId: string, ext: string): string {
     const normalizedExt = ext.toLowerCase().replace(/^\./, "");
-    if (!ALLOWED_EXTENSIONS.includes(normalizedExt)) {
+    if (
+      !ALLOWED_IMAGE_EXTENSIONS.includes(normalizedExt as (typeof ALLOWED_IMAGE_EXTENSIONS)[number])
+    ) {
       throw new Error(
-        `Unsupported image format: ${normalizedExt}. Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`,
+        `Unsupported image format: ${normalizedExt}. Allowed: ${ALLOWED_IMAGE_EXTENSIONS.join(", ")}`,
       );
     }
     if (data.length > MAX_IMAGE_SIZE) {

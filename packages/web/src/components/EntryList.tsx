@@ -66,6 +66,7 @@ export function EntryList({ tab }: EntryListProps) {
       if (tab === "unprocessed") return true;
       if (tab === "llm") return e.type !== "trash";
       if (e.type === "trash") return false;
+      if (tab === "task" && e.delegatable) return false;
       if (tab === "task" && e.status === "done") {
         if (!e.completed_at) return false;
         return now - new Date(e.completed_at + "Z").getTime() < DAY_MS;

@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { GraphView } from "./components/GraphView";
+import { Settings, applyFont } from "./components/Settings";
 import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
@@ -16,6 +17,9 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("task");
   const [showGraph, setShowGraph] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => { applyFont(); }, []);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -72,6 +76,13 @@ export function App() {
             >
               完了
             </button>
+            <button
+              type="button"
+              className="header-link"
+              onClick={() => setShowSettings(true)}
+            >
+              設定
+            </button>
             {unprocessedCount > 0 && (
               <button
                 type="button"
@@ -117,6 +128,7 @@ export function App() {
           <EntryList tab={activeTab} />
         </div>
       </div>
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

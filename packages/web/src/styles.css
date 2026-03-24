@@ -276,6 +276,37 @@ body {
   margin-left: 4px;
 }
 
+.settings-font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-font-item {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings-font-item.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.settings-font-preview {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
 .btn-result-title {
   background: transparent;
   border: none;

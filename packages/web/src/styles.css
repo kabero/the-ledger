@@ -274,6 +274,19 @@ body {
   }
 }
 
+.due-date {
+  font-size: 10px;
+  color: #666;
+}
+
+.due-date.soon {
+  color: var(--accent);
+}
+
+.due-date.overdue {
+  color: var(--danger);
+}
+
 .completed-at {
   font-size: 10px;
   color: #666;

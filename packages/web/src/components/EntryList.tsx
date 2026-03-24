@@ -183,6 +183,20 @@ export function EntryList({ tab }: EntryListProps) {
                     [{entry.type}]
                   </span>
                 )}
+                {entry.due_date && entry.status !== "done" && (() => {
+                  const now = new Date();
+                  now.setHours(0,0,0,0);
+                  const due = new Date(entry.due_date + "T00:00:00");
+                  const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const cls = diff < 0 ? "overdue" : diff <= 3 ? "soon" : "";
+                  const dateStr = due.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
+                  const remain = diff < 0 ? `${-diff}日超過` : diff === 0 ? "今日" : diff === 1 ? "明日" : `あと${diff}日`;
+                  return (
+                    <span className={`due-date ${cls}`}>
+                      {dateStr}（{remain}）
+                    </span>
+                  );
+                })()}
                 {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
                   <span className="completed-at">
                     {new Date(entry.completed_at + "Z").toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}

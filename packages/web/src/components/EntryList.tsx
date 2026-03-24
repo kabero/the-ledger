@@ -14,7 +14,7 @@ export function EntryList({ tab }: EntryListProps) {
     tab === "all"
       ? { processed: true }
       : tab === "done"
-        ? { status: "done" as const, sort: "updated_at" as const }
+        ? { status: "done" as const, sort: "completed_at" as const }
         : tab === "unprocessed"
           ? { processed: false }
           : tab === "llm"
@@ -119,6 +119,11 @@ export function EntryList({ tab }: EntryListProps) {
                   </span>
                 )}
                 {entry.urgent && <span className="priority high">!</span>}
+                {entry.completed_at && (tab === "done" || tab === "llm") && (
+                  <span className="completed-at">
+                    {new Date(entry.completed_at + "Z").toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
               </div>
             </div>
             <button

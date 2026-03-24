@@ -37,7 +37,8 @@ function migrate(db: Database.Database): void {
       delegatable INTEGER NOT NULL DEFAULT 0,
       image_path TEXT,
       result TEXT,
-      updated_at TEXT
+      updated_at TEXT,
+      completed_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS entry_tags (
@@ -91,6 +92,10 @@ function runMigrations(db: Database.Database): void {
   if (!hasCol("updated_at")) {
     db.exec("ALTER TABLE entries ADD COLUMN updated_at TEXT");
     db.exec("UPDATE entries SET updated_at = created_at WHERE updated_at IS NULL");
+  }
+  if (!hasCol("completed_at")) {
+    db.exec("ALTER TABLE entries ADD COLUMN completed_at TEXT");
+    db.exec("UPDATE entries SET completed_at = updated_at WHERE status = 'done' AND completed_at IS NULL");
   }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {

@@ -33,6 +33,7 @@ export interface Entry extends RawEntry {
   delegatable: boolean;
   image_path: string | null;
   result: string | null;
+  completed_at: string | null;
 }
 
 export interface CreateEntryInput {
@@ -71,5 +72,5 @@ export interface ListEntriesFilter {
   delegatable?: boolean;
   limit?: number;
   offset?: number;
-  sort?: "created_at" | "updated_at";
+  sort?: "created_at" | "updated_at" | "completed_at";
 }

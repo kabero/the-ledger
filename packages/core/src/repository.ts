@@ -22,6 +22,7 @@ interface EntryRow {
   image_path: string | null;
   result: string | null;
   updated_at: string | null;
+  completed_at: string | null;
 }
 
 export class EntryRepository {
@@ -82,7 +83,7 @@ export class EntryRepository {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = filter.limit ?? 100;
     const offset = filter.offset ?? 0;
-    const sortCol = filter.sort === "updated_at" ? "e.updated_at" : "e.created_at";
+    const sortCol = filter.sort === "completed_at" ? "e.completed_at" : filter.sort === "updated_at" ? "e.updated_at" : "e.created_at";
 
     const rows = this.db
       .prepare(`SELECT e.* FROM entries e ${where} ORDER BY ${sortCol} DESC LIMIT ? OFFSET ?`)
@@ -137,6 +138,11 @@ export class EntryRepository {
     if (input.status !== undefined) {
       sets.push("status = ?");
       params.push(input.status);
+      if (input.status === "done") {
+        sets.push("completed_at = datetime('now')");
+      } else {
+        sets.push("completed_at = NULL");
+      }
     }
     if (input.type !== undefined) {
       sets.push("type = ?");
@@ -236,6 +242,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
+      completed_at: row.completed_at ?? null,
     }));
   }
 
@@ -258,6 +265,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
+      completed_at: row.completed_at ?? null,
     };
   }
 }

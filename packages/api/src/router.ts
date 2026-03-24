@@ -49,7 +49,7 @@ export const appRouter = t.router({
           delegatable: z.boolean().optional(),
           limit: z.number().int().positive().max(100).optional(),
           offset: z.number().int().nonnegative().optional(),
-          sort: z.enum(["created_at", "updated_at"]).optional(),
+          sort: z.enum(["created_at", "updated_at", "completed_at"]).optional(),
         })
         .optional(),
     )

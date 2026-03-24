@@ -240,16 +240,19 @@ body {
   border-color: var(--danger);
 }
 
-.btn-result {
+.btn-result-title {
   background: transparent;
-  border: 1px solid var(--accent);
-  border-radius: 3px;
-  color: var(--accent);
+  border: none;
+  color: inherit;
   font-family: var(--font);
-  font-size: 10px;
+  font-size: inherit;
   cursor: pointer;
-  padding: 1px 6px;
-  margin-left: 6px;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
   -webkit-tap-highlight-color: transparent;
 }
 

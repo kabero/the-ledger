@@ -84,11 +84,10 @@ export function EntryList({ tab }: EntryListProps) {
                     [IMG]
                   </span>
                 )}
-                {entry.title ?? entry.raw_text}
-                {entry.result && (
+                {entry.result ? (
                   <button
                     type="button"
-                    className="btn-result"
+                    className="btn-result-title"
                     onClick={() =>
                       setModalEntry({
                         title: entry.title ?? entry.raw_text,
@@ -96,8 +95,10 @@ export function EntryList({ tab }: EntryListProps) {
                       })
                     }
                   >
-                    結果
+                    {entry.title ?? entry.raw_text}
                   </button>
+                ) : (
+                  entry.title ?? entry.raw_text
                 )}
               </div>
               <div className="entry-tags">
@@ -106,7 +107,7 @@ export function EntryList({ tab }: EntryListProps) {
                     {tag}
                   </span>
                 ))}
-                {entry.type && (tab === "all" || tab === "done") && (
+                {entry.type && tab === "all" && (
                   <span className="priority" style={{ marginLeft: 4 }}>
                     [{entry.type}]
                   </span>

@@ -120,13 +120,13 @@ body {
 
 /* Entry items */
 .entry {
-  padding: 10px 0;
+  padding: 6px 0;
   padding-left: 8px;
   border-bottom: 1px solid #222;
   border-left: 3px solid transparent;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 }
 
 .entry:last-child {
@@ -139,15 +139,15 @@ body {
 
 .entry-title {
   flex: 1;
-  font-size: 15px;
+  font-size: 14px;
   word-break: break-word;
 }
 
 .entry-tags {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* Result modal */
@@ -335,8 +335,8 @@ body {
 
 /* Checkbox */
 .checkbox {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border: 2px solid var(--border);
   border-radius: 3px;
   display: inline-flex;
@@ -344,8 +344,7 @@ body {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  margin-top: 1px;
-  font-size: 14px;
+  font-size: 12px;
   background: transparent;
   color: var(--done);
   font-family: var(--font);

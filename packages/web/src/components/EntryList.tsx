@@ -124,7 +124,7 @@ export function EntryList({ tab }: EntryListProps) {
                   updateEntry.mutate({ id: entry.id, status: newStatus });
                 }}
               >
-                {entry.status === "done" ? "x" : ""}
+                {entry.status === "done" ? "\u2713" : ""}
               </button>
             )}
             <div className="entry-title">

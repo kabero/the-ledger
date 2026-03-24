@@ -1,24 +1,40 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "event" | "note" | "wish" | "done";
 
+const TABS: { key: Tab; label: string }[] = [
+  { key: "all", label: "すべて" },
+  { key: "task", label: "タスク" },
+  { key: "event", label: "予定" },
+  { key: "note", label: "メモ" },
+  { key: "wish", label: "ほしい" },
+  { key: "done", label: "完了" },
+];
+
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("all");
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 10_000 });
   const unprocessedCount = unprocessed.data?.length ?? 0;
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "all", label: "すべて" },
-    { key: "task", label: "タスク" },
-    { key: "event", label: "予定" },
-    { key: "note", label: "メモ" },
-    { key: "wish", label: "ほしい" },
-    { key: "done", label: "完了" },
-  ];
+  const activeIndex = TABS.findIndex((t) => t.key === activeTab);
+
+  const handleSwipe = useCallback(() => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+    if (Math.abs(diff) < threshold) return;
+
+    if (diff > 0 && activeIndex < TABS.length - 1) {
+      setActiveTab(TABS[activeIndex + 1].key);
+    } else if (diff < 0 && activeIndex > 0) {
+      setActiveTab(TABS[activeIndex - 1].key);
+    }
+  }, [activeIndex]);
 
   return (
     <div className="container">
@@ -36,7 +52,7 @@ export function App() {
 
       <div className="section">
         <div className="tabs">
-          {tabs.map((tab) => (
+          {TABS.map((tab) => (
             <button
               type="button"
               key={tab.key}
@@ -47,7 +63,17 @@ export function App() {
             </button>
           ))}
         </div>
-        <div className="entry-list-box">
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: swipe area */}
+        <div
+          className="entry-list-box"
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX;
+          }}
+          onTouchMove={(e) => {
+            touchEndX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={handleSwipe}
+        >
           <EntryList tab={activeTab} />
         </div>
       </div>

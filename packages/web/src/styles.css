@@ -115,6 +115,7 @@ body {
   border: 2px solid var(--border);
   border-radius: 0 0 8px 8px;
   padding: 16px 20px;
+  min-height: 50vh;
 }
 
 /* Entry items */

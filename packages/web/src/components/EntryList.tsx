@@ -14,7 +14,7 @@ export function EntryList({ tab }: EntryListProps) {
         ? { status: "done" as const }
         : { type: tab as "task" | "event" | "note" | "wish" };
 
-  const entries = trpc.listEntries.useQuery(filter);
+  const entries = trpc.listEntries.useQuery(filter, { refetchInterval: 10_000 });
   const utils = trpc.useUtils();
 
   const updateEntry = trpc.updateEntry.useMutation({

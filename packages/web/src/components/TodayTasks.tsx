@@ -1,7 +1,7 @@
 import { trpc } from "../trpc";
 
 export function TodayTasks() {
-  const todayTasks = trpc.getTodayTasks.useQuery({});
+  const todayTasks = trpc.getTodayTasks.useQuery({}, { refetchInterval: 10_000 });
   const utils = trpc.useUtils();
 
   const updateEntry = trpc.updateEntry.useMutation({

@@ -9,7 +9,10 @@ type Tab = "all" | "task" | "event" | "note" | "wish" | "done";
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("all");
 
-  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 });
+  const unprocessed = trpc.getUnprocessed.useQuery(
+    { limit: 50 },
+    { refetchInterval: 10_000 }
+  );
   const unprocessedCount = unprocessed.data?.length ?? 0;
 
   const tabs: { key: Tab; label: string }[] = [

@@ -24,6 +24,8 @@ body {
   font-size: 16px;
   line-height: 1.8;
   min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Undertale-style dialog box */
@@ -65,12 +67,19 @@ body {
 /* Tabs */
 .tabs {
   display: flex;
-  gap: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
   flex: 1;
-  padding: 10px 0;
+  min-width: 0;
+  padding: 10px 4px;
   border: 2px solid var(--border);
   border-bottom: none;
   border-radius: 6px 6px 0 0;
@@ -82,6 +91,7 @@ body {
   text-align: center;
   white-space: nowrap;
   transition: color 0.1s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab + .tab {
@@ -124,6 +134,7 @@ body {
 .entry-title {
   flex: 1;
   font-size: 15px;
+  word-break: break-word;
 }
 
 .entry-tags {
@@ -145,8 +156,8 @@ body {
 
 /* Checkbox */
 .checkbox {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border: 2px solid var(--border);
   border-radius: 3px;
   display: inline-flex;
@@ -154,12 +165,13 @@ body {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 1px;
   font-size: 14px;
   background: transparent;
   color: var(--done);
   font-family: var(--font);
   transition: border-color 0.1s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .checkbox:hover {
@@ -201,6 +213,7 @@ body {
   max-width: 640px;
   margin: 0 auto;
   padding: 32px 20px;
+  padding: 32px 20px env(safe-area-inset-bottom);
 }
 
 .section {
@@ -225,10 +238,11 @@ body {
   border: none;
   color: #444;
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
   transition: color 0.1s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-del:hover {
@@ -245,4 +259,41 @@ body {
   align-items: center;
   justify-content: center;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .container {
+    padding: 16px 12px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .box {
+    padding: 16px;
+    margin: 8px 0;
+  }
+
+  .entry-list-box {
+    padding: 12px;
+  }
+
+  .header {
+    font-size: 16px;
+    letter-spacing: 2px;
+    padding: 12px 0 20px;
+  }
+
+  .tab {
+    font-size: 12px;
+    padding: 8px 2px;
+  }
+
+  .entry-title {
+    font-size: 14px;
+  }
+
+  .input-box {
+    font-size: 16px; /* prevent iOS zoom */
+  }
 }

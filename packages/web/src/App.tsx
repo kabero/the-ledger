@@ -8,9 +8,9 @@ type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
 
 const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "task", label: "タスク" },
+  { key: "llm", label: "おつかい" },
   { key: "note", label: "メモ" },
   { key: "wish", label: "ほしい" },
-  { key: "llm", label: "LLM" },
 ];
 
 export function App() {

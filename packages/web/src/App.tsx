@@ -3,7 +3,7 @@ import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { trpc } from "./trpc";
 
-type Tab = "all" | "task" | "event" | "note" | "wish" | "done";
+type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "すべて" },
@@ -42,9 +42,14 @@ export function App() {
         <div className="header">
           * THE LEDGER *
           {unprocessedCount > 0 && (
-            <span style={{ marginLeft: 12 }}>
-              <span className="badge">{unprocessedCount} 件 未処理</span>
-            </span>
+            <button
+              type="button"
+              className="badge"
+              onClick={() => setActiveTab(activeTab === "unprocessed" ? "all" : "unprocessed")}
+              style={{ marginLeft: 12, cursor: "pointer", border: "none" }}
+            >
+              {unprocessedCount} 件 未処理
+            </button>
           )}
         </div>
         <EntryInput />

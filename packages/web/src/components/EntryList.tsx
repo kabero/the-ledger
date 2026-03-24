@@ -1,6 +1,6 @@
 import { trpc } from "../trpc";
 
-type Tab = "all" | "task" | "event" | "note" | "wish" | "done";
+type Tab = "all" | "task" | "event" | "note" | "wish" | "done" | "unprocessed";
 
 interface EntryListProps {
   tab: Tab;
@@ -12,7 +12,9 @@ export function EntryList({ tab }: EntryListProps) {
       ? { processed: true }
       : tab === "done"
         ? { status: "done" as const }
-        : { type: tab as "task" | "event" | "note" | "wish" };
+        : tab === "unprocessed"
+          ? { processed: false }
+          : { type: tab as "task" | "event" | "note" | "wish" };
 
   const entries = trpc.listEntries.useQuery(filter, { refetchInterval: 10_000 });
   const utils = trpc.useUtils();
@@ -32,6 +34,7 @@ export function EntryList({ tab }: EntryListProps) {
   });
 
   const items = (entries.data ?? []).filter((e) => {
+    if (tab === "unprocessed") return true;
     if (e.type === "trash") return false;
     if (tab !== "done" && e.status === "done") return false;
     return true;

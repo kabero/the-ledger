@@ -220,6 +220,30 @@ body {
   padding: 0;
 }
 
+.result-modal-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.result-modal-body th,
+.result-modal-body td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.result-modal-body th {
+  background: #181818;
+  color: var(--accent);
+  font-weight: normal;
+}
+
+.result-modal-body tr:nth-child(even) {
+  background: #0d0d0d;
+}
+
 .result-modal-close {
   position: absolute;
   top: 12px;

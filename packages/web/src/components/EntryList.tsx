@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { trpc } from "../trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
@@ -155,7 +156,7 @@ function ResultModal({
         </button>
         <div className="result-modal-title">{title}</div>
         <div className="result-modal-body">
-          <Markdown>{result}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>
         </div>
       </div>
     </div>

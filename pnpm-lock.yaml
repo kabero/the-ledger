@@ -60,6 +60,9 @@ importers:
       uuid:
         specifier: ^11
         version: 11.1.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7

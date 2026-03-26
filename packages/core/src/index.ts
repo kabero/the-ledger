@@ -1,6 +1,19 @@
 export { createDatabase } from "./db.js";
 export { EntryRepository } from "./repository.js";
 export { ScheduledTaskRepository } from "./scheduled-task-repository.js";
+export {
+  createEntryInputSchema,
+  createScheduledTaskInputSchema,
+  entryTypeSchema,
+  listEntriesFilterSchema,
+  scheduleFrequencySchema,
+  submitProcessedInputSchema,
+  tagSchema,
+  tagsSchema,
+  taskStatusSchema,
+  updateEntryInputSchema,
+  updateScheduledTaskInputSchema,
+} from "./schemas.js";
 export { EntryService } from "./service.js";
 export type {
   CreateEntryInput,

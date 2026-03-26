@@ -1,5 +1,13 @@
 import type { EntryService } from "@theledger/core";
-import { ENTRY_TYPES, TASK_STATUSES } from "@theledger/core";
+import {
+  createScheduledTaskInputSchema,
+  entryTypeSchema,
+  listEntriesFilterSchema,
+  submitProcessedInputSchema,
+  taskStatusSchema,
+  updateEntryInputSchema,
+  updateScheduledTaskInputSchema,
+} from "@theledger/core";
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { z } from "zod";
@@ -12,9 +20,6 @@ export interface Context {
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
 });
-
-const entryTypeEnum = z.enum(ENTRY_TYPES);
-const taskStatusEnum = z.enum(TASK_STATUSES);
 
 export const appRouter = t.router({
   addEntry: t.procedure
@@ -39,70 +44,20 @@ export const appRouter = t.router({
     return ctx.service.getEntry(input.id);
   }),
 
-  listEntries: t.procedure
-    .input(
-      z
-        .object({
-          type: entryTypeEnum.optional(),
-          status: taskStatusEnum.optional(),
-          tag: z.string().optional(),
-          query: z.string().optional(),
-          processed: z.boolean().optional(),
-          delegatable: z.boolean().optional(),
-          source: z.string().optional(),
-          since: z.string().optional(),
-          until: z.string().optional(),
-          includeArchived: z.boolean().optional(),
-          limit: z.number().int().positive().max(100).optional(),
-          offset: z.number().int().nonnegative().optional(),
-          sort: z.enum(["created_at", "updated_at", "completed_at"]).optional(),
-          cursor: z.string().optional(),
-        })
-        .optional(),
-    )
-    .query(({ input, ctx }) => {
-      return ctx.service.listEntries(input ?? {});
-    }),
+  listEntries: t.procedure.input(listEntriesFilterSchema.optional()).query(({ input, ctx }) => {
+    return ctx.service.listEntries(input ?? {});
+  }),
 
   listEntriesWithCursor: t.procedure
-    .input(
-      z
-        .object({
-          type: entryTypeEnum.optional(),
-          status: taskStatusEnum.optional(),
-          tag: z.string().optional(),
-          query: z.string().optional(),
-          processed: z.boolean().optional(),
-          delegatable: z.boolean().optional(),
-          source: z.string().optional(),
-          since: z.string().optional(),
-          until: z.string().optional(),
-          includeArchived: z.boolean().optional(),
-          limit: z.number().int().positive().max(100).optional(),
-          sort: z.enum(["created_at", "updated_at", "completed_at"]).optional(),
-          cursor: z.string().optional(),
-        })
-        .optional(),
-    )
+    .input(listEntriesFilterSchema.optional())
     .query(({ input, ctx }) => {
       return ctx.service.listEntriesWithCursor(input ?? {});
     }),
 
   countEntries: t.procedure
     .input(
-      z
-        .object({
-          type: entryTypeEnum.optional(),
-          status: taskStatusEnum.optional(),
-          tag: z.string().optional(),
-          query: z.string().optional(),
-          processed: z.boolean().optional(),
-          delegatable: z.boolean().optional(),
-          source: z.string().optional(),
-          since: z.string().optional(),
-          until: z.string().optional(),
-          includeArchived: z.boolean().optional(),
-        })
+      listEntriesFilterSchema
+        .omit({ limit: true, offset: true, sort: true, cursor: true })
         .optional(),
     )
     .query(({ input, ctx }) => {
@@ -115,43 +70,13 @@ export const appRouter = t.router({
       return ctx.service.getUnprocessed(input?.limit);
     }),
 
-  submitProcessed: t.procedure
-    .input(
-      z.object({
-        id: z.string(),
-        type: entryTypeEnum,
-        title: z.string().min(1),
-        tags: z.array(z.string()),
-        urgent: z.boolean().default(false),
-        due_date: z.string().nullable(),
-        delegatable: z.boolean().default(false),
-      }),
-    )
-    .mutation(({ input, ctx }) => {
-      return ctx.service.submitProcessed(input);
-    }),
+  submitProcessed: t.procedure.input(submitProcessedInputSchema).mutation(({ input, ctx }) => {
+    return ctx.service.submitProcessed(input);
+  }),
 
-  updateEntry: t.procedure
-    .input(
-      z.object({
-        id: z.string(),
-        title: z.string().optional(),
-        tags: z.array(z.string()).optional(),
-        urgent: z.boolean().optional(),
-        due_date: z.string().nullable().optional(),
-        status: taskStatusEnum.optional(),
-        type: entryTypeEnum.optional(),
-        delegatable: z.boolean().optional(),
-        result: z.string().optional(),
-        result_url: z.string().optional(),
-        result_seen: z.boolean().optional(),
-        decision_selected: z.number().int().nullable().optional(),
-        decision_comment: z.string().nullable().optional(),
-      }),
-    )
-    .mutation(({ input, ctx }) => {
-      return ctx.service.updateEntry(input);
-    }),
+  updateEntry: t.procedure.input(updateEntryInputSchema).mutation(({ input, ctx }) => {
+    return ctx.service.updateEntry(input);
+  }),
 
   markAllResultsSeen: t.procedure.mutation(({ ctx }) => {
     return { count: ctx.service.markAllResultsSeen() };
@@ -165,7 +90,7 @@ export const appRouter = t.router({
     .input(
       z.object({
         ids: z.array(z.string()).min(1).max(100),
-        status: taskStatusEnum,
+        status: taskStatusSchema,
       }),
     )
     .mutation(({ input, ctx }) => {
@@ -215,15 +140,7 @@ export const appRouter = t.router({
 
   // スケジュールおつかい
   createScheduledTask: t.procedure
-    .input(
-      z.object({
-        raw_text: z.string().min(1),
-        frequency: z.enum(["daily", "weekly", "monthly"]),
-        day_of_week: z.number().int().min(0).max(6).nullable().optional(),
-        day_of_month: z.number().int().min(1).max(31).nullable().optional(),
-        hour: z.number().int().min(0).max(23).optional(),
-      }),
-    )
+    .input(createScheduledTaskInputSchema)
     .mutation(({ input, ctx }) => {
       return ctx.service.createScheduledTask(input);
     }),
@@ -233,17 +150,7 @@ export const appRouter = t.router({
   }),
 
   updateScheduledTask: t.procedure
-    .input(
-      z.object({
-        id: z.string(),
-        raw_text: z.string().min(1).optional(),
-        frequency: z.enum(["daily", "weekly", "monthly"]).optional(),
-        day_of_week: z.number().int().min(0).max(6).nullable().optional(),
-        day_of_month: z.number().int().min(1).max(31).nullable().optional(),
-        hour: z.number().int().min(0).max(23).optional(),
-        enabled: z.boolean().optional(),
-      }),
-    )
+    .input(updateScheduledTaskInputSchema)
     .mutation(({ input, ctx }) => {
       return ctx.service.updateScheduledTask(input);
     }),

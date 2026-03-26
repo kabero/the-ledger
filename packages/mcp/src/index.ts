@@ -76,36 +76,29 @@ server.tool(
   },
 );
 
+const processedEntrySchema = z.object({
+  id: z.string().describe("Entry ID"),
+  type: z.enum(ENTRY_TYPES).describe("Classified type: task, event, note, or wish"),
+  title: z.string().describe("Short title summarizing the entry"),
+  tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
+  urgent: z.boolean().default(false).describe("Whether this is urgent"),
+  due_date: z
+    .string()
+    .nullable()
+    .describe("ISO date string for deadline (tasks/events, null otherwise)"),
+  delegatable: z.boolean().default(false).describe("Whether this task can be delegated to an LLM"),
+});
+
 server.tool(
   "submit_processed",
-  "Submit LLM processing results for an entry: type, title, tags, urgent, delegatable.",
+  "Submit LLM processing results for entries. Accepts a single entry or a batch of entries.",
   {
-    id: z.string().describe("Entry ID"),
-    type: z.enum(ENTRY_TYPES).describe("Classified type: task, event, note, or wish"),
-    title: z.string().describe("Short title summarizing the entry"),
-    tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
-    urgent: z.boolean().default(false).describe("Whether this is urgent"),
-    due_date: z
-      .string()
-      .nullable()
-      .describe("ISO date string for deadline (tasks/events, null otherwise)"),
-    delegatable: z
-      .boolean()
-      .default(false)
-      .describe("Whether this task can be delegated to an LLM"),
+    entries: z.array(processedEntrySchema).describe("Array of processed entries to submit"),
   },
-  async ({ id, type, title, tags, urgent, due_date, delegatable }) => {
-    const entry = service.submitProcessed({
-      id,
-      type,
-      title,
-      tags,
-      urgent,
-      due_date,
-      delegatable,
-    });
+  async ({ entries }) => {
+    const results = entries.map((e) => service.submitProcessed(e));
     return {
-      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
     };
   },
 );

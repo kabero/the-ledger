@@ -62,6 +62,25 @@ export const appRouter = t.router({
       return ctx.service.listEntries(input ?? {});
     }),
 
+  countEntries: t.procedure
+    .input(
+      z
+        .object({
+          type: entryTypeEnum.optional(),
+          status: taskStatusEnum.optional(),
+          tag: z.string().optional(),
+          processed: z.boolean().optional(),
+          delegatable: z.boolean().optional(),
+          source: z.string().optional(),
+          since: z.string().optional(),
+          until: z.string().optional(),
+        })
+        .optional(),
+    )
+    .query(({ input, ctx }) => {
+      return { count: ctx.service.countEntries(input ?? {}) };
+    }),
+
   getUnprocessed: t.procedure
     .input(z.object({ limit: z.number().int().positive().max(50).optional() }).optional())
     .query(({ input, ctx }) => {

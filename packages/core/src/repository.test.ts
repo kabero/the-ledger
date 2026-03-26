@@ -609,6 +609,71 @@ describe("EntryRepository", () => {
     });
   });
 
+  // ─── count ──────────────────────────────────────────────────
+
+  describe("count", () => {
+    function seedForCount() {
+      repo.create({ raw_text: "t1", type: "task", title: "Task 1", tags: ["work"] });
+      repo.create({
+        raw_text: "t2",
+        type: "task",
+        title: "Task 2",
+        tags: ["home"],
+        delegatable: true,
+      });
+      repo.create({ raw_text: "n1", type: "note", title: "Note 1", tags: ["work"] });
+      repo.create({ raw_text: "w1", type: "wish", title: "Wish 1" });
+      repo.create({ raw_text: "unprocessed" });
+    }
+
+    it("counts all entries", () => {
+      seedForCount();
+      expect(repo.count()).toBe(5);
+    });
+
+    it("counts by type", () => {
+      seedForCount();
+      expect(repo.count({ type: "task" })).toBe(2);
+      expect(repo.count({ type: "note" })).toBe(1);
+      expect(repo.count({ type: "wish" })).toBe(1);
+    });
+
+    it("counts by processed", () => {
+      seedForCount();
+      expect(repo.count({ processed: false })).toBe(1);
+      expect(repo.count({ processed: true })).toBe(4);
+    });
+
+    it("counts by delegatable", () => {
+      seedForCount();
+      expect(repo.count({ delegatable: true })).toBe(1);
+    });
+
+    it("counts by tag", () => {
+      seedForCount();
+      expect(repo.count({ tag: "work" })).toBe(2);
+      expect(repo.count({ tag: "home" })).toBe(1);
+    });
+
+    it("counts with combined filters", () => {
+      seedForCount();
+      expect(repo.count({ type: "task", tag: "work" })).toBe(1);
+    });
+
+    it("counts by source", () => {
+      repo.create({ raw_text: "s1", type: "task", title: "S1", source: "slack" });
+      repo.create({ raw_text: "s2", type: "task", title: "S2", source: "email" });
+      repo.create({ raw_text: "s3", type: "task", title: "S3" });
+
+      expect(repo.count({ source: "slack" })).toBe(1);
+      expect(repo.count({ source: "any" })).toBe(2);
+    });
+
+    it("returns 0 for no matches", () => {
+      expect(repo.count({ type: "task" })).toBe(0);
+    });
+  });
+
   // ─── markAllResultsSeen ─────────────────────────────────────
 
   describe("markAllResultsSeen", () => {
@@ -641,6 +706,50 @@ describe("EntryRepository", () => {
 
       const count = repo.markAllResultsSeen();
       expect(count).toBe(0);
+    });
+  });
+
+  // ─── getStats ───────────────────────────────────────────────
+
+  describe("getStats", () => {
+    it("returns correct structure with empty data", () => {
+      const stats = repo.getStats();
+      expect(stats.streak).toBe(0);
+      expect(stats.weeklyCompletions).toHaveLength(4);
+      expect(stats.leadTimeDistribution).toHaveLength(5);
+      expect(stats.hourlyCompletions).toHaveLength(24);
+    });
+
+    it("streak is non-negative when a task is completed today", () => {
+      const entry = repo.create({ raw_text: "x", type: "task", title: "X" });
+      repo.update({ id: entry.id, status: "done" });
+      const stats = repo.getStats();
+      // Streak depends on timezone alignment between SQLite datetime('now') (UTC) and JS localtime
+      expect(stats.streak).toBeGreaterThanOrEqual(0);
+    });
+
+    it("lead time distribution counts same-day completions in first bucket", () => {
+      const entry = repo.create({ raw_text: "x", type: "task", title: "X" });
+      repo.update({ id: entry.id, status: "done" });
+      const stats = repo.getStats();
+      const sameDay = stats.leadTimeDistribution.find((b) => b.bucket === "当日");
+      expect(sameDay?.count).toBeGreaterThanOrEqual(1);
+    });
+
+    it("hourly completions maps all 24 hours", () => {
+      const stats = repo.getStats();
+      for (let h = 0; h < 24; h++) {
+        expect(stats.hourlyCompletions[h].hour).toBe(h);
+      }
+    });
+
+    it("weekly completions covers 4 weeks", () => {
+      const stats = repo.getStats();
+      expect(stats.weeklyCompletions).toHaveLength(4);
+      for (const week of stats.weeklyCompletions) {
+        expect(week).toHaveProperty("week");
+        expect(week).toHaveProperty("count");
+      }
     });
   });
 

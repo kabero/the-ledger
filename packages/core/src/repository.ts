@@ -298,6 +298,56 @@ export class EntryRepository {
     return result.changes > 0;
   }
 
+  count(filter: ListEntriesFilter = {}): number {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (filter.type !== undefined) {
+      conditions.push("e.type = ?");
+      params.push(filter.type);
+    }
+    if (filter.status !== undefined) {
+      conditions.push("e.status = ?");
+      params.push(filter.status);
+    }
+    if (filter.processed !== undefined) {
+      conditions.push("e.processed = ?");
+      params.push(filter.processed ? 1 : 0);
+    }
+    if (filter.delegatable !== undefined) {
+      conditions.push("e.delegatable = ?");
+      params.push(filter.delegatable ? 1 : 0);
+    }
+    if (filter.tag !== undefined) {
+      conditions.push(
+        "EXISTS (SELECT 1 FROM entry_tags et WHERE et.entry_id = e.id AND et.tag = ?)",
+      );
+      params.push(filter.tag);
+    }
+    if (filter.source !== undefined) {
+      if (filter.source === "any") {
+        conditions.push("e.source IS NOT NULL");
+      } else {
+        conditions.push("e.source = ?");
+        params.push(filter.source);
+      }
+    }
+    if (filter.since !== undefined) {
+      conditions.push("e.created_at >= ?");
+      params.push(filter.since);
+    }
+    if (filter.until !== undefined) {
+      conditions.push("e.created_at < ?");
+      params.push(filter.until);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const row = this.db
+      .prepare(`SELECT COUNT(*) as cnt FROM entries e ${where}`)
+      .get(...params) as { cnt: number };
+    return row.cnt;
+  }
+
   getTagVocabulary(): { tag: string; count: number }[] {
     return this.db
       .prepare("SELECT tag, COUNT(*) as count FROM entry_tags GROUP BY tag ORDER BY count DESC")

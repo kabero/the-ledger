@@ -75,6 +75,10 @@ export class EntryService {
     return this.repository.list(filter);
   }
 
+  countEntries(filter: ListEntriesFilter = {}): number {
+    return this.repository.count(filter);
+  }
+
   getUnprocessed(limit: number = 20): Entry[] {
     return this.repository.getUnprocessed(limit);
   }

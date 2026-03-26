@@ -1054,6 +1054,10 @@ html {
   background: linear-gradient(90deg, rgba(204, 0, 0, 0.06) 0%, transparent 30%);
 }
 
+.overdue-banner {
+  animation: banner-shake 0.4s ease-out;
+}
+
 [data-theme="light"] .overdue-banner {
   background: rgba(204, 0, 0, 0.08);
   border-color: rgba(204, 0, 0, 0.25);
@@ -1131,4 +1135,291 @@ html {
 
 [data-theme="light"] .entry-result-url:hover {
   background: rgba(26, 109, 212, 0.15);
+}
+
+/* ============================================================
+   Custom text selection colors
+   Match selection highlight to the retro theme
+   ============================================================ */
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--fg);
+}
+
+::-moz-selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--fg);
+}
+
+[data-theme="light"] ::selection {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--fg);
+}
+
+/* ============================================================
+   Dashboard KPI card counter animation
+   Number values scale in on load for visual delight
+   ============================================================ */
+.dash-kpi-value {
+  animation: kpi-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes kpi-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================================
+   Pipeline stage hover highlight
+   Highlight individual pipeline stages on hover
+   ============================================================ */
+@media (hover: hover) {
+  .ai-pipe-stage {
+    transition: transform 0.15s ease;
+    border-radius: 6px;
+    padding: 4px;
+  }
+
+  .ai-pipe-stage:hover {
+    transform: scale(1.08);
+    background: var(--bg-elevated, #111);
+  }
+}
+
+/* ============================================================
+   Smooth sidebar card border-left accent on hover
+   Adds a left accent to sidebar cards matching entry style
+   ============================================================ */
+@media (hover: hover) {
+  .sidebar-card {
+    border-left: 3px solid transparent;
+  }
+
+  .sidebar-card:hover {
+    border-left-color: var(--accent);
+  }
+
+  .sidebar-card-summary-type:hover {
+    border-left-color: var(--accent);
+  }
+}
+
+/* ============================================================
+   Improved scrollbar for AI feed / detail view
+   Thinner, less intrusive scrollbars for the AI dashboard
+   ============================================================ */
+.ai-dash::-webkit-scrollbar,
+.ai-detail::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ai-dash::-webkit-scrollbar-thumb,
+.ai-detail::-webkit-scrollbar-thumb {
+  background: var(--border-muted, #333);
+  border-radius: 2px;
+}
+
+.ai-dash::-webkit-scrollbar-track,
+.ai-detail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-dash,
+.ai-detail {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-muted, #333) transparent;
+}
+
+/* ============================================================
+   Subtle gradient border on the entry list box
+   Top-side gradient fading from accent color
+   ============================================================ */
+.entry-list-box {
+  border-image: linear-gradient(
+      to right,
+      var(--accent) 0%,
+      var(--border) 30%,
+      var(--border) 70%,
+      var(--accent) 100%
+    )
+    1;
+  border-image-slice: 1;
+  border-top: none;
+}
+
+/* ============================================================
+   Better touch feedback for mobile action buttons
+   Active state scale-down for all tappable elements
+   ============================================================ */
+@media (hover: none) {
+  .ai-action:active,
+  .ai-decision-opt:active,
+  .ai-action-btn:active,
+  .tab:active,
+  .header-link:active,
+  .gallery-tab:active,
+  .schedule-freq-btn:active,
+  .schedule-day-btn:active {
+    transform: scale(0.95);
+    transition: transform 0.05s;
+  }
+
+  .fab-add:active {
+    transform: scale(0.88);
+    transition: transform 0.08s;
+  }
+}
+
+/* ============================================================
+   AI mini card subtle gradient background
+   Adds depth to AI mini cards with a gentle gradient
+   ============================================================ */
+.ai-mini {
+  background: linear-gradient(135deg, var(--bg-card, #0a0a0a) 0%, var(--bg-elevated, #111) 100%);
+}
+
+.ai-mini:hover {
+  background: linear-gradient(135deg, var(--bg-elevated, #111) 0%, var(--surface, #111) 100%);
+}
+
+/* ============================================================
+   Smooth transition for done section expand/collapse
+   Content reveal feels less abrupt
+   ============================================================ */
+.done-section {
+  animation: done-section-reveal 0.2s ease-out;
+}
+
+@keyframes done-section-reveal {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+  }
+}
+
+/* ============================================================
+   AI source chip hover interaction
+   Source chips highlight on hover for better interactivity
+   ============================================================ */
+@media (hover: hover) {
+  .ai-source-chip {
+    transition: all 0.15s;
+    cursor: default;
+  }
+
+  .ai-source-chip:hover {
+    border-color: var(--done-light, #4f4);
+    background: var(--bg-done-tint, #001a00);
+  }
+}
+
+/* ============================================================
+   Overdue banner shake on appearance
+   Draw attention to overdue items with a subtle shake
+   ============================================================ */
+@keyframes banner-shake {
+  0% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-4px);
+  }
+  30% {
+    transform: translateX(3px);
+  }
+  45% {
+    transform: translateX(-2px);
+  }
+  60% {
+    transform: translateX(1px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================
+   Confirm modal danger button pulse
+   Danger button subtly pulses to draw attention
+   ============================================================ */
+.confirm-btn-ok {
+  animation: danger-btn-pulse 2s ease-in-out infinite;
+}
+
+@keyframes danger-btn-pulse {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.2);
+  }
+}
+
+[data-theme="light"] .confirm-btn-ok {
+  animation: danger-btn-pulse-light 2s ease-in-out infinite;
+}
+
+@keyframes danger-btn-pulse-light {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(204, 0, 0, 0.15);
+  }
+}
+
+/* ============================================================
+   Schedule item hover highlight
+   Better visual feedback when hovering schedule items
+   ============================================================ */
+@media (hover: hover) {
+  .schedule-item {
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+  }
+
+  .schedule-item:hover {
+    border-color: var(--border-hover, #444);
+    background: var(--bg-card, #0a0a0a);
+  }
+}
+
+/* ============================================================
+   Tag hover pop effect
+   Tags slightly scale up on hover for tactile feel
+   ============================================================ */
+@media (hover: hover) {
+  .tag {
+    transition:
+      opacity 0.15s,
+      transform 0.1s;
+  }
+
+  .tag:hover {
+    transform: scale(1.05);
+  }
+}
+
+/* ============================================================
+   Light theme: Fix AI mini card gradient
+   ============================================================ */
+[data-theme="light"] .ai-mini {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+}
+
+[data-theme="light"] .ai-mini:hover {
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--surface) 100%);
 }

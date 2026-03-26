@@ -426,6 +426,68 @@ server.tool(
   },
 );
 
+server.tool(
+  "get_recent_activity",
+  "Get a timeline of recent activity across all entry types: newly created, completed, and decision entries. Useful for understanding what happened recently.",
+  {
+    limit: z.number().int().positive().max(100).default(20).describe("Max entries to return"),
+  },
+  async ({ limit }) => {
+    try {
+      const entries = service.getRecentActivity(limit);
+      return {
+        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "get_overdue_tasks",
+  "Get pending tasks whose due date has passed. Useful for generating reminders or escalating forgotten work.",
+  {
+    before_date: z
+      .string()
+      .optional()
+      .describe(
+        "ISO date (YYYY-MM-DD) cutoff. Tasks due before this date are returned. Defaults to today.",
+      ),
+  },
+  async ({ before_date }) => {
+    try {
+      const entries = service.getOverdueTasks(before_date);
+      return {
+        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "purge_trash",
+  "Permanently delete all entries classified as trash. Returns the number of entries deleted. Use after reviewing trash to free up space.",
+  {},
+  async () => {
+    try {
+      const count = service.purgeTrash();
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ deleted: count }, null, 2),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
 // --- Start ---
 
 async function main() {

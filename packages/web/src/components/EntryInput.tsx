@@ -63,7 +63,12 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
 
   const isBusy = uploading || addEntry.isPending;
   const isMac = useMemo(
-    () => typeof navigator !== "undefined" && /Mac/.test(navigator.platform),
+    () =>
+      typeof navigator !== "undefined" &&
+      /Mac/.test(
+        (navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData
+          ?.platform ?? navigator.platform,
+      ),
     [],
   );
   const placeholder = isMac

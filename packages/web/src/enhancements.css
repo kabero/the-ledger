@@ -654,8 +654,8 @@ html {
    ============================================================ */
 .box:focus-within {
   box-shadow:
-    0 0 0 1px rgba(255, 255, 0, 0.1),
-    0 0 12px rgba(255, 255, 0, 0.06);
+    0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 0 12px color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 /* ============================================================
@@ -922,4 +922,213 @@ html {
 .settings-theme-btn:hover:not(.active) {
   border-color: var(--border-hover, #444);
   color: var(--fg, #fff);
+}
+
+/* ============================================================
+   Reduce motion preferences
+   Respect users who prefer reduced motion (accessibility)
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  .spinner {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Print styles
+   Clean output for printing entries, results, and dashboard
+   ============================================================ */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 12pt;
+  }
+
+  /* Hide interactive / chrome elements */
+  .header-sub,
+  .header-ai-btn,
+  .header-ai-group,
+  .header-unprocessed,
+  .header-sourced-btn,
+  .fab-add,
+  .bottom-sheet-overlay,
+  .btn-del,
+  .btn-img,
+  .btn-send,
+  .btn-priority,
+  .checkbox,
+  .undo-toast,
+  .tabs,
+  .swipe-dots,
+  .tab-action-bar,
+  .done-section-toggle::after,
+  .graph-close,
+  .gallery-close,
+  .ai-feed-header,
+  .result-modal-header,
+  .overdue-banner-dismiss,
+  .overdue-banner-action,
+  .ai-action,
+  .ai-actions,
+  .ai-decision-opt,
+  .ai-decision-comment,
+  .settings-theme-toggle {
+    display: none !important;
+  }
+
+  /* Remove fixed positioning */
+  .ai-feed,
+  .gallery,
+  .graph-fullscreen {
+    position: static;
+    overflow: visible;
+  }
+
+  /* Remove backgrounds and borders for cleaner print */
+  .box,
+  .entry-list-box,
+  .sidebar-card,
+  .ai-mini,
+  .dash-card,
+  .ai-detail-result {
+    border-color: #ccc;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* Make all entries fully opaque */
+  .entry.done {
+    opacity: 1;
+  }
+
+  /* Remove animations */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Page break control */
+  .entry {
+    break-inside: avoid;
+  }
+
+  .ai-detail-result {
+    break-inside: avoid;
+  }
+
+  /* Ensure links show their URL */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+}
+
+/* ============================================================
+   Light theme: fix hardcoded rgba values
+   Override dark-theme-assumed rgba colors for light theme
+   ============================================================ */
+[data-theme="light"] .box:focus-within {
+  box-shadow: 0 0 0 1px rgba(184, 134, 11, 0.2);
+}
+
+[data-theme="light"] .entry.has-url {
+  background: linear-gradient(90deg, rgba(26, 109, 212, 0.06) 0%, transparent 40%);
+}
+
+[data-theme="light"] .entry.urgent {
+  background: linear-gradient(90deg, rgba(204, 0, 0, 0.06) 0%, transparent 30%);
+}
+
+[data-theme="light"] .overdue-banner {
+  background: rgba(204, 0, 0, 0.08);
+  border-color: rgba(204, 0, 0, 0.25);
+}
+
+[data-theme="light"] .result-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .bottom-sheet-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .ai-hover-modal {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .undo-toast {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Light theme tab glow uses accent color */
+[data-theme="light"] .tab.active {
+  box-shadow: 0 -2px 8px rgba(184, 134, 11, 0.15);
+  text-shadow: none;
+}
+
+[data-theme="light"] .badge-new {
+  text-shadow: none;
+  box-shadow: 0 0 4px rgba(184, 134, 11, 0.3);
+}
+
+[data-theme="light"] .header-title {
+  text-shadow: none;
+}
+
+[data-theme="light"] .header-title::after {
+  display: none;
+}
+
+/* ============================================================
+   Sidebar / modal visual polish
+   Better spacing and hover transitions for sidebar elements
+   ============================================================ */
+.sidebar-sourced {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-muted, #333) transparent;
+}
+
+.sidebar-card {
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.15s;
+}
+
+/* Smooth card expand on click/focus */
+.sidebar-card:focus-within {
+  border-color: var(--border-hover, #444);
+}
+
+/* Better visual hierarchy for section titles */
+.sidebar-title {
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+/* ============================================================
+   Fix: entry-result-url hardcoded rgba for light theme
+   ============================================================ */
+[data-theme="light"] .entry-result-url {
+  background: rgba(26, 109, 212, 0.08);
+  border-color: rgba(26, 109, 212, 0.25);
+}
+
+[data-theme="light"] .entry-result-url:hover {
+  background: rgba(26, 109, 212, 0.15);
 }

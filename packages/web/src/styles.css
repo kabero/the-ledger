@@ -326,7 +326,13 @@ body {
 }
 
 .entry-list-box:has(.entry) {
-  min-height: 50vh;
+  min-height: 30vh;
+}
+
+@media (max-width: 480px) {
+  .entry-list-box:has(.entry) {
+    min-height: auto;
+  }
 }
 
 /* Entry items */
@@ -942,7 +948,7 @@ body {
 }
 
 .sidebar-card-summary {
-  color: #aaa;
+  color: var(--dim);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -1074,14 +1080,14 @@ body {
 .overdue-banner-text {
   flex: 1;
   font-size: 12px;
-  color: #dc3232;
+  color: var(--danger);
   font-weight: bold;
 }
 
 .overdue-banner-action {
   background: none;
   border: 1px solid rgba(220, 50, 50, 0.4);
-  color: #dc3232;
+  color: var(--danger);
   font-family: var(--font);
   font-size: 11px;
   padding: 3px 10px;
@@ -1093,7 +1099,7 @@ body {
 .overdue-banner-dismiss {
   background: none;
   border: none;
-  color: #dc3232;
+  color: var(--danger);
   font-size: 14px;
   cursor: pointer;
   padding: 2px 4px;

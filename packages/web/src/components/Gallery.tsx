@@ -20,16 +20,16 @@ interface GalleryProps {
 
 const tooltipStyle = {
   contentStyle: {
-    background: "#111",
-    border: "1px solid #333",
+    background: "var(--surface, #111)",
+    border: "1px solid var(--border-muted, #333)",
     borderRadius: 4,
-    color: "#fff",
+    color: "var(--fg, #fff)",
     fontSize: 11,
     fontFamily: "var(--font)",
     padding: "6px 10px",
   },
-  itemStyle: { color: "#fff" },
-  labelStyle: { color: "#888" },
+  itemStyle: { color: "var(--fg, #fff)" },
+  labelStyle: { color: "var(--dim, #888)" },
   cursor: { fill: "rgba(255,255,255,0.03)" },
 };
 

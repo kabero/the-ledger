@@ -1,22 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Markdown from "react-markdown";
 import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
 import { applyFont, applyTheme, Settings } from "./components/Settings";
-import { remarkPlugins, safeUrlTransform } from "./markdown";
+import { SourcedList } from "./components/SourcedList";
 import { POLL } from "./poll";
 import { trpc } from "./trpc";
-
-type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
-
-const MAIN_TABS: { key: Tab; label: string }[] = [
-  { key: "task", label: "タスク" },
-  { key: "llm", label: "おつかい" },
-  { key: "note", label: "メモ" },
-  { key: "wish", label: "ほしい" },
-];
+import { MAIN_TABS, type Tab } from "./types";
 
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("task");
@@ -101,7 +92,7 @@ export function App() {
   );
   const [overdueDismissed, setOverdueDismissed] = useState(() => {
     const key = "overdue-dismissed";
-    const stored = sessionStorage.getItem(key);
+    const stored = localStorage.getItem(key);
     if (!stored) return false;
     // Persist dismiss only for the current calendar day
     const today = new Date().toISOString().slice(0, 10);
@@ -109,7 +100,7 @@ export function App() {
   });
   const handleOverdueDismiss = useCallback(() => {
     const today = new Date().toISOString().slice(0, 10);
-    sessionStorage.setItem("overdue-dismissed", today);
+    localStorage.setItem("overdue-dismissed", today);
     setOverdueDismissed(true);
   }, []);
   const overdueCount = useMemo(() => {
@@ -382,77 +373,7 @@ export function App() {
                 </button>
               </div>
               <div className="sourced-modal-list">
-                {recentSummaries.length > 0 && (
-                  <>
-                    <div className="sourced-modal-section-title">サマリ</div>
-                    {recentSummaries.map((e) => (
-                      <div key={e.id} className="sidebar-card sidebar-card-summary-type">
-                        <div className="sidebar-card-header">
-                          {e.source && <span className="ai-badge source">{e.source}</span>}
-                          <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
-                        </div>
-                        {e.result && (
-                          <div className="sidebar-card-summary">
-                            <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                              {(e.result.length > 200
-                                ? `${e.result.slice(0, 200)}...`
-                                : e.result
-                              ).replace(/\\n/g, "\n")}
-                            </Markdown>
-                          </div>
-                        )}
-                        {!e.result && e.raw_text && (
-                          <div className="sidebar-card-summary">
-                            <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                              {(e.raw_text.length > 300
-                                ? `${e.raw_text.slice(0, 300)}...`
-                                : e.raw_text
-                              ).replace(/\\n/g, "\n")}
-                            </Markdown>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </>
-                )}
-                {recentSourced.length > 0 && (
-                  <>
-                    <div className="sourced-modal-section-title">外部入力</div>
-                    {recentSourced.map((e) => (
-                      <div key={e.id} className="sidebar-card">
-                        <div className="sidebar-card-header">
-                          {e.source && <span className="ai-badge source">{e.source}</span>}
-                          <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
-                        </div>
-                        {e.result && (
-                          <div className="sidebar-card-summary">
-                            <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                              {(e.result.length > 200
-                                ? `${e.result.slice(0, 200)}...`
-                                : e.result
-                              ).replace(/\\n/g, "\n")}
-                            </Markdown>
-                          </div>
-                        )}
-                        {e.result_url && (
-                          <button
-                            type="button"
-                            className="entry-result-url-btn"
-                            onClick={() =>
-                              window.open(
-                                e.result_url as string,
-                                "_blank",
-                                "noopener,noreferrer,popup",
-                              )
-                            }
-                          >
-                            {"\u2197"} URL
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </>
-                )}
+                <SourcedList summaries={recentSummaries} sourced={recentSourced} variant="modal" />
               </div>
             </div>
           </div>
@@ -460,72 +381,7 @@ export function App() {
       </div>
       {(recentSummaries.length > 0 || recentSourced.length > 0) && (
         <aside className="sidebar-sourced">
-          {recentSummaries.length > 0 && (
-            <>
-              <div className="sidebar-title">サマリ</div>
-              {recentSummaries.map((e) => (
-                <div key={e.id} className="sidebar-card sidebar-card-summary-type">
-                  <div className="sidebar-card-header">
-                    {e.source && <span className="ai-badge source">{e.source}</span>}
-                    <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
-                  </div>
-                  {e.result && (
-                    <div className="sidebar-card-summary">
-                      <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                        {(e.result.length > 200
-                          ? `${e.result.slice(0, 200)}...`
-                          : e.result
-                        ).replace(/\\n/g, "\n")}
-                      </Markdown>
-                    </div>
-                  )}
-                  {!e.result && e.raw_text && (
-                    <div className="sidebar-card-summary">
-                      <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                        {(e.raw_text.length > 300
-                          ? `${e.raw_text.slice(0, 300)}...`
-                          : e.raw_text
-                        ).replace(/\\n/g, "\n")}
-                      </Markdown>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </>
-          )}
-          {recentSourced.length > 0 && (
-            <>
-              <div className="sidebar-title">外部入力</div>
-              {recentSourced.map((e) => (
-                <div key={e.id} className="sidebar-card">
-                  <div className="sidebar-card-header">
-                    {e.source && <span className="ai-badge source">{e.source}</span>}
-                    <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
-                  </div>
-                  {e.result && (
-                    <div className="sidebar-card-summary">
-                      <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                        {(e.result.length > 200
-                          ? `${e.result.slice(0, 200)}...`
-                          : e.result
-                        ).replace(/\\n/g, "\n")}
-                      </Markdown>
-                    </div>
-                  )}
-                  {e.result_url && (
-                    <a
-                      href={e.result_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="entry-result-url"
-                    >
-                      {"\u2197"} URL
-                    </a>
-                  )}
-                </div>
-              ))}
-            </>
-          )}
+          <SourcedList summaries={recentSummaries} sourced={recentSourced} variant="sidebar" />
         </aside>
       )}
     </div>

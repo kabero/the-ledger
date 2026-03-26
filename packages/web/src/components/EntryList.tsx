@@ -3,8 +3,8 @@ import Markdown from "react-markdown";
 import { remarkPlugins, safeUrlTransform } from "../markdown";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
+import type { Tab } from "../types";
 
-type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
 type EntryRow = ReturnType<typeof trpc.listEntries.useQuery>["data"] extends (infer T)[] | undefined
   ? T & { status: string | null; completed_at: string | null }
   : never;
@@ -53,6 +53,12 @@ export function EntryList({ tab }: EntryListProps) {
       utils.listEntries.invalidate();
     },
   });
+
+  // Stable refs for mutations to avoid re-creating renderEntry on every render
+  const updateRef = useRef(updateEntry.mutate);
+  updateRef.current = updateEntry.mutate;
+  const deleteRef = useRef(deleteEntry.mutate);
+  deleteRef.current = deleteEntry.mutate;
 
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
@@ -201,7 +207,7 @@ export function EntryList({ tab }: EntryListProps) {
                       ...prev,
                       [entry.id]: { status: "pending", completed_at: null },
                     }));
-                    updateEntry.mutate({ id: entry.id, status: "pending" });
+                    updateRef.current({ id: entry.id, status: "pending" });
                     setConfirmAction(null);
                   },
                 });
@@ -228,7 +234,7 @@ export function EntryList({ tab }: EntryListProps) {
               showUndoToast(
                 msg,
                 () => {
-                  updateEntry.mutate({ id: entry.id, status: newStatus });
+                  updateRef.current({ id: entry.id, status: newStatus });
                 },
                 () => {
                   // Revert optimistic update
@@ -250,7 +256,7 @@ export function EntryList({ tab }: EntryListProps) {
           <button
             type="button"
             className={`btn-priority ${entry.urgent ? "active" : ""}`}
-            onClick={() => updateEntry.mutate({ id: entry.id, urgent: !entry.urgent })}
+            onClick={() => updateRef.current({ id: entry.id, urgent: !entry.urgent })}
             title={entry.urgent ? "優先フラグを外す" : "優先フラグを付ける"}
           >
             !
@@ -268,7 +274,7 @@ export function EntryList({ tab }: EntryListProps) {
                     result: entry.result as string,
                   });
                   if (!entry.result_seen) {
-                    updateEntry.mutate({ id: entry.id, result_seen: true });
+                    updateRef.current({ id: entry.id, result_seen: true });
                   }
                 }}
               >
@@ -346,7 +352,7 @@ export function EntryList({ tab }: EntryListProps) {
               message: `「${entry.title ?? entry.raw_text}」を削除しますか？`,
               okLabel: "削除",
               onOk: () => {
-                deleteEntry.mutate({ id: entry.id });
+                deleteRef.current({ id: entry.id });
                 setConfirmAction(null);
               },
             });
@@ -356,7 +362,7 @@ export function EntryList({ tab }: EntryListProps) {
         </button>
       </div>
     ),
-    [updateEntry, deleteEntry, showUndoToast],
+    [showUndoToast],
   );
 
   const pending = useMemo(

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { trpc } from "../trpc";
+import { EntryInput } from "./EntryInput";
 
 function normalizeResult(text: string): string {
   return text.replace(/\\n/g, "\n");
@@ -183,6 +184,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
         <button type="button" className="gallery-close" onClick={onClose}>
           x
         </button>
+      </div>
+      <div className="ai-feed-input">
+        <EntryInput />
       </div>
 
       <div className="ai-dash">

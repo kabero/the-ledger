@@ -1201,6 +1201,21 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.ai-feed-input {
+  flex-shrink: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.ai-feed-input .box {
+  border: none;
+  padding: 8px 0;
+}
+
+.ai-feed-input .box-title {
+  display: none;
+}
+
 /* Pipeline KPIs */
 
 .ai-pipeline {

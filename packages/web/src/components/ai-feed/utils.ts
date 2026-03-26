@@ -16,6 +16,19 @@ export function formatTime(iso: string): string {
   return d.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
 }
 
+export function formatElapsed(iso: string): string {
+  const d = new Date(`${iso}Z`);
+  const diffMs = Date.now() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "0m";
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHour = Math.floor(diffMin / 60);
+  const remainMin = diffMin % 60;
+  if (diffHour < 24) return `${diffHour}h${remainMin > 0 ? `${remainMin}m` : ""}`;
+  const diffDay = Math.floor(diffHour / 24);
+  return `${diffDay}d${diffHour % 24}h`;
+}
+
 export function formatDateTime(iso: string): string {
   return new Date(`${iso}Z`).toLocaleDateString("ja-JP", {
     month: "short",

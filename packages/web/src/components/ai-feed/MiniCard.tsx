@@ -9,6 +9,7 @@ interface MiniCardProps {
   className?: string;
   onClick: () => void;
   showNew?: boolean;
+  showImplementing?: boolean;
   timeField?: "created_at" | "completed_at";
 }
 
@@ -17,6 +18,7 @@ export const MiniCard = memo(function MiniCard({
   className = "",
   onClick,
   showNew = false,
+  showImplementing = false,
   timeField = "created_at",
 }: MiniCardProps) {
   const time = timeField === "completed_at" ? entry.completed_at : entry.created_at;
@@ -37,6 +39,7 @@ export const MiniCard = memo(function MiniCard({
       <button type="button" className={`ai-mini ${className}`} onClick={onClick}>
         <div className="ai-mini-top">
           <div className="ai-mini-title">{entry.title ?? entry.raw_text}</div>
+          {showImplementing && <span className="ai-badge implementing">実装中</span>}
           {showNew && <span className="ai-badge new">NEW</span>}
         </div>
         <div className="ai-mini-meta">

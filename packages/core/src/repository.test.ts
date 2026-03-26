@@ -991,6 +991,82 @@ describe("EntryRepository", () => {
     });
   });
 
+  // ─── list (combined filters) ────────────────────────────────
+
+  describe("list (combined filters)", () => {
+    function seedCombined() {
+      repo.create({
+        raw_text: "t1",
+        type: "task",
+        title: "Task Work",
+        tags: ["work"],
+        delegatable: true,
+        source: "slack",
+      });
+      repo.create({
+        raw_text: "t2",
+        type: "task",
+        title: "Task Home",
+        tags: ["home"],
+        urgent: true,
+      });
+      repo.create({
+        raw_text: "n1",
+        type: "note",
+        title: "Note Work",
+        tags: ["work"],
+        source: "email",
+      });
+    }
+
+    it("combines type + tag filter", () => {
+      seedCombined();
+      const result = repo.list({ type: "task", tag: "work" });
+      expect(result.length).toBe(1);
+      expect(result[0].title).toBe("Task Work");
+    });
+
+    it("combines type + delegatable filter", () => {
+      seedCombined();
+      const result = repo.list({ type: "task", delegatable: true });
+      expect(result.length).toBe(1);
+      expect(result[0].title).toBe("Task Work");
+    });
+
+    it("combines type + source filter", () => {
+      seedCombined();
+      const result = repo.list({ source: "any" });
+      expect(result.length).toBe(2);
+    });
+
+    it("combines multiple filters returning empty", () => {
+      seedCombined();
+      const result = repo.list({ type: "note", delegatable: true });
+      expect(result.length).toBe(0);
+    });
+  });
+
+  // ─── large batch handling ──────────────────────────────────
+
+  describe("large batch handling", () => {
+    it("handles more than 100 entries in rowsToEntries", () => {
+      // Create 120 entries to test the chunked tag fetching (CHUNK_SIZE = 100)
+      for (let i = 0; i < 120; i++) {
+        repo.create({
+          raw_text: `entry ${i}`,
+          type: "task",
+          title: `Entry ${i}`,
+          tags: [`tag-${i}`],
+        });
+      }
+      const all = repo.list({ limit: 120 });
+      expect(all.length).toBe(120);
+      // Each should have its own tag
+      const withTags = all.filter((e) => e.tags.length > 0);
+      expect(withTags.length).toBe(120);
+    });
+  });
+
   // ─── runInTransaction ─────────────────────────────────────
 
   describe("runInTransaction", () => {

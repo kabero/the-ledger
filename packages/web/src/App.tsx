@@ -82,10 +82,11 @@ export function App() {
     { delegatable: true, limit: 100 },
     { refetchInterval: showAiFeed ? false : POLL.delegatable },
   );
-  const hasNewAiResults = useMemo(
-    () => (aiTasks.data ?? []).some((e) => e.result && !e.result_seen),
+  const newAiResultCount = useMemo(
+    () => (aiTasks.data ?? []).filter((e) => e.result && !e.result_seen).length,
     [aiTasks.data],
   );
+  const hasNewAiResults = newAiResultCount > 0;
 
   const utils = trpc.useUtils();
   const markAllSeen = trpc.markAllResultsSeen.useMutation({
@@ -267,6 +268,9 @@ export function App() {
                 onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
+                {tab.key === "llm" && newAiResultCount > 0 && (
+                  <span className="tab-new-count">{newAiResultCount}</span>
+                )}
               </button>
             ))}
           </div>

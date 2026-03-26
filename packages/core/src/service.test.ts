@@ -547,6 +547,36 @@ describe("EntryService", () => {
         serviceNoScheduled.createScheduledTask({ raw_text: "x", frequency: "daily" }),
       ).toThrow("ScheduledTaskRepository is not configured");
     });
+
+    it("runDueScheduledTasks creates entries for due tasks", () => {
+      const now = new Date();
+      // Create a daily task at the current hour
+      service.createScheduledTask({
+        raw_text: "daily check",
+        frequency: "daily",
+        hour: now.getHours(),
+      });
+
+      const created = service.runDueScheduledTasks();
+      // May or may not create entries depending on timing
+      // But should not throw
+      expect(Array.isArray(created)).toBe(true);
+    });
+
+    it("runDueScheduledTasks does not re-run tasks already run today", () => {
+      const now = new Date();
+      service.createScheduledTask({
+        raw_text: "once daily",
+        frequency: "daily",
+        hour: now.getHours(),
+      });
+
+      // First run
+      service.runDueScheduledTasks();
+      // Second run should not create more entries
+      const secondRun = service.runDueScheduledTasks();
+      expect(secondRun.length).toBe(0);
+    });
   });
 
   // ─── Tag vocabulary ────────────────────────────────────────

@@ -77,6 +77,9 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
           {entry.source && <span className="ai-badge source">{entry.source}</span>}
           <span className="ai-badge type">{entry.type}</span>
           {entry.status === "done" && <span className="ai-badge done">{"\u2713"}</span>}
+          {entry.delegatable && entry.status !== "done" && (
+            <span className="ai-badge implementing">実装中</span>
+          )}
           {entry.urgent && <span className="ai-badge urgent">!</span>}
         </div>
         <h2 className="ai-detail-title">{entry.title ?? entry.raw_text}</h2>

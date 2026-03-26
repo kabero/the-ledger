@@ -153,25 +153,33 @@
 
 /* Result URL button (opens in new window) */
 .entry-result-url-btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11px;
   font-family: var(--font);
   color: var(--link, #4af);
   background: var(--bg-link, #0a1520);
   border: 1px solid var(--border-link, #1a2a3a);
   border-radius: 4px;
-  padding: 1px 6px;
+  padding: 2px 8px;
   margin-left: 6px;
   cursor: pointer;
   text-decoration: none;
   vertical-align: middle;
   white-space: nowrap;
   transition: all 0.15s;
+  font-weight: bold;
 }
 
 .entry-result-url-btn:hover {
   background: var(--bg-link-hover, #102030);
   border-color: var(--link, #4af);
+  box-shadow: 0 0 6px rgba(68, 170, 255, 0.2);
+}
+
+.entry-result-url-btn:active {
+  transform: scale(0.95);
 }
 
 /* Tab action bar (mark all seen, etc.) */
@@ -257,4 +265,19 @@
   font-size: 10px;
   color: var(--dim, #666);
   flex-shrink: 0;
+}
+
+.ai-progress-item .ai-badge.implementing {
+  flex-shrink: 0;
+}
+
+/* Elapsed time indicator for in-progress items */
+.ai-progress-elapsed {
+  font-size: 9px;
+  color: var(--dim, #666);
+  background: var(--border-subtle, #222);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }

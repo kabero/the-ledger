@@ -4,7 +4,7 @@ import { trpc } from "../trpc";
 import { DetailView } from "./ai-feed/DetailView";
 import { MiniCard } from "./ai-feed/MiniCard";
 import type { EntryItem } from "./ai-feed/types";
-import { formatTime } from "./ai-feed/utils";
+import { formatElapsed, formatTime } from "./ai-feed/utils";
 import { EntryInput } from "./EntryInput";
 
 interface AiFeedProps {
@@ -261,9 +261,11 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 className="ai-progress-item"
                 onClick={() => setSelectedId(e.id)}
               >
+                <span className="ai-badge implementing">実装中</span>
                 {e.urgent && <span className="ai-badge urgent">!</span>}
                 {e.source && <span className="ai-badge source">{e.source}</span>}
                 <span className="ai-progress-item-title">{e.title ?? e.raw_text}</span>
+                <span className="ai-progress-elapsed">{formatElapsed(e.created_at)}</span>
                 <span className="ai-progress-item-time">{formatTime(e.created_at)}</span>
               </button>
             ))}
@@ -378,6 +380,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   entry={e}
                   className={e.urgent ? "urgent" : ""}
                   onClick={() => setSelectedId(e.id)}
+                  showImplementing
                 />
               ))}
             </div>

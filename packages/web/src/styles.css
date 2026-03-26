@@ -1615,6 +1615,13 @@ body {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+.ai-badge.link {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
 @keyframes pulse {
   0%,
   100% {

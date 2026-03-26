@@ -775,7 +775,9 @@ body {
   cursor: pointer;
   padding: 2px 8px;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.1s, border-color 0.1s;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
 }
 
 .schedule-toggle.on {
@@ -811,7 +813,9 @@ body {
   cursor: pointer;
   padding: 6px 14px;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.1s, border-color 0.1s;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
 }
 
 @media (hover: hover) {
@@ -864,7 +868,9 @@ body {
   padding: 6px 4px;
   text-align: center;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.1s, border-color 0.1s;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
 }
 
 .schedule-freq-btn.active {
@@ -888,7 +894,9 @@ body {
   cursor: pointer;
   padding: 4px 8px;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.1s, border-color 0.1s;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
 }
 
 .schedule-day-btn.active {
@@ -991,7 +999,9 @@ body {
   cursor: pointer;
   padding: 6px 16px;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.1s, border-color 0.1s;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
 }
 
 .gallery-tab.active {
@@ -1009,7 +1019,9 @@ body {
   cursor: pointer;
   padding: 6px 10px;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.1s, border-color 0.1s;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
 }
 
 @media (hover: hover) {

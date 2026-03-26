@@ -102,7 +102,6 @@ export const appRouter = t.router({
     return ctx.service.deleteEntry(input.id);
   }),
 
-
   getStats: t.procedure.query(({ ctx }) => {
     return ctx.service.getStats();
   }),

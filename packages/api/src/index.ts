@@ -54,8 +54,8 @@ function validateAndCreateEntryFromImage(
 app.post("/upload", async (c) => {
   try {
     const body = await c.req.parseBody();
-    const rawText = (body["raw_text"] as string) || "";
-    const file = body["image"];
+    const rawText = (body.raw_text as string) || "";
+    const file = body.image;
 
     if (!file || !(file instanceof File)) {
       return c.json({ error: "画像ファイルが必要です" }, 400);

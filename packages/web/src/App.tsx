@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
-import { Settings, applyFont } from "./components/Settings";
+import { applyFont, Settings } from "./components/Settings";
 import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
@@ -19,7 +19,9 @@ export function App() {
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => { applyFont(); }, []);
+  useEffect(() => {
+    applyFont();
+  }, []);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -56,9 +58,7 @@ export function App() {
               <button
                 type="button"
                 className="header-unprocessed"
-                onClick={() =>
-                  setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")
-                }
+                onClick={() => setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")}
               >
                 {unprocessedCount}
               </button>
@@ -111,7 +111,6 @@ export function App() {
             </button>
           ))}
         </div>
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: swipe area */}
         <div
           className="entry-list-box"
           onTouchStart={(e) => {

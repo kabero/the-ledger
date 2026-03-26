@@ -40,7 +40,12 @@ const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
 
 type Frequency = "daily" | "weekly" | "monthly";
 
-function formatFrequency(freq: string, dayOfWeek?: number | null, dayOfMonth?: number | null, hour?: number | null): string {
+function formatFrequency(
+  freq: string,
+  dayOfWeek?: number | null,
+  dayOfMonth?: number | null,
+  hour?: number | null,
+): string {
   const h = hour ?? 8;
   const timeStr = `${h}:00`;
   switch (freq) {
@@ -124,11 +129,7 @@ function ScheduleSection() {
       )}
 
       {!showForm ? (
-        <button
-          type="button"
-          className="schedule-add-btn"
-          onClick={() => setShowForm(true)}
-        >
+        <button type="button" className="schedule-add-btn" onClick={() => setShowForm(true)}>
           + 追加
         </button>
       ) : (
@@ -192,7 +193,9 @@ function ScheduleSection() {
               onChange={(e) => setHour(Number(e.target.value))}
             >
               {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={i}>{i}:00</option>
+                <option key={i} value={i}>
+                  {i}:00
+                </option>
               ))}
             </select>
           </div>
@@ -236,7 +239,9 @@ export function Settings({ onClose }: SettingsProps) {
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, []);
 
   const handleSelect = (key: string) => {
@@ -250,7 +255,9 @@ export function Settings({ onClose }: SettingsProps) {
       className="result-overlay"
       role="dialog"
       onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}

@@ -9,7 +9,6 @@ import {
   EntryRepository,
   EntryService,
   ScheduledTaskRepository,
-  TASK_STATUSES,
 } from "@theledger/core";
 import { z } from "zod";
 
@@ -130,7 +129,6 @@ server.tool(
     };
   },
 );
-
 
 server.tool(
   "complete_task",

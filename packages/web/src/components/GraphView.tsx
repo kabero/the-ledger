@@ -95,7 +95,7 @@ export function GraphView({ fullscreen }: GraphViewProps) {
   const nodeSize = fullscreen ? 4 : 3;
   const fontSize = fullscreen ? 4 : 3;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: untyped library
   const fgRef = useRef<any>(null);
   const onEngineStop = useCallback(() => {
     fgRef.current?.zoomToFit(300, 60);

@@ -37,6 +37,7 @@ export class ScheduledTaskRepository {
         input.day_of_month ?? null,
         input.hour ?? 8,
       );
+    // biome-ignore lint/style/noNonNullAssertion: row just inserted
     return this.getById(id)!;
   }
 
@@ -48,9 +49,9 @@ export class ScheduledTaskRepository {
   }
 
   getById(id: string): ScheduledTask | null {
-    const row = this.db
-      .prepare(`SELECT * FROM scheduled_tasks WHERE id = ?`)
-      .get(id) as ScheduledTaskRow | undefined;
+    const row = this.db.prepare(`SELECT * FROM scheduled_tasks WHERE id = ?`).get(id) as
+      | ScheduledTaskRow
+      | undefined;
     if (!row) return null;
     return this.rowToEntity(row);
   }
@@ -89,17 +90,13 @@ export class ScheduledTaskRepository {
     }
 
     params.push(input.id);
-    this.db
-      .prepare(`UPDATE scheduled_tasks SET ${sets.join(", ")} WHERE id = ?`)
-      .run(...params);
+    this.db.prepare(`UPDATE scheduled_tasks SET ${sets.join(", ")} WHERE id = ?`).run(...params);
 
     return this.getById(input.id);
   }
 
   delete(id: string): boolean {
-    const result = this.db
-      .prepare(`DELETE FROM scheduled_tasks WHERE id = ?`)
-      .run(id);
+    const result = this.db.prepare(`DELETE FROM scheduled_tasks WHERE id = ?`).run(id);
     return result.changes > 0;
   }
 

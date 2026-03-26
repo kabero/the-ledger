@@ -44,8 +44,7 @@ function StatsView() {
     return <div className="gallery-loading">データ取得に失敗しました</div>;
   }
 
-  const { streak, weeklyCompletions, leadTimeDistribution, hourlyCompletions } =
-    stats.data;
+  const { streak, weeklyCompletions, leadTimeDistribution, hourlyCompletions } = stats.data;
 
   const totalCompleted = weeklyCompletions.reduce((s, w) => s + w.count, 0);
   const avgLeadTime = (() => {
@@ -58,7 +57,10 @@ function StatsView() {
     });
     return count > 0 ? (total / count).toFixed(1) : "-";
   })();
-  const peakHour = hourlyCompletions.reduce((max, h) => h.count > max.count ? h : max, hourlyCompletions[0]);
+  const peakHour = hourlyCompletions.reduce(
+    (max, h) => (h.count > max.count ? h : max),
+    hourlyCompletions[0],
+  );
 
   return (
     <div className="dash">
@@ -89,8 +91,19 @@ function StatsView() {
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={weeklyCompletions} barCategoryGap="20%">
               <CartesianGrid stroke="#1a1a1a" vertical={false} />
-              <XAxis dataKey="week" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={24} />
+              <XAxis
+                dataKey="week"
+                tick={{ fill: "#555", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: "#555", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+                width={24}
+              />
               <Tooltip {...tooltipStyle} />
               <Bar dataKey="count" fill="#ff0" name="完了数" radius={[3, 3, 0, 0]} />
             </BarChart>
@@ -102,8 +115,19 @@ function StatsView() {
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={leadTimeDistribution} barCategoryGap="20%">
               <CartesianGrid stroke="#1a1a1a" vertical={false} />
-              <XAxis dataKey="bucket" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={24} />
+              <XAxis
+                dataKey="bucket"
+                tick={{ fill: "#555", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: "#555", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+                width={24}
+              />
               <Tooltip {...tooltipStyle} />
               <Bar dataKey="count" name="件数" radius={[3, 3, 0, 0]}>
                 {leadTimeDistribution.map((_, i) => (
@@ -125,13 +149,16 @@ function StatsView() {
               tick={{ fill: "#555", fontSize: 9 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(h: number) => h % 3 === 0 ? `${h}` : ""}
+              tickFormatter={(h: number) => (h % 3 === 0 ? `${h}` : "")}
             />
             <YAxis hide allowDecimals={false} />
             <Tooltip {...tooltipStyle} labelFormatter={(h: number) => `${h}時`} />
             <Bar dataKey="count" name="完了数" radius={[2, 2, 0, 0]}>
               {hourlyCompletions.map((entry, i) => (
-                <Cell key={i} fill={entry.hour === peakHour.hour && entry.count > 0 ? "#ff0" : "#333"} />
+                <Cell
+                  key={i}
+                  fill={entry.hour === peakHour.hour && entry.count > 0 ? "#ff0" : "#333"}
+                />
               ))}
             </Bar>
           </BarChart>

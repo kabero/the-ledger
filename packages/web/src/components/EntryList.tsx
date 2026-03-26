@@ -25,7 +25,9 @@ export function EntryList({ tab }: EntryListProps) {
   const utils = trpc.useUtils();
 
   // ローカルのステータス上書き（チェック直後の見た目用、次回refetchでクリア）
-  const [localStatus, setLocalStatus] = useState<Record<string, { status: string; completed_at: string | null }>>({});
+  const [localStatus, setLocalStatus] = useState<
+    Record<string, { status: string; completed_at: string | null }>
+  >({});
 
   const updateEntry = trpc.updateEntry.useMutation();
 
@@ -45,11 +47,15 @@ export function EntryList({ tab }: EntryListProps) {
   }
 
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ message: string; onOk: () => void } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onOk: () => void } | null>(
+    null,
+  );
 
   useEffect(() => {
-    document.body.style.overflow = (modalEntry || confirmAction) ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    document.body.style.overflow = modalEntry || confirmAction ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [modalEntry, confirmAction]);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
@@ -65,26 +71,29 @@ export function EntryList({ tab }: EntryListProps) {
       if (tab === "task" && e.delegatable) return false;
       if (tab === "task" && e.status === "done") {
         if (!e.completed_at) return false;
-        return now - new Date(e.completed_at + "Z").getTime() < DAY_MS;
+        return now - new Date(`${e.completed_at}Z`).getTime() < DAY_MS;
       }
       if (tab !== "done" && tab !== "task" && e.status === "done") return false;
       return true;
     });
-    const sorted = tab === "task"
-      ? [...filtered].sort((a, b) => {
-          const aDone = a.status === "done" ? 1 : 0;
-          const bDone = b.status === "done" ? 1 : 0;
-          if (aDone !== bDone) return aDone - bDone;
-          if (aDone && bDone) {
-            return (b.completed_at ?? "").localeCompare(a.completed_at ?? "");
-          }
-          return 0;
-        })
-      : filtered;
+    const sorted =
+      tab === "task"
+        ? [...filtered].sort((a, b) => {
+            const aDone = a.status === "done" ? 1 : 0;
+            const bDone = b.status === "done" ? 1 : 0;
+            if (aDone !== bDone) return aDone - bDone;
+            if (aDone && bDone) {
+              return (b.completed_at ?? "").localeCompare(a.completed_at ?? "");
+            }
+            return 0;
+          })
+        : filtered;
     // 最後にローカル上書きを適用（位置は変えない）
     return sorted.map((e) => {
       const local = localStatus[e.id];
-      return local ? { ...e, status: local.status as typeof e.status, completed_at: local.completed_at } : e;
+      return local
+        ? { ...e, status: local.status as typeof e.status, completed_at: local.completed_at }
+        : e;
     });
   }, [entries.data, localStatus, tab]);
 
@@ -110,8 +119,11 @@ export function EntryList({ tab }: EntryListProps) {
       )}
       <div>
         {(() => {
-          const renderEntry = (entry: typeof items[number]) => (
-            <div key={entry.id} className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}>
+          const renderEntry = (entry: (typeof items)[number]) => (
+            <div
+              key={entry.id}
+              className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}
+            >
               {entry.type === "task" && (
                 <button
                   type="button"
@@ -136,7 +148,10 @@ export function EntryList({ tab }: EntryListProps) {
                       ...prev,
                       [entry.id]: {
                         status: newStatus,
-                        completed_at: newStatus === "done" ? new Date().toISOString().replace("T", " ").slice(0, 19) : null,
+                        completed_at:
+                          newStatus === "done"
+                            ? new Date().toISOString().replace("T", " ").slice(0, 19)
+                            : null,
                       },
                     }));
                     updateEntry.mutate({ id: entry.id, status: newStatus });
@@ -165,7 +180,7 @@ export function EntryList({ tab }: EntryListProps) {
                       {entry.title ?? entry.raw_text}
                     </button>
                   ) : (
-                    entry.title ?? entry.raw_text
+                    (entry.title ?? entry.raw_text)
                   )}
                 </div>
                 <div className="entry-tags">
@@ -174,23 +189,42 @@ export function EntryList({ tab }: EntryListProps) {
                       [{entry.type}]
                     </span>
                   )}
-                  {entry.due_date && entry.status !== "done" && (() => {
-                    const now = new Date();
-                    now.setHours(0,0,0,0);
-                    const due = new Date(entry.due_date + "T00:00:00");
-                    const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    const cls = diff < 0 ? "overdue" : diff <= 3 ? "soon" : "";
-                    const dateStr = due.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
-                    const remain = diff < 0 ? `${-diff}日超過` : diff === 0 ? "今日" : diff === 1 ? "明日" : `あと${diff}日`;
-                    return (
-                      <span className={`due-date ${cls}`}>
-                        {dateStr}（{remain}）
-                      </span>
-                    );
-                  })()}
+                  {entry.due_date &&
+                    entry.status !== "done" &&
+                    (() => {
+                      const now = new Date();
+                      now.setHours(0, 0, 0, 0);
+                      const due = new Date(`${entry.due_date}T00:00:00`);
+                      const diff = Math.ceil(
+                        (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+                      );
+                      const cls = diff < 0 ? "overdue" : diff <= 3 ? "soon" : "";
+                      const dateStr = due.toLocaleDateString("ja-JP", {
+                        month: "short",
+                        day: "numeric",
+                      });
+                      const remain =
+                        diff < 0
+                          ? `${-diff}日超過`
+                          : diff === 0
+                            ? "今日"
+                            : diff === 1
+                              ? "明日"
+                              : `あと${diff}日`;
+                      return (
+                        <span className={`due-date ${cls}`}>
+                          {dateStr}（{remain}）
+                        </span>
+                      );
+                    })()}
                   {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
                     <span className="completed-at">
-                      {new Date(entry.completed_at + "Z").toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   )}
                 </div>
@@ -220,7 +254,15 @@ export function EntryList({ tab }: EntryListProps) {
   );
 }
 
-function DoneSection({ items, renderEntry }: { items: any[]; renderEntry: (entry: any) => React.ReactNode }) {
+function DoneSection({
+  items,
+  renderEntry,
+}: {
+  // biome-ignore lint/suspicious/noExplicitAny: generic wrapper
+  items: any[];
+  // biome-ignore lint/suspicious/noExplicitAny: generic wrapper
+  renderEntry: (entry: any) => React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <div className="done-section">
@@ -277,7 +319,11 @@ function ResultModal({
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
       <div className="result-modal" onClick={(e) => e.stopPropagation()}>
         <div className="result-modal-header">
-          <button type="button" className={`result-modal-copy ${copied ? "copied" : ""}`} onClick={handleCopy}>
+          <button
+            type="button"
+            className={`result-modal-copy ${copied ? "copied" : ""}`}
+            onClick={handleCopy}
+          >
             {copied ? "\u2713 copied" : "copy"}
           </button>
           <button type="button" className="result-modal-close" onClick={onClose}>
@@ -307,15 +353,21 @@ function ConfirmModal({
       className="result-overlay"
       role="dialog"
       onClick={onCancel}
-      onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onCancel();
+      }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
       <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="confirm-message">{message}</div>
         <div className="confirm-buttons">
-          <button type="button" className="confirm-btn confirm-btn-cancel" onClick={onCancel}>やめる</button>
-          <button type="button" className="confirm-btn confirm-btn-ok" onClick={onOk}>戻す</button>
+          <button type="button" className="confirm-btn confirm-btn-cancel" onClick={onCancel}>
+            やめる
+          </button>
+          <button type="button" className="confirm-btn confirm-btn-ok" onClick={onOk}>
+            戻す
+          </button>
         </div>
       </div>
     </div>

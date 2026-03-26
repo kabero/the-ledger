@@ -1,12 +1,4 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { trpc } from "../trpc";
 
 interface StatsProps {
@@ -42,8 +34,7 @@ export function Stats({ onClose }: StatsProps) {
     );
   }
 
-  const { streak, weeklyCompletions, leadTimeDistribution, hourlyCompletions } =
-    stats.data;
+  const { streak, weeklyCompletions, leadTimeDistribution, hourlyCompletions } = stats.data;
 
   const tooltipStyle = {
     contentStyle: {
@@ -111,10 +102,7 @@ export function Stats({ onClose }: StatsProps) {
                 tickFormatter={(h: number) => `${h}`}
               />
               <YAxis tick={{ fill: "#aaa", fontSize: 12 }} allowDecimals={false} />
-              <Tooltip
-                {...tooltipStyle}
-                labelFormatter={(h: number) => `${h}時`}
-              />
+              <Tooltip {...tooltipStyle} labelFormatter={(h: number) => `${h}時`} />
               <Bar dataKey="count" fill="#ff0" name="完了数" />
             </BarChart>
           </ResponsiveContainer>

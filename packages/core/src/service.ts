@@ -53,7 +53,6 @@ export class EntryService {
     return this.repository.delete(id);
   }
 
-
   saveImage(data: Buffer, entryId: string, ext: string): string {
     const normalizedExt = ext.toLowerCase().replace(/^\./, "");
     if (

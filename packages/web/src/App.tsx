@@ -87,6 +87,11 @@ export function App() {
     [aiTasks.data],
   );
 
+  const utils = trpc.useUtils();
+  const markAllSeen = trpc.markAllResultsSeen.useMutation({
+    onSuccess: () => utils.listEntries.invalidate(),
+  });
+
   // Overdue task detection
   const pendingTasks = trpc.listEntries.useQuery(
     { type: "task", status: "pending", limit: 100 },
@@ -184,14 +189,26 @@ export function App() {
               >
                 完了
               </button>
-              <button
-                type="button"
-                className={`header-ai-btn ${hasNewAiResults ? "has-new" : ""}`}
-                onClick={() => setShowAiFeed(true)}
-                title="AIフィード"
-              >
-                AI
-              </button>
+              <span className="header-ai-group">
+                <button
+                  type="button"
+                  className={`header-ai-btn ${hasNewAiResults ? "has-new" : ""}`}
+                  onClick={() => setShowAiFeed(true)}
+                  title="AIフィード"
+                >
+                  AI
+                </button>
+                {hasNewAiResults && (
+                  <button
+                    type="button"
+                    className="header-mark-seen"
+                    onClick={() => markAllSeen.mutate()}
+                    title="すべて既読にする"
+                  >
+                    {"\u2713"}
+                  </button>
+                )}
+              </span>
               {recentSourced.length > 0 && (
                 <button
                   type="button"

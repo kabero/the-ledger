@@ -714,6 +714,31 @@ describe("EntryService", () => {
     });
   });
 
+  // ─── Purge trash ────────────────────────────────────────────
+
+  describe("purge trash", () => {
+    it("deletes all trash entries", () => {
+      service.createEntry({ raw_text: "a", type: "trash", title: "Trash" });
+      service.createEntry({ raw_text: "b", type: "task", title: "Keep" });
+
+      const count = service.purgeTrash();
+      expect(count).toBe(1);
+      expect(service.listEntries().length).toBe(1);
+    });
+  });
+
+  // ─── FTS rebuild ───────────────────────────────────────────
+
+  describe("FTS rebuild", () => {
+    it("search works after rebuild", () => {
+      service.createEntry({ raw_text: "alpha bravo", type: "note", title: "AB" });
+      service.rebuildFtsIndex();
+
+      const results = service.listEntries({ query: "alpha" });
+      expect(results.length).toBe(1);
+    });
+  });
+
   // ─── Count entries ─────────────────────────────────────────
 
   describe("countEntries", () => {

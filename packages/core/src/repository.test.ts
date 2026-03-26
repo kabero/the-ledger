@@ -577,6 +577,45 @@ describe("EntryRepository", () => {
     });
   });
 
+  // ─── purgeTrash ─────────────────────────────────────────────
+
+  describe("purgeTrash", () => {
+    it("deletes all trash entries", () => {
+      repo.create({ raw_text: "a", type: "trash", title: "Trash 1" });
+      repo.create({ raw_text: "b", type: "trash", title: "Trash 2" });
+      repo.create({ raw_text: "c", type: "task", title: "Keep" });
+
+      const count = repo.purgeTrash();
+      expect(count).toBe(2);
+      expect(repo.list().length).toBe(1);
+      expect(repo.list()[0].title).toBe("Keep");
+    });
+
+    it("returns 0 when no trash entries", () => {
+      repo.create({ raw_text: "a", type: "task", title: "A" });
+      expect(repo.purgeTrash()).toBe(0);
+    });
+  });
+
+  // ─── rebuildFtsIndex ───────────────────────────────────────
+
+  describe("rebuildFtsIndex", () => {
+    it("rebuilds FTS index and search still works", () => {
+      repo.create({ raw_text: "buy milk", type: "task", title: "Buy milk" });
+      repo.create({ raw_text: "fix bug", type: "task", title: "Fix bug" });
+
+      repo.rebuildFtsIndex();
+
+      const results = repo.list({ query: "milk" });
+      expect(results.length).toBe(1);
+      expect(results[0].title).toBe("Buy milk");
+    });
+
+    it("works on empty database", () => {
+      expect(() => repo.rebuildFtsIndex()).not.toThrow();
+    });
+  });
+
   // ─── getTagVocabulary ─────────────────────────────────────
 
   describe("getTagVocabulary", () => {

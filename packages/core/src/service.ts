@@ -130,6 +130,14 @@ export class EntryService {
     return this.repository.getTypeSummary();
   }
 
+  purgeTrash(): number {
+    return this.repository.purgeTrash();
+  }
+
+  rebuildFtsIndex(): void {
+    this.repository.rebuildFtsIndex();
+  }
+
   deleteEntry(id: string): boolean {
     // Clean up image file before deleting DB record
     const entry = this.repository.getById(id);

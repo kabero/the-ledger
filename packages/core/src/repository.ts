@@ -529,6 +529,30 @@ export class EntryRepository {
     return { streak, weeklyCompletions, leadTimeDistribution, hourlyCompletions };
   }
 
+  /**
+   * Delete all entries of type 'trash'. Returns count of deleted entries.
+   */
+  purgeTrash(): number {
+    const result = this.db.prepare("DELETE FROM entries WHERE type = 'trash'").run();
+    return result.changes;
+  }
+
+  /**
+   * Rebuild the FTS index from scratch. Useful after bulk operations
+   * or if the index gets out of sync.
+   */
+  rebuildFtsIndex(): void {
+    this.db.transaction(() => {
+      // Delete all FTS content
+      this.db.exec("INSERT INTO entries_fts(entries_fts) VALUES('delete-all')");
+      // Re-insert from entries table
+      this.db.exec(`
+        INSERT INTO entries_fts(rowid, raw_text, title)
+        SELECT rowid, raw_text, title FROM entries
+      `);
+    })();
+  }
+
   private replaceTags(entryId: string, tags: string[]): void {
     this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(entryId);
     const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);

@@ -160,6 +160,15 @@ export const appRouter = t.router({
     return ctx.service.getTypeSummary();
   }),
 
+  purgeTrash: t.procedure.mutation(({ ctx }) => {
+    return { count: ctx.service.purgeTrash() };
+  }),
+
+  rebuildFtsIndex: t.procedure.mutation(({ ctx }) => {
+    ctx.service.rebuildFtsIndex();
+    return { ok: true };
+  }),
+
   getStats: t.procedure.query(({ ctx }) => {
     return ctx.service.getStats();
   }),

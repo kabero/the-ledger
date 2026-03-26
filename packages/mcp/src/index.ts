@@ -27,7 +27,7 @@ const server = new McpServer({
 
 server.tool(
   "add_entry",
-  "Add a new entry to The Ledger. Provide just raw_text for quick capture (will need processing later), or include type + title to add a pre-classified entry that skips the processing queue.",
+  "Add a new entry to The Ledger. Provide just raw_text for quick capture (will need processing later), or include type + title to add a pre-classified entry that skips the processing queue. For tasks that require human action (physical tasks, phone calls, in-person meetings), set delegatable=false. For tasks an LLM can handle autonomously, set delegatable=true.",
   {
     raw_text: z.string().describe("The raw text of the thought, idea, task, etc."),
     type: z.enum(ENTRY_TYPES).optional().describe("Pre-classify: task, note, wish, or trash"),

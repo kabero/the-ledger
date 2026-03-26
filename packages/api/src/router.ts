@@ -85,6 +85,10 @@ export const appRouter = t.router({
     return ctx.service.deleteEntry(input.id);
   }),
 
+  restoreEntry: t.procedure.input(z.object({ id: z.string() })).mutation(({ input, ctx }) => {
+    return ctx.service.restoreEntry(input.id);
+  }),
+
   bulkUpdateStatus: t.procedure
     .input(
       z.object({

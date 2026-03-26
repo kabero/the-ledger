@@ -537,6 +537,54 @@ server.tool(
   },
 );
 
+server.tool(
+  "delete_entry",
+  "Soft-delete an entry. The entry is archived (hidden from default views) but can be restored later with restore_entry.",
+  {
+    id: z.string().describe("Entry ID to delete"),
+  },
+  async ({ id }) => {
+    try {
+      const success = service.deleteEntry(id);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ deleted: success, id }, null, 2),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "restore_entry",
+  "Restore a previously soft-deleted (archived) entry, making it visible again in default views.",
+  {
+    id: z.string().describe("Entry ID to restore"),
+  },
+  async ({ id }) => {
+    try {
+      const success = service.restoreEntry(id);
+      if (!success) {
+        return {
+          content: [{ type: "text", text: `Entry not found or not archived: ${id}` }],
+          isError: true,
+        };
+      }
+      const entry = service.getEntry(id);
+      return {
+        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
 // --- Start ---
 
 async function main() {

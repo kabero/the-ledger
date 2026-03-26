@@ -530,6 +530,34 @@ export class EntryRepository {
   }
 
   /**
+   * Archive (delete) completed tasks older than the given number of days.
+   * Returns the number of entries deleted.
+   */
+  archiveCompleted(olderThanDays: number): number {
+    const result = this.db
+      .prepare(
+        `DELETE FROM entries
+         WHERE status = 'done'
+           AND completed_at IS NOT NULL
+           AND completed_at < datetime('now', ?)`,
+      )
+      .run(`-${olderThanDays} days`);
+    return result.changes;
+  }
+
+  /**
+   * Check if an entry with similar raw_text already exists (exact match).
+   * Useful for deduplication before creating new entries.
+   */
+  findDuplicate(rawText: string): Entry | null {
+    const row = this.db
+      .prepare("SELECT * FROM entries WHERE raw_text = ? ORDER BY created_at DESC LIMIT 1")
+      .get(rawText) as EntryRow | undefined;
+    if (!row) return null;
+    return this.rowToEntry(row);
+  }
+
+  /**
    * Delete all entries of type 'trash'. Returns count of deleted entries.
    */
   purgeTrash(): number {

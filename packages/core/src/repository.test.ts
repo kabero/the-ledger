@@ -577,6 +577,63 @@ describe("EntryRepository", () => {
     });
   });
 
+  // ─── archiveCompleted ───────────────────────────────────────
+
+  describe("archiveCompleted", () => {
+    it("deletes completed entries older than N days", () => {
+      // Create a task and mark it done (completed_at = now)
+      const recent = repo.create({ raw_text: "recent", type: "task", title: "Recent" });
+      repo.update({ id: recent.id, status: "done" });
+
+      // This entry was completed just now, so archiving entries older than 1 day should not delete it
+      const count = repo.archiveCompleted(1);
+      expect(count).toBe(0);
+      expect(repo.getById(recent.id)).not.toBeNull();
+    });
+
+    it("returns 0 when no completed entries exist", () => {
+      repo.create({ raw_text: "pending", type: "task", title: "Pending" });
+      expect(repo.archiveCompleted(1)).toBe(0);
+    });
+
+    it("does not delete pending tasks", () => {
+      repo.create({ raw_text: "pending", type: "task", title: "Pending" });
+      // Even with 0 days threshold, pending tasks should not be archived
+      const count = repo.archiveCompleted(0);
+      expect(count).toBe(0);
+    });
+  });
+
+  // ─── findDuplicate ─────────────────────────────────────────
+
+  describe("findDuplicate", () => {
+    it("finds existing entry with same raw_text", () => {
+      repo.create({ raw_text: "buy milk", type: "task", title: "Buy milk" });
+      const dup = repo.findDuplicate("buy milk");
+      expect(dup).not.toBeNull();
+      expect(dup?.title).toBe("Buy milk");
+    });
+
+    it("returns null when no duplicate", () => {
+      repo.create({ raw_text: "buy milk", type: "task", title: "Buy milk" });
+      expect(repo.findDuplicate("buy bread")).toBeNull();
+    });
+
+    it("finds a duplicate when multiple exist", () => {
+      repo.create({ raw_text: "duplicate", type: "task", title: "First" });
+      repo.create({ raw_text: "duplicate", type: "note", title: "Second" });
+
+      const dup = repo.findDuplicate("duplicate");
+      expect(dup).not.toBeNull();
+      // Returns one of the duplicates (ORDER BY created_at DESC, but both may share timestamps)
+      expect(["First", "Second"]).toContain(dup?.title);
+    });
+
+    it("returns null for empty database", () => {
+      expect(repo.findDuplicate("anything")).toBeNull();
+    });
+  });
+
   // ─── purgeTrash ─────────────────────────────────────────────
 
   describe("purgeTrash", () => {

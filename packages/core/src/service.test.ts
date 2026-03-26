@@ -714,6 +714,32 @@ describe("EntryService", () => {
     });
   });
 
+  // ─── Archive completed ──────────────────────────────────────
+
+  describe("archive completed", () => {
+    it("does not delete recent completions", () => {
+      const entry = service.createEntry({ raw_text: "done", type: "task", title: "Done" });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      const count = service.archiveCompleted(1);
+      expect(count).toBe(0);
+      expect(service.getEntry(entry.id)).not.toBeNull();
+    });
+  });
+
+  // ─── Find duplicate ────────────────────────────────────────
+
+  describe("find duplicate", () => {
+    it("finds entry with same raw_text", () => {
+      service.createEntry({ raw_text: "unique text", type: "task", title: "T" });
+      expect(service.findDuplicate("unique text")).not.toBeNull();
+    });
+
+    it("returns null when no match", () => {
+      expect(service.findDuplicate("no match")).toBeNull();
+    });
+  });
+
   // ─── Purge trash ────────────────────────────────────────────
 
   describe("purge trash", () => {

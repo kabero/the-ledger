@@ -134,6 +134,14 @@ export class EntryService {
     return this.repository.purgeTrash();
   }
 
+  archiveCompleted(olderThanDays: number): number {
+    return this.repository.archiveCompleted(olderThanDays);
+  }
+
+  findDuplicate(rawText: string): Entry | null {
+    return this.repository.findDuplicate(rawText);
+  }
+
   rebuildFtsIndex(): void {
     this.repository.rebuildFtsIndex();
   }

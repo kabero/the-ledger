@@ -169,6 +169,12 @@ export const appRouter = t.router({
     return { ok: true };
   }),
 
+  archiveCompleted: t.procedure
+    .input(z.object({ older_than_days: z.number().int().positive().max(3650) }))
+    .mutation(({ input, ctx }) => {
+      return { count: ctx.service.archiveCompleted(input.older_than_days) };
+    }),
+
   getStats: t.procedure.query(({ ctx }) => {
     return ctx.service.getStats();
   }),

@@ -79,6 +79,7 @@ setInterval(() => {
   }
 }, 300_000).unref();
 
+app.use("/trpc/*", requireApiKey, rateLimit);
 app.use(
   "/trpc/*",
   trpcServer({

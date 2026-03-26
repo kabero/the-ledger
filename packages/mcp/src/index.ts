@@ -312,6 +312,64 @@ server.tool(
 );
 
 server.tool(
+  "update_entry",
+  "Update an existing entry's fields. Use this to change tags, urgency, due dates, type, status, delegatable flag, etc.",
+  {
+    id: z.string().describe("Entry ID to update"),
+    type: z.enum(ENTRY_TYPES).optional().describe("Change type: task, note, wish, or trash"),
+    title: z.string().optional().describe("Update title"),
+    status: z.enum(TASK_STATUSES).optional().describe("Change status: pending or done"),
+    tags: z.array(z.string()).optional().describe("Replace tags"),
+    urgent: z.boolean().optional().describe("Set urgency"),
+    due_date: z.string().nullable().optional().describe("Set or clear deadline (ISO date string)"),
+    delegatable: z.boolean().optional().describe("Set whether task can be delegated to an LLM"),
+    result: z.string().optional().describe("Set result content (markdown)"),
+    result_url: z.string().optional().describe("Set result URL"),
+    result_seen: z.boolean().optional().describe("Mark result as seen/unseen"),
+  },
+  async ({
+    id,
+    type,
+    title,
+    status,
+    tags,
+    urgent,
+    due_date,
+    delegatable,
+    result,
+    result_url,
+    result_seen,
+  }) => {
+    try {
+      const entry = service.updateEntry({
+        id,
+        type,
+        title,
+        status,
+        tags,
+        urgent,
+        due_date,
+        delegatable,
+        result,
+        result_url,
+        result_seen,
+      });
+      if (!entry) {
+        return {
+          content: [{ type: "text", text: `Entry not found: ${id}` }],
+          isError: true,
+        };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
   "complete_task",
   "Complete a delegatable task by writing the result. Automatically sets status to done. Use this when you finish working on a delegatable task.",
   {

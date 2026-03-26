@@ -1441,7 +1441,12 @@ body {
   font-family: var(--font);
   font-size: 11px;
   cursor: pointer;
-  padding: 2px 0;
+  padding: 8px 4px;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.1s;
 }
@@ -1942,12 +1947,23 @@ body {
     position: static;
     width: 100%;
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
     margin-top: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .header-sub::-webkit-scrollbar {
+    display: none;
   }
 
   .header-link {
     font-size: 10px;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 6px;
+    flex-shrink: 0;
   }
 
   .tab {
@@ -3178,9 +3194,12 @@ body {
   color: var(--done);
   font-family: var(--font);
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 8px 8px;
+  min-height: 44px;
   border-radius: 3px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
   transition: all 0.2s;
 }
 

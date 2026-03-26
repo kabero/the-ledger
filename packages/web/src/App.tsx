@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
@@ -18,6 +19,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("task");
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAiFeed, setShowAiFeed] = useState(false);
 
   useEffect(() => {
     applyFont();
@@ -27,6 +29,16 @@ export function App() {
 
   const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 10_000 });
   const unprocessedCount = unprocessed.data?.length ?? 0;
+
+  // Check for unseen AI results
+  const aiTasks = trpc.listEntries.useQuery(
+    { delegatable: true, limit: 100 },
+    { refetchInterval: 10_000 },
+  );
+  const hasNewAiResults = useMemo(
+    () => (aiTasks.data ?? []).some((e) => e.result && !e.result_seen),
+    [aiTasks.data],
+  );
 
   const activeIndex = MAIN_TABS.findIndex((t) => t.key === activeTab);
 
@@ -47,6 +59,9 @@ export function App() {
 
   if (showGallery) {
     return <Gallery onClose={() => setShowGallery(false)} />;
+  }
+  if (showAiFeed) {
+    return <AiFeed onClose={() => setShowAiFeed(false)} />;
   }
 
   return (
@@ -84,6 +99,14 @@ export function App() {
               onClick={() => setActiveTab(activeTab === "done" ? "task" : "done")}
             >
               完了
+            </button>
+            <button
+              type="button"
+              className={`header-ai-btn ${hasNewAiResults ? "has-new" : ""}`}
+              onClick={() => setShowAiFeed(true)}
+              title="AIフィード"
+            >
+              AI
             </button>
             <button
               type="button"

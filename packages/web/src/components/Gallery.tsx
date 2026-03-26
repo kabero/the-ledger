@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import { trpc } from "../trpc";
 import { GraphView } from "./GraphView";
 
@@ -170,6 +171,7 @@ function StatsView() {
 
 export function Gallery({ onClose }: GalleryProps) {
   const [tab, setTab] = useState<GalleryTab>("graph");
+  useEscapeKey(useCallback(() => onClose(), [onClose]));
 
   return (
     <div className="gallery">

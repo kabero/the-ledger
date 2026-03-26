@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { trpc } from "../trpc";
+import { ModalOverlay } from "./ModalOverlay";
 
 const FONTS = [
   { key: "DotGothic16", label: "DotGothic16", import: "DotGothic16" },
@@ -299,18 +300,8 @@ export function Settings({ onClose }: SettingsProps) {
   };
 
   return (
-    <div
-      className="result-overlay"
-      role="dialog"
-      aria-label="フォント設定"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
-    >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-      <div className="result-modal" onClick={(e) => e.stopPropagation()}>
+    <ModalOverlay ariaLabel="設定" onClose={onClose}>
+      <div className="result-modal">
         <div className="result-modal-header">
           <span className="settings-header-title">設定</span>
           <button
@@ -362,6 +353,6 @@ export function Settings({ onClose }: SettingsProps) {
 
         <ScheduleSection />
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

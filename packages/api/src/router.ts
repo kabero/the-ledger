@@ -141,6 +141,43 @@ export const appRouter = t.router({
       return ctx.service.getRecentActivity(input?.limit);
     }),
 
+  reopenTask: t.procedure
+    .input(
+      z.object({
+        id: z.string(),
+        feedback: z.string().optional(),
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      return ctx.service.reopenTask(input.id, input.feedback);
+    }),
+
+  bulkTagRename: t.procedure
+    .input(
+      z.object({
+        old_tag: z.string().min(1),
+        new_tag: z.string().min(1),
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      return { count: ctx.service.bulkTagRename(input.old_tag, input.new_tag) };
+    }),
+
+  mergeTags: t.procedure
+    .input(
+      z.object({
+        source_tags: z.array(z.string()).min(1),
+        target_tag: z.string().min(1),
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      return { count: ctx.service.mergeTags(input.source_tags, input.target_tag) };
+    }),
+
+  exportEntries: t.procedure.input(listEntriesFilterSchema.optional()).query(({ input, ctx }) => {
+    return ctx.service.exportEntries(input ?? {});
+  }),
+
   // スケジュールおつかい
   createScheduledTask: t.procedure
     .input(createScheduledTaskInputSchema)

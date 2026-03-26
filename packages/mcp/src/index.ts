@@ -585,6 +585,120 @@ server.tool(
   },
 );
 
+server.tool(
+  "reopen_task",
+  "Reopen a completed task, resetting it to pending. Optionally provide feedback explaining what was wrong so the next worker can see it and retry. The feedback is appended to the existing result.",
+  {
+    id: z.string().describe("Entry ID of the completed task to reopen"),
+    feedback: z
+      .string()
+      .optional()
+      .describe(
+        "Explanation of what was wrong or what to do differently. Appended to existing result.",
+      ),
+  },
+  async ({ id, feedback }) => {
+    try {
+      const entry = service.reopenTask(id, feedback);
+      return {
+        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "bulk_tag_rename",
+  "Rename a tag across all entries. Entries that already have the new tag will have the old tag removed (no duplicates). Returns the number of entries affected.",
+  {
+    old_tag: z.string().describe("The tag to rename (will be removed)"),
+    new_tag: z.string().describe("The replacement tag"),
+  },
+  async ({ old_tag, new_tag }) => {
+    try {
+      const count = service.bulkTagRename(old_tag, new_tag);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ old_tag, new_tag, entries_affected: count }, null, 2),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "merge_tags",
+  "Merge multiple source tags into a single target tag. All entries with any of the source tags will have those tags replaced with the target. Useful for consolidating synonymous or inconsistent tags.",
+  {
+    source_tags: z.array(z.string()).min(1).describe("Tags to merge from (will be removed)"),
+    target_tag: z.string().describe("The tag to merge into"),
+  },
+  async ({ source_tags, target_tag }) => {
+    try {
+      const count = service.mergeTags(source_tags, target_tag);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ source_tags, target_tag, entries_affected: count }, null, 2),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "export_entries",
+  "Export entries matching a filter as JSON. Useful for backup, migration, or analysis. Returns up to 10,000 entries by default.",
+  {
+    type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
+    status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
+    tag: z.string().optional().describe("Filter by tag"),
+    query: z.string().optional().describe("Full-text search query"),
+    since: z.string().optional().describe("ISO date — only entries created on or after this date"),
+    until: z.string().optional().describe("ISO date — only entries created before this date"),
+    limit: z.number().int().positive().max(10000).default(10000).describe("Max entries to export"),
+  },
+  async ({ type, status, tag, query, since, until, limit }) => {
+    try {
+      const entries = service.exportEntries({
+        type,
+        status,
+        tag,
+        query,
+        since,
+        until,
+        limit,
+        processed: true,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              { count: entries.length, exported_at: new Date().toISOString(), entries },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
 // --- Start ---
 
 async function main() {

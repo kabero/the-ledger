@@ -526,6 +526,50 @@ export class EntryRepository {
       .all() as { tag: string; count: number }[];
   }
 
+  /**
+   * Rename a tag across all entries. Handles conflicts: if an entry already has
+   * the new tag, the old tag row is simply deleted instead of creating a duplicate.
+   * Returns the number of entries that were affected.
+   */
+  bulkTagRename(oldTag: string, newTag: string): number {
+    return this.db.transaction(() => {
+      // Find entries that have the old tag
+      const rows = this.db.prepare("SELECT entry_id FROM entry_tags WHERE tag = ?").all(oldTag) as {
+        entry_id: string;
+      }[];
+
+      if (rows.length === 0) return 0;
+
+      let affected = 0;
+      for (const row of rows) {
+        // Check if entry already has the new tag
+        const existing = this.db
+          .prepare("SELECT 1 FROM entry_tags WHERE entry_id = ? AND tag = ?")
+          .get(row.entry_id, newTag);
+
+        // Delete the old tag
+        this.db
+          .prepare("DELETE FROM entry_tags WHERE entry_id = ? AND tag = ?")
+          .run(row.entry_id, oldTag);
+
+        // Insert new tag only if it doesn't already exist
+        if (!existing) {
+          this.db
+            .prepare("INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)")
+            .run(row.entry_id, newTag);
+        }
+
+        // Touch updated_at
+        this.db
+          .prepare("UPDATE entries SET updated_at = datetime('now') WHERE id = ?")
+          .run(row.entry_id);
+
+        affected++;
+      }
+      return affected;
+    })();
+  }
+
   getStats(): {
     streak: number;
     weeklyCompletions: { week: string; count: number }[];

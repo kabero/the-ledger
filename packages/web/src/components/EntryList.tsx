@@ -302,6 +302,13 @@ export function EntryList({ tab }: EntryListProps) {
             {entry.type && tabRef.current === "all" && (
               <span className={`entry-type-badge entry-type-${entry.type}`}>{entry.type}</span>
             )}
+            {entry.tags &&
+              entry.tags.length > 0 &&
+              entry.tags.slice(0, 3).map((t) => (
+                <span key={t} className="tag">
+                  {t}
+                </span>
+              ))}
             {entry.due_date &&
               entry.status !== "done" &&
               (() => {
@@ -388,11 +395,23 @@ export function EntryList({ tab }: EntryListProps) {
   }
 
   if (items.length === 0) {
+    const emptyMessages: Record<string, { title: string; hint: string }> = {
+      task: { title: "タスクはまだない。", hint: "やるべきことを書いてみて。" },
+      note: { title: "メモはまだない。", hint: "思いついたことを書き留めよう。" },
+      wish: { title: "ほしいものリストは空。", hint: "いつか欲しいものを書いてみて。" },
+      llm: { title: "おつかいはまだない。", hint: "AIに任せたいタスクを作ろう。" },
+      done: { title: "完了したものはまだない。", hint: "タスクを完了するとここに表示される。" },
+      unprocessed: { title: "未処理はゼロ。", hint: "すべて処理済みです。" },
+    };
+    const msg = emptyMessages[tab] ?? {
+      title: "まだ何もない。",
+      hint: "頭の中にあること、なんでも書いてみて。",
+    };
     return (
       <div className="empty-state">
-        <div className="empty-state-title">まだ何もない。</div>
+        <div className="empty-state-title">{msg.title}</div>
         <div className="empty-state-hint">
-          頭の中にあること、なんでも書いてみて。
+          {msg.hint}
           <br />
           <span className="empty-state-arrow">{"+"} を押して入力スタート</span>
         </div>

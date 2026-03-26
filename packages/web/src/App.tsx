@@ -3,6 +3,7 @@ import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
+import { ModalOverlay } from "./components/ModalOverlay";
 import { applyFont, applyTheme, Settings } from "./components/Settings";
 import { SourcedList } from "./components/SourcedList";
 import { useOverdueDetection } from "./hooks/useOverdueDetection";
@@ -294,33 +295,23 @@ export function App() {
           +
         </button>
         {showMobileInput && (
-          <div
+          <ModalOverlay
             className="bottom-sheet-overlay"
-            role="dialog"
-            onClick={() => setShowMobileInput(false)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setShowMobileInput(false);
-            }}
+            ariaLabel="入力"
+            onClose={() => setShowMobileInput(false)}
           >
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-            <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet">
               <EntryInput onSubmitted={() => setShowMobileInput(false)} />
             </div>
-          </div>
+          </ModalOverlay>
         )}
         {showSourcedModal && (recentSourced.length > 0 || recentSummaries.length > 0) && (
-          <div
+          <ModalOverlay
             className="bottom-sheet-overlay"
-            role="dialog"
-            onClick={() => setShowSourcedModal(false)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setShowSourcedModal(false);
-            }}
+            ariaLabel="外部入力・サマリ"
+            onClose={() => setShowSourcedModal(false)}
           >
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-            <div className="bottom-sheet sourced-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet sourced-modal">
               <div className="sourced-modal-header">
                 <span className="sourced-modal-title">外部入力・サマリ</span>
                 <button
@@ -335,7 +326,7 @@ export function App() {
                 <SourcedList summaries={recentSummaries} sourced={recentSourced} variant="modal" />
               </div>
             </div>
-          </div>
+          </ModalOverlay>
         )}
       </div>
       {(recentSummaries.length > 0 || recentSourced.length > 0) && (

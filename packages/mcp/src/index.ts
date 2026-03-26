@@ -9,6 +9,7 @@ import {
   EntryRepository,
   EntryService,
   ScheduledTaskRepository,
+  TASK_STATUSES,
 } from "@theledger/core";
 import { z } from "zod";
 
@@ -144,6 +145,34 @@ server.tool(
       type: "task",
       status: "pending",
       delegatable: true,
+      limit,
+      offset: 0,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
+    };
+  },
+);
+
+server.tool(
+  "search_entries",
+  "Search and filter entries. Use for finding related context, building summaries, or reviewing past work.",
+  {
+    query: z.string().optional().describe("Full-text search query"),
+    type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
+    status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
+    tag: z.string().optional().describe("Filter by tag"),
+    since: z.string().optional().describe("ISO date — only entries created on or after this date"),
+    limit: z.number().int().positive().max(100).default(20).describe("Max results"),
+  },
+  async ({ query, type, status, tag, since, limit }) => {
+    const entries = service.listEntries({
+      query,
+      type,
+      status,
+      tag,
+      since,
+      processed: true,
       limit,
       offset: 0,
     });

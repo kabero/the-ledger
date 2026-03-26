@@ -99,6 +99,10 @@ export class EntryRepository {
       conditions.push("e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)");
       params.push(filter.query);
     }
+    if (filter.since !== undefined) {
+      conditions.push("e.created_at >= ?");
+      params.push(filter.since);
+    }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = filter.limit ?? 100;

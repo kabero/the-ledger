@@ -81,6 +81,7 @@ export interface ListEntriesFilter {
   query?: string;
   processed?: boolean;
   delegatable?: boolean;
+  since?: string; // ISO date — filter entries created on or after this date
   limit?: number;
   offset?: number;
   sort?: "created_at" | "updated_at" | "completed_at";

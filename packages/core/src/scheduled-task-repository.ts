@@ -105,14 +105,15 @@ export class ScheduledTaskRepository {
     const currentHour = now.getHours();
     const currentDayOfWeek = now.getDay();
     const currentDayOfMonth = now.getDate();
-    const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    // Use local date (YYYY-MM-DD) to match the local hour/day checks
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     const rows = this.db
       .prepare(
         `SELECT * FROM scheduled_tasks
          WHERE enabled = 1
            AND hour = ?
-           AND (last_run_at IS NULL OR date(last_run_at) < ?)
+           AND (last_run_at IS NULL OR date(last_run_at, 'localtime') < ?)
            AND (
              frequency = 'daily'
              OR (frequency = 'weekly' AND day_of_week = ?)

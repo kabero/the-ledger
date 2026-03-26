@@ -77,6 +77,46 @@ export function EntryList({ tab }: EntryListProps) {
     okLabel?: string;
   } | null>(null);
 
+  // Detail panel state
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset search and selection when tab changes
+  const prevTabForResetRef = useRef(tab);
+  if (prevTabForResetRef.current !== tab) {
+    prevTabForResetRef.current = tab;
+    setSearchQuery("");
+    setSelectedEntryId(null);
+    setSearchExpanded(false);
+  }
+
+  // "/" key shortcut to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "/" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement)
+      ) {
+        e.preventDefault();
+        setSearchExpanded(true);
+        searchInputRef.current?.focus();
+      }
+      // Escape to close detail panel
+      if (e.key === "Escape" && selectedEntryId) {
+        setSelectedEntryId(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedEntryId]);
+
   // Undo toast state
   const [undoToast, setUndoToast] = useState<{
     message: string;
@@ -135,11 +175,11 @@ export function EntryList({ tab }: EntryListProps) {
   }
 
   useEffect(() => {
-    document.body.style.overflow = modalEntry || confirmAction ? "hidden" : "";
+    document.body.style.overflow = modalEntry || confirmAction || selectedEntryId ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [modalEntry, confirmAction]);
+  }, [modalEntry, confirmAction, selectedEntryId]);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -195,11 +235,36 @@ export function EntryList({ tab }: EntryListProps) {
     });
   }, [entries.data, localStatus, tab]);
 
+  // Search filtering
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.toLowerCase();
+    return items.filter((e) => {
+      const title = (e.title ?? "").toLowerCase();
+      const rawText = (e.raw_text ?? "").toLowerCase();
+      const tags = (e.tags ?? []).join(" ").toLowerCase();
+      return title.includes(q) || rawText.includes(q) || tags.includes(q);
+    });
+  }, [items, searchQuery]);
+
+  // Selected entry data
+  const selectedEntry = useMemo(() => {
+    if (!selectedEntryId) return null;
+    return items.find((e) => e.id === selectedEntryId) ?? null;
+  }, [items, selectedEntryId]);
+
   const renderEntry = useCallback(
     (entry: EntryRow) => (
+      // biome-ignore lint/a11y/noStaticElementInteractions: entry card click opens detail panel
+      // biome-ignore lint/a11y/useKeyWithClickEvents: entry card click opens detail panel
       <div
         key={entry.id}
-        className={`entry entry-card-${entry.type} ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.result_url ? "has-url" : ""}`}
+        className={`entry entry-card-${entry.type} ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.result_url ? "has-url" : ""} ${entry.id === selectedEntryId ? "entry-selected" : ""}`}
+        onClick={(e) => {
+          // Don't open detail if clicking on a button
+          if ((e.target as HTMLElement).closest("button")) return;
+          setSelectedEntryId(entry.id === selectedEntryId ? null : entry.id);
+        }}
       >
         {entry.type === "task" && (
           <button
@@ -395,16 +460,16 @@ export function EntryList({ tab }: EntryListProps) {
         </button>
       </div>
     ),
-    [showUndoToast],
+    [showUndoToast, selectedEntryId],
   );
 
   const pending = useMemo(
-    () => (tab === "task" ? items.filter((e) => e.status !== "done") : items),
-    [items, tab],
+    () => (tab === "task" ? filteredItems.filter((e) => e.status !== "done") : filteredItems),
+    [filteredItems, tab],
   );
   const done = useMemo(
-    () => (tab === "task" ? items.filter((e) => e.status === "done") : []),
-    [items, tab],
+    () => (tab === "task" ? filteredItems.filter((e) => e.status === "done") : []),
+    [filteredItems, tab],
   );
 
   if (entries.isLoading) {
@@ -462,24 +527,167 @@ export function EntryList({ tab }: EntryListProps) {
           onClose={() => setModalEntry(null)}
         />
       )}
-      <div>
-        {tab === "task" && pending.length === 0 && done.length > 0 && (
-          <div className="all-done-state">
-            <div className="all-done-title">全部やった！</div>
-            <div className="all-done-hint">今日のタスクは全部片付いたよ。おつかれさま。</div>
-          </div>
-        )}
-        {tab === "llm" ? pending.slice(0, visibleCount).map(renderEntry) : pending.map(renderEntry)}
-        {tab === "llm" && pending.length > visibleCount && (
-          <button
-            type="button"
-            className="btn-load-more"
-            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+      {/* Search bar */}
+      <div className="entry-search-bar">
+        <button
+          type="button"
+          className="entry-search-toggle"
+          onClick={() => {
+            setSearchExpanded(!searchExpanded);
+            if (!searchExpanded) {
+              setTimeout(() => searchInputRef.current?.focus(), 50);
+            } else {
+              setSearchQuery("");
+            }
+          }}
+          title="検索 (/)"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-label="検索"
+            role="img"
           >
-            もっと見る（残り {pending.length - visibleCount} 件）
-          </button>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+        <div className={`entry-search-field ${searchExpanded ? "expanded" : ""}`}>
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="entry-search-input"
+            placeholder="検索... (/ でフォーカス)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onBlur={() => {
+              if (!searchQuery) setSearchExpanded(false);
+            }}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="entry-search-clear"
+              onClick={() => {
+                setSearchQuery("");
+                searchInputRef.current?.focus();
+              }}
+            >
+              x
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <span className="entry-search-count">
+            {filteredItems.length}/{items.length}
+          </span>
         )}
-        {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
+      </div>
+      <div className="entry-list-layout">
+        <div className={`entry-list-main ${selectedEntryId ? "has-detail" : ""}`}>
+          {tab === "task" && pending.length === 0 && done.length > 0 && (
+            <div className="all-done-state">
+              <div className="all-done-title">全部やった！</div>
+              <div className="all-done-hint">今日のタスクは全部片付いたよ。おつかれさま。</div>
+            </div>
+          )}
+          {searchQuery && filteredItems.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-title">見つからない。</div>
+              <div className="empty-state-hint">「{searchQuery}」に一致するエントリはない。</div>
+            </div>
+          )}
+          {tab === "llm"
+            ? pending.slice(0, visibleCount).map(renderEntry)
+            : pending.map(renderEntry)}
+          {tab === "llm" && pending.length > visibleCount && (
+            <button
+              type="button"
+              className="btn-load-more"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            >
+              もっと見る（残り {pending.length - visibleCount} 件）
+            </button>
+          )}
+          {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
+        </div>
+        {/* Detail panel */}
+        {selectedEntry && (
+          <>
+            <div
+              className="detail-panel-overlay"
+              onClick={() => setSelectedEntryId(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setSelectedEntryId(null);
+              }}
+              role="dialog"
+              tabIndex={-1}
+              aria-label="閉じる"
+            />
+            <div className="detail-panel">
+              <div className="detail-panel-header">
+                <h2 className="detail-panel-title">
+                  {selectedEntry.title ?? selectedEntry.raw_text}
+                </h2>
+                <button
+                  type="button"
+                  className="detail-panel-close"
+                  onClick={() => setSelectedEntryId(null)}
+                >
+                  x
+                </button>
+              </div>
+              <div className="detail-panel-body">
+                <div className="detail-panel-meta">
+                  {selectedEntry.type && (
+                    <span className={`entry-type-badge entry-type-${selectedEntry.type}`}>
+                      {selectedEntry.type}
+                    </span>
+                  )}
+                  {selectedEntry.status && (
+                    <span
+                      className={`detail-panel-status detail-panel-status-${selectedEntry.status}`}
+                    >
+                      {selectedEntry.status === "done" ? "完了" : "未完了"}
+                    </span>
+                  )}
+                  <span className="detail-panel-date">
+                    {new Date(`${selectedEntry.created_at}Z`).toLocaleDateString("ja-JP", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                {selectedEntry.tags && selectedEntry.tags.length > 0 && (
+                  <div className="detail-panel-tags">
+                    {selectedEntry.tags.map((t) => (
+                      <span key={t} className="tag">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="detail-panel-section">
+                  <h3 className="detail-panel-section-title">本文</h3>
+                  <div className="detail-panel-text">{selectedEntry.raw_text}</div>
+                </div>
+                {selectedEntry.result && (
+                  <div className="detail-panel-section">
+                    <h3 className="detail-panel-section-title">結果</h3>
+                    <div className="detail-panel-text">{selectedEntry.result}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
       {undoToast && (
         <div className="undo-toast">

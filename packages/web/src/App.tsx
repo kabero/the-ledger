@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
+import { FocusMode } from "./components/FocusMode";
 import { Gallery } from "./components/Gallery";
 import { ModalOverlay } from "./components/ModalOverlay";
 import { applyFont, applyTheme, Settings } from "./components/Settings";
@@ -16,9 +17,10 @@ export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("task");
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showAiFeed, setShowAiFeed] = useState(false);
+  const [showAiFeed, setShowAiFeed] = useState(() => window.location.pathname === "/ai");
   const [showMobileInput, setShowMobileInput] = useState(false);
   const [showSourcedModal, setShowSourcedModal] = useState(false);
+  const [showFocusMode, setShowFocusMode] = useState(false);
 
   useEffect(() => {
     applyFont();
@@ -45,6 +47,9 @@ export function App() {
         } else if (showAiFeed) {
           setShowAiFeed(false);
           e.preventDefault();
+        } else if (showFocusMode) {
+          setShowFocusMode(false);
+          e.preventDefault();
         }
       }
       // Cmd+Shift+K or Ctrl+Shift+K: focus the search/input textarea
@@ -59,7 +64,7 @@ export function App() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [showSourcedModal, showSettings, showMobileInput, showGallery, showAiFeed]);
+  }, [showSourcedModal, showSettings, showMobileInput, showGallery, showAiFeed, showFocusMode]);
 
   // Disable polling when AiFeed is open (it has its own queries)
   const unprocessed = trpc.getUnprocessed.useQuery(
@@ -126,6 +131,9 @@ export function App() {
     }, [activeIndex]),
   });
 
+  if (showFocusMode) {
+    return <FocusMode onClose={() => setShowFocusMode(false)} />;
+  }
   if (showGallery) {
     return <Gallery onClose={() => setShowGallery(false)} />;
   }
@@ -213,6 +221,15 @@ export function App() {
                   </span>
                 </button>
               )}
+              <button
+                type="button"
+                className="header-link header-focus-btn"
+                onClick={() => setShowFocusMode(true)}
+                title="フォーカスモード"
+                aria-label="フォーカスモードを開く"
+              >
+                {"\u25CE"}
+              </button>
               <button
                 type="button"
                 className="header-link header-gear"

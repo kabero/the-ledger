@@ -22,12 +22,10 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const needsDecision =
-    !entry.delegatable &&
-    entry.status !== "done" &&
-    entry.type !== "trash" &&
-    (entry.type === "task" ||
-      entry.type === "wish" ||
-      (entry.decision_options && entry.decision_options.length > 0));
+    entry.decision_options &&
+    entry.decision_options.length > 0 &&
+    entry.decision_selected == null &&
+    entry.status !== "done";
 
   const resultMarkdown = useMemo(
     () =>

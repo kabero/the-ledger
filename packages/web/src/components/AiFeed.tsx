@@ -176,17 +176,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [allAi]);
 
-  // Entries awaiting human judgment: delegatable=false and not done
+  // Entries awaiting human judgment: delegatable tasks where LLM has asked for a decision
   const pendingDecisions = useMemo(
     () =>
       allAi.filter(
         (e) =>
-          !e.delegatable &&
-          e.status !== "done" &&
-          e.type !== "trash" &&
-          (e.type === "task" ||
-            e.type === "wish" ||
-            (e.decision_options && e.decision_options.length > 0)),
+          e.decision_options &&
+          e.decision_options.length > 0 &&
+          e.decision_selected == null &&
+          e.status !== "done",
       ),
     [allAi],
   );
@@ -226,9 +224,10 @@ export function AiFeed({ onClose }: AiFeedProps) {
       allAi.find((e) => e.id === selectedId) ??
       allInProgressItems.find((e) => e.id === selectedId) ??
       awaitingItems.find((e) => e.id === selectedId) ??
+      humanPending.find((e) => e.id === selectedId) ??
       null
     );
-  }, [selectedId, allAi, allInProgressItems, awaitingItems]);
+  }, [selectedId, allAi, allInProgressItems, awaitingItems, humanPending]);
 
   const mutateRef = useRef(updateEntry.mutate);
   mutateRef.current = updateEntry.mutate;
@@ -410,7 +409,11 @@ export function AiFeed({ onClose }: AiFeedProps) {
                             <button
                               type="button"
                               className="ai-decision-detail-link"
-                              onClick={() => setSelectedId(e.id)}
+                              onMouseDown={(ev) => ev.stopPropagation()}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                setSelectedId(e.id);
+                              }}
                             >
                               詳細を見る
                             </button>
@@ -421,12 +424,14 @@ export function AiFeed({ onClose }: AiFeedProps) {
                                     key={opt}
                                     type="button"
                                     className={`ai-decision-opt ${selected === idx ? "selected" : ""}`}
-                                    onClick={() =>
+                                    onMouseDown={(ev) => ev.stopPropagation()}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
                                       setDecisionSelected((prev) => ({
                                         ...prev,
                                         [e.id]: prev[e.id] === idx ? null : idx,
-                                      }))
-                                    }
+                                      }));
+                                    }}
                                   >
                                     {opt}
                                   </button>
@@ -439,6 +444,8 @@ export function AiFeed({ onClose }: AiFeedProps) {
                               placeholder="コメント（任意）"
                               aria-label="判断コメント"
                               value={decisionComment[e.id] ?? ""}
+                              onMouseDown={(ev) => ev.stopPropagation()}
+                              onClick={(ev) => ev.stopPropagation()}
                               onChange={(ev) =>
                                 setDecisionComment((prev) => ({
                                   ...prev,
@@ -450,7 +457,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
                               <button
                                 type="button"
                                 className="ai-decision-delegate-btn"
-                                onClick={() => {
+                                onMouseDown={(ev) => ev.stopPropagation()}
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
                                   updateEntry.mutate({
                                     id: e.id,
                                     delegatable: true,
@@ -477,7 +486,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
                               <button
                                 type="button"
                                 className="ai-decision-delegate-btn"
-                                onClick={() => {
+                                onMouseDown={(ev) => ev.stopPropagation()}
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
                                   updateEntry.mutate({
                                     id: e.id,
                                     delegatable: false,
@@ -511,7 +522,6 @@ export function AiFeed({ onClose }: AiFeedProps) {
                       entry={e}
                       className={e.urgent ? "urgent" : ""}
                       onClick={() => setSelectedId(e.id)}
-                      showImplementing
                     />
                   ))}
                 </div>
@@ -591,7 +601,12 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 </div>
                 <div className="ai-mini-cards">
                   {(showAllHumanTasks ? humanPending : humanPending.slice(0, 6)).map((e) => (
-                    <div key={e.id} className={`ai-mini human ${e.urgent ? "urgent" : ""}`}>
+                    <button
+                      type="button"
+                      key={e.id}
+                      className={`ai-mini human ${e.urgent ? "urgent" : ""}`}
+                      onClick={() => setSelectedId(e.id)}
+                    >
                       <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
                       {e.tags.length > 0 && (
                         <div className="ai-card-tags">
@@ -611,7 +626,10 @@ export function AiFeed({ onClose }: AiFeedProps) {
                         <button
                           type="button"
                           className="ai-action done"
-                          onClick={() => updateEntry.mutate({ id: e.id, status: "done" })}
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            updateEntry.mutate({ id: e.id, status: "done" });
+                          }}
                           title="完了"
                         >
                           {"\u2713"}
@@ -619,13 +637,16 @@ export function AiFeed({ onClose }: AiFeedProps) {
                         <button
                           type="button"
                           className="ai-action delegate"
-                          onClick={() => updateEntry.mutate({ id: e.id, delegatable: true })}
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            updateEntry.mutate({ id: e.id, delegatable: true });
+                          }}
                           title="AIに任せる"
                         >
                           AI
                         </button>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 {humanPending.length > 6 && (

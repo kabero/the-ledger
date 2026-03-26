@@ -353,6 +353,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     type="text"
                     className="ai-decision-comment"
                     placeholder="コメント（任意）"
+                    aria-label="判断コメント"
                     value={decisionComment[e.id] ?? ""}
                     onChange={(ev) =>
                       setDecisionComment((prev) => ({ ...prev, [e.id]: ev.target.value }))

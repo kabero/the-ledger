@@ -59,7 +59,7 @@
 }
 
 .ai-action-btn.retry:hover {
-  background: rgba(255, 136, 0, 0.1);
+  background: color-mix(in srgb, var(--warning, #f80) 10%, transparent);
 }
 
 /* Decision display in detail view */
@@ -72,7 +72,7 @@
 }
 
 .ai-detail-decision-label {
-  color: #888;
+  color: var(--dim, #666);
   margin-bottom: 4px;
 }
 
@@ -83,7 +83,7 @@
 
 .ai-detail-decision-comment {
   margin-top: 6px;
-  color: #aaa;
+  color: var(--fg-subtle, #555);
   font-style: italic;
 }
 
@@ -215,8 +215,8 @@
 /* Keyboard shortcut hint */
 .shortcut-hint {
   font-size: 10px;
-  color: #555;
-  border: 1px solid #444;
+  color: var(--fg-subtle, #555);
+  border: 1px solid var(--border-hover, #444);
   border-radius: 3px;
   padding: 1px 4px;
   font-family: monospace;

@@ -1849,6 +1849,73 @@ body {
   color: var(--danger-light);
 }
 
+/* Decision cards */
+.ai-decision-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-decision-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(220, 50, 50, 0.3);
+  border-left: 3px solid var(--danger);
+  border-radius: 6px;
+  background: var(--bg-card);
+}
+
+.ai-decision-title {
+  font-size: 13px;
+  color: var(--fg);
+  line-height: 1.4;
+}
+
+.ai-decision-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ai-decision-opt {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ai-decision-opt:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.ai-decision-opt:active {
+  transform: scale(0.95);
+}
+
+.ai-decision-comment {
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 6px 10px;
+  outline: none;
+}
+
+.ai-decision-comment:focus {
+  border-color: var(--accent);
+}
+
 .ai-action-btn {
   display: block;
   width: 100%;

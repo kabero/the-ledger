@@ -37,6 +37,9 @@ export interface Entry extends RawEntry {
   result_seen: boolean;
   completed_at: string | null;
   source: string | null;
+  decision_options: string[] | null;
+  decision_selected: number | null;
+  decision_comment: string | null;
 }
 
 export interface CreateEntryInput {
@@ -52,6 +55,7 @@ export interface CreateEntryInput {
   source?: string;
   result?: string;
   result_url?: string;
+  decision_options?: string[];
 }
 
 export interface SubmitProcessedInput {
@@ -76,6 +80,8 @@ export interface UpdateEntryInput {
   result?: string;
   result_url?: string;
   result_seen?: boolean;
+  decision_selected?: number | null;
+  decision_comment?: string | null;
 }
 
 export interface ListEntriesFilter {

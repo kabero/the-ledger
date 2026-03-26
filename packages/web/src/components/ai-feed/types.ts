@@ -13,4 +13,8 @@ export type EntryItem = {
   created_at: string;
   completed_at: string | null;
   tags: string[];
+  due_date: string | null;
+  decision_options: string[] | null;
+  decision_selected: number | null;
+  decision_comment: string | null;
 };

@@ -56,6 +56,12 @@ server.tool(
       .string()
       .optional()
       .describe("URL to external result (e.g. GitHub PR, deployed page, document)"),
+    decision_options: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Choice options for human decision (e.g. ['Option A', 'Option B']). Creates a decision-type entry that appears in the human's judgment queue.",
+      ),
     image: z.string().optional().describe("Base64-encoded image data (optional)"),
     image_ext: z
       .string()
@@ -73,6 +79,7 @@ server.tool(
     source,
     result,
     result_url,
+    decision_options,
     image,
     image_ext,
   }) => {
@@ -91,6 +98,7 @@ server.tool(
           source,
           result,
           result_url,
+          decision_options,
         });
       } else {
         entry = service.createEntry({
@@ -104,6 +112,7 @@ server.tool(
           source,
           result,
           result_url,
+          decision_options,
         });
       }
       return {
@@ -326,6 +335,17 @@ server.tool(
     result: z.string().optional().describe("Set result content (markdown)"),
     result_url: z.string().optional().describe("Set result URL"),
     result_seen: z.boolean().optional().describe("Mark result as seen/unseen"),
+    decision_selected: z
+      .number()
+      .int()
+      .nullable()
+      .optional()
+      .describe("Index of selected decision option (0-based)"),
+    decision_comment: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Human's free-form comment on the decision"),
   },
   async ({
     id,
@@ -339,6 +359,8 @@ server.tool(
     result,
     result_url,
     result_seen,
+    decision_selected,
+    decision_comment,
   }) => {
     try {
       const entry = service.updateEntry({
@@ -353,6 +375,8 @@ server.tool(
         result,
         result_url,
         result_seen,
+        decision_selected,
+        decision_comment,
       });
       if (!entry) {
         return {

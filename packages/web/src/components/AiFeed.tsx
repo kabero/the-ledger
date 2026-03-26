@@ -90,10 +90,24 @@ export function AiFeed({ onClose }: AiFeedProps) {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [allAi]);
 
+  // Decision entries (have options, no selection yet)
+  const pendingDecisions = useMemo(
+    () =>
+      allAi.filter(
+        (e) =>
+          e.decision_options &&
+          e.decision_options.length > 0 &&
+          e.decision_selected == null &&
+          e.status !== "done",
+      ),
+    [allAi],
+  );
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
   const [showAllHumanTasks, setShowAllHumanTasks] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+  const [decisionComment, setDecisionComment] = useState<Record<string, string>>({});
 
   // Resolve selected entry from latest data so it stays in sync with polling
   const selectedEntry = useMemo(() => {
@@ -194,6 +208,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
             <div className="ai-pipe-label">AI完了</div>
           </div>
           <div className="ai-pipe-sep" />
+          {pendingDecisions.length > 0 && (
+            <>
+              <div className="ai-pipe-stage">
+                <div className="ai-pipe-num danger">{pendingDecisions.length}</div>
+                <div className="ai-pipe-label">判断待ち</div>
+              </div>
+              <div className="ai-pipe-sep" />
+            </>
+          )}
           <div className="ai-pipe-stage">
             <div className="ai-pipe-num human">{humanPending.length}</div>
             <div className="ai-pipe-label">人間タスク</div>
@@ -236,6 +259,62 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     >
                       {"\u2715"}
                     </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Pending Decisions — human judgment needed */}
+        {pendingDecisions.length > 0 && (
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span className="ai-dot unprocessed" /> 判断待ち ({pendingDecisions.length})
+            </div>
+            <div className="ai-decision-cards">
+              {pendingDecisions.map((e) => (
+                <div key={e.id} className="ai-decision-card">
+                  <div className="ai-decision-title">{e.title ?? e.raw_text}</div>
+                  {e.tags.length > 0 && (
+                    <div className="ai-card-tags">
+                      {e.tags.map((t) => (
+                        <span key={t} className="tag">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="ai-decision-options">
+                    {(e.decision_options ?? []).map((opt, idx) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        className="ai-decision-opt"
+                        onClick={() => {
+                          updateEntry.mutate({
+                            id: e.id,
+                            decision_selected: idx,
+                            decision_comment: decisionComment[e.id] || null,
+                            status: "done",
+                          });
+                        }}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    className="ai-decision-comment"
+                    placeholder="コメント（任意）"
+                    value={decisionComment[e.id] ?? ""}
+                    onChange={(ev) =>
+                      setDecisionComment((prev) => ({ ...prev, [e.id]: ev.target.value }))
+                    }
+                  />
+                  <div className="ai-mini-meta">
+                    <span className="ai-mini-time">{formatTime(e.created_at)}</span>
                   </div>
                 </div>
               ))}

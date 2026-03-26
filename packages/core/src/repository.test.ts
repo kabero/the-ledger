@@ -449,6 +449,43 @@ describe("EntryRepository", () => {
     });
   });
 
+  // ─── decision fields ───────────────────────────────────────
+
+  describe("decision fields", () => {
+    it("stores decision_options on create", () => {
+      const entry = repo.create({
+        raw_text: "Which color?",
+        type: "task",
+        title: "Choose color",
+        decision_options: ["Red", "Blue", "Green"],
+      });
+      expect(entry.decision_options).toEqual(["Red", "Blue", "Green"]);
+      expect(entry.decision_selected).toBeNull();
+      expect(entry.decision_comment).toBeNull();
+    });
+
+    it("updates decision_selected and decision_comment", () => {
+      const entry = repo.create({
+        raw_text: "Which color?",
+        type: "task",
+        title: "Choose color",
+        decision_options: ["Red", "Blue"],
+      });
+      const updated = repo.update({
+        id: entry.id,
+        decision_selected: 1,
+        decision_comment: "Blue is calming",
+      });
+      expect(updated?.decision_selected).toBe(1);
+      expect(updated?.decision_comment).toBe("Blue is calming");
+    });
+
+    it("returns null decision_options when not set", () => {
+      const entry = repo.create({ raw_text: "no decision" });
+      expect(entry.decision_options).toBeNull();
+    });
+  });
+
   // ─── runInTransaction ─────────────────────────────────────
 
   describe("runInTransaction", () => {

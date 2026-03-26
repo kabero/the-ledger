@@ -26,6 +26,19 @@ interface EntryRow {
   updated_at: string | null;
   completed_at: string | null;
   source: string | null;
+  decision_options: string | null;
+  decision_selected: number | null;
+  decision_comment: string | null;
+}
+
+function parseDecisionOptions(raw: string | null): string[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 export class EntryRepository {
@@ -41,8 +54,8 @@ export class EntryRepository {
 
     this.db
       .prepare(
-        `INSERT INTO entries (id, raw_text, image_path, type, title, urgent, due_date, status, delegatable, source, result, result_url, processed, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO entries (id, raw_text, image_path, type, title, urgent, due_date, status, delegatable, source, result, result_url, decision_options, processed, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
       .run(
         id,
@@ -57,6 +70,7 @@ export class EntryRepository {
         input.source ?? null,
         input.result ?? null,
         input.result_url ?? null,
+        input.decision_options ? JSON.stringify(input.decision_options) : null,
         preClassified ? 1 : 0,
       );
 
@@ -230,6 +244,14 @@ export class EntryRepository {
       if (input.result_seen !== undefined) {
         sets.push("result_seen = ?");
         params.push(input.result_seen ? 1 : 0);
+      }
+      if (input.decision_selected !== undefined) {
+        sets.push("decision_selected = ?");
+        params.push(input.decision_selected);
+      }
+      if (input.decision_comment !== undefined) {
+        sets.push("decision_comment = ?");
+        params.push(input.decision_comment);
       }
 
       sets.push("updated_at = datetime('now')");
@@ -419,6 +441,9 @@ export class EntryRepository {
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
       source: row.source ?? null,
+      decision_options: parseDecisionOptions(row.decision_options),
+      decision_selected: row.decision_selected ?? null,
+      decision_comment: row.decision_comment ?? null,
     }));
   }
 
@@ -445,6 +470,9 @@ export class EntryRepository {
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
       source: row.source ?? null,
+      decision_options: parseDecisionOptions(row.decision_options),
+      decision_selected: row.decision_selected ?? null,
+      decision_comment: row.decision_comment ?? null,
     };
   }
 }

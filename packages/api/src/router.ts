@@ -98,6 +98,8 @@ export const appRouter = t.router({
         result: z.string().optional(),
         result_url: z.string().optional(),
         result_seen: z.boolean().optional(),
+        decision_selected: z.number().int().nullable().optional(),
+        decision_comment: z.string().nullable().optional(),
       }),
     )
     .mutation(({ input, ctx }) => {

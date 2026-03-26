@@ -122,6 +122,15 @@ function runMigrations(db: Database.Database): void {
   if (!hasCol("result_url")) {
     db.exec("ALTER TABLE entries ADD COLUMN result_url TEXT");
   }
+  if (!hasCol("decision_options")) {
+    db.exec("ALTER TABLE entries ADD COLUMN decision_options TEXT"); // JSON array of strings
+  }
+  if (!hasCol("decision_selected")) {
+    db.exec("ALTER TABLE entries ADD COLUMN decision_selected INTEGER"); // index into decision_options
+  }
+  if (!hasCol("decision_comment")) {
+    db.exec("ALTER TABLE entries ADD COLUMN decision_comment TEXT"); // free-form human comment
+  }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {
     db.exec(

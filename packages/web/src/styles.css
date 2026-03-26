@@ -3772,3 +3772,31 @@ body {
   min-width: 1.5rem;
   padding-bottom: 0;
 }
+
+/* Daily completion chart */
+.daily-chart-title {
+  margin-top: 0.75rem;
+}
+
+.daily-chart-body {
+  height: 100px;
+}
+
+.daily-chart-bars {
+  gap: 3px;
+}
+
+.daily-chart-col {
+  min-width: 1.5rem;
+}
+
+.daily-chart-bar {
+  border-radius: 2px 2px 0 0;
+}
+
+.daily-chart-count {
+  font-size: 0.6rem;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 1px;
+}

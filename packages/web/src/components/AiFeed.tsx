@@ -102,7 +102,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
   );
 
   const inProgress = useMemo(
-    () => allInProgressItems.filter((e) => e.status !== "done"),
+    () => allInProgressItems.filter((e) => e.status === "pending"),
     [allInProgressItems],
   );
 

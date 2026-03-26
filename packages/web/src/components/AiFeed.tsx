@@ -1,204 +1,273 @@
 import { useEffect, useMemo, useState } from "react";
 import { trpc } from "../trpc";
 
-type FeedTab = "feed" | "progress" | "done";
-
 interface AiFeedProps {
   onClose: () => void;
 }
 
-export function AiFeed({ onClose }: AiFeedProps) {
-  const [tab, setTab] = useState<FeedTab>("feed");
+type EntryItem = {
+  id: string;
+  title: string | null;
+  raw_text: string;
+  type: string | null;
+  status: string | null;
+  source: string | null;
+  result: string | null;
+  result_seen: boolean;
+  urgent: boolean;
+  delegatable: boolean;
+  created_at: string;
+  completed_at: string | null;
+  tags: string[];
+};
 
-  // All delegatable tasks (AI-managed work)
+export function AiFeed({ onClose }: AiFeedProps) {
   const delegatable = trpc.listEntries.useQuery(
     { delegatable: true, limit: 100 },
     { refetchInterval: 5_000 },
   );
-
-  // All entries with source (external LLM contributions)
   const sourced = trpc.listEntries.useQuery(
     { processed: true, limit: 100 },
     { refetchInterval: 5_000 },
   );
-
   const updateEntry = trpc.updateEntry.useMutation();
 
   const allItems = delegatable.data ?? [];
   const allSourced = sourced.data ?? [];
 
-  // Feed: sourced entries + delegatable, deduplicated, newest first
-  const feedItems = useMemo(() => {
-    const map = new Map<string, (typeof allItems)[number]>();
+  // Deduplicated AI-related entries
+  const allAi = useMemo(() => {
+    const map = new Map<string, EntryItem>();
     for (const e of allItems) map.set(e.id, e);
     for (const e of allSourced) {
       if (e.source || e.delegatable) map.set(e.id, e);
     }
-    return [...map.values()].sort(
-      (a, b) => new Date(`${b.created_at}Z`).getTime() - new Date(`${a.created_at}Z`).getTime(),
-    );
+    return [...map.values()];
   }, [allItems, allSourced]);
 
-  const progressItems = useMemo(() => allItems.filter((e) => e.status !== "done"), [allItems]);
-
-  const doneItems = useMemo(
+  const inProgress = useMemo(() => allItems.filter((e) => e.status !== "done"), [allItems]);
+  const completed = useMemo(
     () =>
       allItems
-        .filter((e) => e.status === "done")
+        .filter((e) => e.status === "done" && e.result)
         .sort(
           (a, b) =>
             new Date(`${b.completed_at}Z`).getTime() - new Date(`${a.completed_at}Z`).getTime(),
         ),
     [allItems],
   );
+  const recentSourced = useMemo(
+    () =>
+      allAi
+        .filter((e) => e.source && !e.delegatable)
+        .sort(
+          (a, b) => new Date(`${b.created_at}Z`).getTime() - new Date(`${a.created_at}Z`).getTime(),
+        )
+        .slice(0, 5),
+    [allAi],
+  );
 
-  const currentItems = tab === "feed" ? feedItems : tab === "progress" ? progressItems : doneItems;
+  const newResults = useMemo(
+    () => allItems.filter((e) => e.result && !e.result_seen).length,
+    [allItems],
+  );
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  // Mark result as seen when expanded
-  useEffect(() => {
-    if (!expandedId) return;
-    const item = currentItems.find((e) => e.id === expandedId);
-    if (item?.result && !item.result_seen) {
-      updateEntry.mutate({ id: expandedId, result_seen: true });
+  // Sources breakdown
+  const sources = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const e of allAi) {
+      const s = e.source ?? "manual";
+      counts[s] = (counts[s] ?? 0) + 1;
     }
-  }, [expandedId, currentItems.find, updateEntry.mutate]);
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [allAi]);
 
-  const tabs: { key: FeedTab; label: string; count: number }[] = [
-    { key: "feed", label: "フィード", count: feedItems.length },
-    { key: "progress", label: "進行中", count: progressItems.length },
-    { key: "done", label: "完了", count: doneItems.length },
-  ];
+  const [selectedEntry, setSelectedEntry] = useState<EntryItem | null>(null);
+
+  useEffect(() => {
+    if (!selectedEntry) return;
+    if (selectedEntry.result && !selectedEntry.result_seen) {
+      updateEntry.mutate({ id: selectedEntry.id, result_seen: true });
+    }
+  }, [selectedEntry, updateEntry.mutate]);
+
+  if (selectedEntry) {
+    return (
+      <div className="ai-feed">
+        <div className="ai-feed-header">
+          <button type="button" className="ai-detail-back" onClick={() => setSelectedEntry(null)}>
+            {"<"} 戻る
+          </button>
+          <button type="button" className="gallery-close" onClick={onClose}>
+            x
+          </button>
+        </div>
+        <div className="ai-detail">
+          <div className="ai-detail-meta">
+            {selectedEntry.source && (
+              <span className="ai-badge source">{selectedEntry.source}</span>
+            )}
+            <span className="ai-badge type">{selectedEntry.type}</span>
+            {selectedEntry.status === "done" && <span className="ai-badge done">{"\u2713"}</span>}
+          </div>
+          <h2 className="ai-detail-title">{selectedEntry.title ?? selectedEntry.raw_text}</h2>
+          {selectedEntry.tags.length > 0 && (
+            <div className="ai-card-tags">
+              {selectedEntry.tags.map((t) => (
+                <span key={t} className="tag">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+          {selectedEntry.result ? (
+            <div className="ai-detail-result">
+              <div
+                className="result-markdown"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
+                dangerouslySetInnerHTML={{ __html: simpleMarkdown(selectedEntry.result) }}
+              />
+            </div>
+          ) : (
+            <div className="ai-detail-empty">
+              {selectedEntry.status === "done" ? "結果なし" : "作業待ち..."}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ai-feed">
       <div className="ai-feed-header">
-        <div className="ai-feed-tabs">
-          {tabs.map((t) => (
-            <button
-              type="button"
-              key={t.key}
-              className={`tab ${tab === t.key ? "active" : ""}`}
-              onClick={() => {
-                setTab(t.key);
-                setExpandedId(null);
-              }}
-            >
-              {t.label}
-              {t.count > 0 && <span className="ai-feed-count">{t.count}</span>}
-            </button>
-          ))}
-        </div>
+        <span className="ai-feed-title">AI Dashboard</span>
         <button type="button" className="gallery-close" onClick={onClose}>
           x
         </button>
       </div>
 
-      <div className="ai-feed-body">
-        {currentItems.length === 0 ? (
-          <div className="unprocessed-text">
-            {tab === "feed"
-              ? "AIアクティビティはまだありません"
-              : tab === "progress"
-                ? "進行中のおつかいはありません"
-                : "完了したおつかいはありません"}
+      <div className="ai-dash">
+        {/* Pipeline */}
+        <div className="ai-pipeline">
+          <div className="ai-pipe-stage">
+            <div className="ai-pipe-num accent">{inProgress.length}</div>
+            <div className="ai-pipe-label">進行中</div>
           </div>
-        ) : (
-          <div className="ai-feed-list">
-            {currentItems.map((entry) => (
-              <FeedCard
-                key={entry.id}
-                entry={entry}
-                expanded={expandedId === entry.id}
-                onToggle={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
-              />
+          <div className="ai-pipe-arrow">{"\u2192"}</div>
+          <div className="ai-pipe-stage">
+            <div className="ai-pipe-num done">{completed.length}</div>
+            <div className="ai-pipe-label">完了</div>
+          </div>
+          <div className="ai-pipe-sep" />
+          <div className="ai-pipe-stage">
+            <div className="ai-pipe-num new">{newResults}</div>
+            <div className="ai-pipe-label">未読</div>
+          </div>
+          <div className="ai-pipe-stage">
+            <div className="ai-pipe-num dim">{allAi.length}</div>
+            <div className="ai-pipe-label">総数</div>
+          </div>
+        </div>
+
+        {/* Sources */}
+        {sources.length > 0 && (
+          <div className="ai-sources">
+            {sources.map(([name, count]) => (
+              <div key={name} className="ai-source-chip">
+                <span className="ai-source-name">{name}</span>
+                <span className="ai-source-count">{count}</span>
+              </div>
             ))}
           </div>
+        )}
+
+        {/* In Progress */}
+        {inProgress.length > 0 && (
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span className="ai-dot progress" /> 進行中
+            </div>
+            <div className="ai-mini-cards">
+              {inProgress.map((e) => (
+                <button
+                  type="button"
+                  key={e.id}
+                  className={`ai-mini ${e.urgent ? "urgent" : ""}`}
+                  onClick={() => setSelectedEntry(e)}
+                >
+                  <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
+                  <div className="ai-mini-meta">
+                    {e.source && <span className="ai-badge source">{e.source}</span>}
+                    <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent completions */}
+        {completed.length > 0 && (
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span className="ai-dot done" /> 最近の完了
+            </div>
+            <div className="ai-mini-cards">
+              {completed.slice(0, 6).map((e) => {
+                const isNew = e.result && !e.result_seen;
+                return (
+                  <button
+                    type="button"
+                    key={e.id}
+                    className={`ai-mini done ${isNew ? "has-new" : ""}`}
+                    onClick={() => setSelectedEntry(e)}
+                  >
+                    <div className="ai-mini-top">
+                      <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
+                      {isNew && <span className="ai-badge new">NEW</span>}
+                    </div>
+                    <div className="ai-mini-meta">
+                      {e.completed_at && (
+                        <span className="ai-mini-time">{formatTime(e.completed_at)}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recent external inputs */}
+        {recentSourced.length > 0 && (
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span className="ai-dot source" /> 外部入力
+            </div>
+            <div className="ai-mini-cards">
+              {recentSourced.map((e) => (
+                <button
+                  type="button"
+                  key={e.id}
+                  className="ai-mini"
+                  onClick={() => setSelectedEntry(e)}
+                >
+                  <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
+                  <div className="ai-mini-meta">
+                    <span className="ai-badge source">{e.source}</span>
+                    <span className="ai-badge type">{e.type}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {allAi.length === 0 && (
+          <div className="unprocessed-text">AIアクティビティはまだありません</div>
         )}
       </div>
-    </div>
-  );
-}
-
-function FeedCard({
-  entry,
-  expanded,
-  onToggle,
-}: {
-  entry: {
-    id: string;
-    title: string | null;
-    raw_text: string;
-    type: string | null;
-    status: string | null;
-    source: string | null;
-    result: string | null;
-    result_seen: boolean;
-    urgent: boolean;
-    delegatable: boolean;
-    created_at: string;
-    completed_at: string | null;
-    tags: string[];
-  };
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const hasResult = !!entry.result;
-  const isNew = hasResult && !entry.result_seen;
-
-  return (
-    <div className={`ai-card ${entry.status === "done" ? "done" : ""}`}>
-      <button type="button" className="ai-card-header" onClick={onToggle}>
-        <div className="ai-card-top">
-          <div className="ai-card-badges">
-            {entry.source && <span className="ai-badge source">{entry.source}</span>}
-            {entry.type && <span className="ai-badge type">{entry.type}</span>}
-            {entry.status === "done" && <span className="ai-badge done">{"\u2713"}</span>}
-            {entry.urgent && <span className="ai-badge urgent">!</span>}
-            {isNew && <span className="ai-badge new">NEW</span>}
-          </div>
-          <span className="ai-card-time">{formatTime(entry.created_at)}</span>
-        </div>
-        <div className="ai-card-title">{entry.title ?? entry.raw_text}</div>
-        {entry.tags.length > 0 && (
-          <div className="ai-card-tags">
-            {entry.tags.map((tag) => (
-              <span key={tag} className="tag">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-        {entry.status === "done" && entry.completed_at && (
-          <div className="ai-card-completed">
-            完了:{" "}
-            {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </div>
-        )}
-      </button>
-
-      {expanded && hasResult && (
-        <div className="ai-card-result">
-          <div
-            className="result-markdown"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
-            dangerouslySetInnerHTML={{ __html: simpleMarkdown(entry.result ?? "") }}
-          />
-        </div>
-      )}
-      {expanded && !hasResult && (
-        <div className="ai-card-result">
-          <div className="ai-card-empty">
-            {entry.status === "done" ? "結果なし" : "作業待ち..."}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

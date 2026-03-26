@@ -261,6 +261,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  animation: overlay-fade-in 0.15s ease-out;
 }
 
 .result-modal {
@@ -273,6 +274,18 @@ body {
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
+  animation: modal-pop-in 0.2s ease-out;
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .result-modal-title {
@@ -512,6 +525,7 @@ body {
   max-width: 320px;
   width: 100%;
   text-align: center;
+  animation: modal-pop-in 0.2s ease-out;
 }
 
 .confirm-message {
@@ -538,9 +552,21 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.confirm-btn:active {
+  transform: scale(0.95);
+}
+
+.confirm-btn-cancel:hover {
+  background: var(--border-subtle);
+}
+
 .confirm-btn-ok {
   border-color: var(--danger);
   color: var(--danger);
+}
+
+.confirm-btn-ok:hover {
+  background: rgba(255, 0, 0, 0.1);
 }
 
 .badge-new {
@@ -2384,6 +2410,16 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: overlay-fade-in 0.15s ease-out;
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .bottom-sheet {
@@ -2394,6 +2430,16 @@ body {
   border-radius: 12px 12px 0 0;
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
   animation: slide-up 0.2s ease-out;
+}
+
+.bottom-sheet::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 4px;
+  background: var(--border-muted);
+  border-radius: 2px;
+  margin: 0 auto 12px;
 }
 
 @keyframes slide-up {

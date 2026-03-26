@@ -156,6 +156,13 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 </button>
               )}
             </>
+          ) : selectedEntry.raw_text && selectedEntry.raw_text !== selectedEntry.title ? (
+            <div className="ai-detail-result">
+              <div
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
+                dangerouslySetInnerHTML={{ __html: simpleMarkdown(selectedEntry.raw_text) }}
+              />
+            </div>
           ) : (
             <div className="ai-detail-empty">
               {selectedEntry.status === "done" ? "結果なし" : "作業待ち..."}
@@ -265,18 +272,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
             </div>
             <div className="ai-mini-cards">
               {recentSourced.map((e) => (
-                <button
-                  type="button"
-                  key={e.id}
-                  className="ai-mini"
-                  onClick={() => setSelectedEntry(e)}
-                >
-                  <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
-                  <div className="ai-mini-meta">
-                    <span className="ai-badge source">{e.source}</span>
-                    <span className="ai-badge type">{e.type}</span>
-                  </div>
-                </button>
+                <MiniCard key={e.id} entry={e} onClick={() => setSelectedEntry(e)} />
               ))}
             </div>
           </div>
@@ -370,9 +366,10 @@ function MiniCard({
   timeField?: "created_at" | "completed_at";
 }) {
   const time = timeField === "completed_at" ? entry.completed_at : entry.created_at;
+  const hoverContent = entry.result ?? (entry.raw_text !== entry.title ? entry.raw_text : null);
 
   return (
-    <div className={`ai-mini-wrap ${entry.result ? "has-tooltip" : ""}`}>
+    <div className={`ai-mini-wrap ${hoverContent ? "has-tooltip" : ""}`}>
       <button type="button" className={`ai-mini ${className}`} onClick={onClick}>
         <div className="ai-mini-top">
           <div className="ai-mini-title">{entry.title ?? entry.raw_text}</div>
@@ -383,11 +380,11 @@ function MiniCard({
           {time && <span className="ai-mini-time">{formatTime(time)}</span>}
         </div>
       </button>
-      {entry.result && (
+      {hoverContent && (
         <div className="ai-hover-modal">
           <div
             // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
-            dangerouslySetInnerHTML={{ __html: simpleMarkdown(entry.result) }}
+            dangerouslySetInnerHTML={{ __html: simpleMarkdown(hoverContent) }}
           />
         </div>
       )}
@@ -411,6 +408,7 @@ function formatTime(iso: string): string {
 
 function simpleMarkdown(md: string): string {
   return md
+    .replace(/\\n/g, "\n") // normalize literal \n to real newlines
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

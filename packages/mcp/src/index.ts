@@ -228,16 +228,23 @@ server.tool(
     type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
     status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
     tag: z.string().optional().describe("Filter by tag"),
+    source: z
+      .string()
+      .optional()
+      .describe(
+        'Filter by source (e.g. "slack", "auto-summary"). Use "any" to match all sourced entries',
+      ),
     since: z.string().optional().describe("ISO date — only entries created on or after this date"),
     until: z.string().optional().describe("ISO date — only entries created before this date"),
     limit: z.number().int().positive().max(100).default(20).describe("Max results"),
   },
-  async ({ query, type, status, tag, since, until, limit }) => {
+  async ({ query, type, status, tag, source, since, until, limit }) => {
     const entries = service.listEntries({
       query,
       type,
       status,
       tag,
+      source,
       since,
       until,
       processed: true,

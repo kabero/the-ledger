@@ -332,7 +332,7 @@ function ResultModal({
         </div>
         <div className="result-modal-title">{title}</div>
         <div className="result-modal-body">
-          <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>{result.replace(/\\n/g, "\n")}</Markdown>
         </div>
       </div>
     </div>

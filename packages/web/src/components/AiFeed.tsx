@@ -249,6 +249,33 @@ export function AiFeed({ onClose }: AiFeedProps) {
           </div>
         )}
 
+        {/* Unprocessed — top priority */}
+        {unprocessedItems.length > 0 && (
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
+            </div>
+            <div className="ai-mini-cards">
+              {unprocessedItems.slice(0, 6).map((e) => (
+                <div key={e.id} className="ai-mini unprocessed">
+                  <div className="ai-mini-title">{e.raw_text}</div>
+                  <div className="ai-mini-meta">
+                    <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                    <button
+                      type="button"
+                      className="ai-action trash"
+                      onClick={() => deleteEntry.mutate({ id: e.id })}
+                      title="削除"
+                    >
+                      {"\u2715"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* In Progress */}
         {inProgress.length > 0 && (
           <div className="ai-section">
@@ -307,33 +334,6 @@ export function AiFeed({ onClose }: AiFeedProps) {
             <div className="ai-mini-cards">
               {recentSourced.map((e) => (
                 <MiniCard key={e.id} entry={e} onClick={() => setSelectedEntry(e)} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Unprocessed */}
-        {unprocessedItems.length > 0 && (
-          <div className="ai-section">
-            <div className="ai-section-title">
-              <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
-            </div>
-            <div className="ai-mini-cards">
-              {unprocessedItems.slice(0, 6).map((e) => (
-                <div key={e.id} className="ai-mini unprocessed">
-                  <div className="ai-mini-title">{e.raw_text}</div>
-                  <div className="ai-mini-meta">
-                    <span className="ai-mini-time">{formatTime(e.created_at)}</span>
-                    <button
-                      type="button"
-                      className="ai-action trash"
-                      onClick={() => deleteEntry.mutate({ id: e.id })}
-                      title="削除"
-                    >
-                      {"\u2715"}
-                    </button>
-                  </div>
-                </div>
               ))}
             </div>
           </div>

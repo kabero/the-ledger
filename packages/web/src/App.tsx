@@ -6,6 +6,7 @@ import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
 import { applyFont, Settings } from "./components/Settings";
+import { POLL } from "./poll";
 import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
@@ -35,14 +36,14 @@ export function App() {
   // Disable polling when AiFeed is open (it has its own queries)
   const unprocessed = trpc.getUnprocessed.useQuery(
     { limit: 50 },
-    { refetchInterval: showAiFeed ? false : 10_000 },
+    { refetchInterval: showAiFeed ? false : POLL.unprocessed },
   );
   const unprocessedCount = unprocessed.data?.length ?? 0;
 
   // Check for unseen AI results
   const aiTasks = trpc.listEntries.useQuery(
     { delegatable: true, limit: 100 },
-    { refetchInterval: showAiFeed ? false : 10_000 },
+    { refetchInterval: showAiFeed ? false : POLL.delegatable },
   );
   const hasNewAiResults = useMemo(
     () => (aiTasks.data ?? []).some((e) => e.result && !e.result_seen),
@@ -52,7 +53,7 @@ export function App() {
   // External sourced entries for sidebar
   const sourcedEntries = trpc.listEntries.useQuery(
     { source: "any", limit: 10 },
-    { refetchInterval: showAiFeed ? false : 30_000 },
+    { refetchInterval: showAiFeed ? false : POLL.sidebarSourced },
   );
   const recentSourced = useMemo(
     () =>

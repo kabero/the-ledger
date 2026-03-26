@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { POLL } from "../poll";
 import { trpc } from "../trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
@@ -24,7 +25,7 @@ export function EntryList({ tab }: EntryListProps) {
             ? { delegatable: true }
             : { type: tab as "task" | "note" | "wish" };
 
-  const entries = trpc.listEntries.useQuery(filter, { refetchInterval: 10_000 });
+  const entries = trpc.listEntries.useQuery(filter, { refetchInterval: POLL.entries });
   const utils = trpc.useUtils();
 
   // ローカルのステータス上書き（チェック直後の見た目用、次回refetchでクリア）

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 // @ts-expect-error no type definitions for react-force-graph-2d
 import ForceGraph2D from "react-force-graph-2d";
+import { POLL } from "../poll";
 import { trpc } from "../trpc";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -30,7 +31,7 @@ export function GraphView({ fullscreen }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 400, height: 400 });
 
-  const entries = trpc.listEntries.useQuery({ processed: true }, { refetchInterval: 10_000 });
+  const entries = trpc.listEntries.useQuery({ processed: true }, { refetchInterval: POLL.entries });
 
   useEffect(() => {
     const el = containerRef.current;

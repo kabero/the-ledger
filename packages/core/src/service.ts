@@ -19,6 +19,27 @@ import {
 
 const IMAGES_DIR = path.join(os.homedir(), ".theledger", "images");
 
+/** Known image magic bytes signatures */
+const IMAGE_SIGNATURES: Record<string, number[][]> = {
+  png: [[0x89, 0x50, 0x4e, 0x47]], // \x89PNG
+  jpg: [[0xff, 0xd8, 0xff]],
+  jpeg: [[0xff, 0xd8, 0xff]],
+  gif: [
+    [0x47, 0x49, 0x46, 0x38, 0x37], // GIF87a
+    [0x47, 0x49, 0x46, 0x38, 0x39], // GIF89a
+  ],
+  webp: [[0x52, 0x49, 0x46, 0x46]], // RIFF (WebP container)
+};
+
+function validateImageMagicBytes(data: Buffer, ext: string): boolean {
+  const signatures = IMAGE_SIGNATURES[ext];
+  if (!signatures) return false;
+  return signatures.some((sig) => {
+    if (data.length < sig.length) return false;
+    return sig.every((byte, i) => data[i] === byte);
+  });
+}
+
 export class EntryService {
   constructor(
     private repository: EntryRepository,
@@ -75,6 +96,12 @@ export class EntryService {
     }
     if (data.length > MAX_IMAGE_SIZE) {
       throw new Error(`Image too large: ${(data.length / 1024 / 1024).toFixed(1)}MB. Max: 10MB`);
+    }
+    // Validate magic bytes match claimed extension
+    if (!validateImageMagicBytes(data, normalizedExt)) {
+      throw new Error(
+        `Image content does not match extension .${normalizedExt}. File may be corrupted or spoofed.`,
+      );
     }
     if (!fs.existsSync(IMAGES_DIR)) {
       fs.mkdirSync(IMAGES_DIR, { recursive: true });

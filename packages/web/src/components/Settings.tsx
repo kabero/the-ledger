@@ -79,6 +79,7 @@ function ScheduleSection() {
   const [dayOfWeek, setDayOfWeek] = useState(1); // 月曜
   const [dayOfMonth, setDayOfMonth] = useState(1);
   const [hour, setHour] = useState(8);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleAdd = () => {
     if (!text.trim()) return;
@@ -114,13 +115,38 @@ function ScheduleSection() {
               >
                 {task.enabled ? "ON" : "OFF"}
               </button>
-              <button
-                type="button"
-                className="schedule-delete"
-                onClick={() => deleteTask.mutate({ id: task.id })}
-              >
-                x
-              </button>
+              {confirmDeleteId === task.id ? (
+                <>
+                  <button
+                    type="button"
+                    className="schedule-delete"
+                    style={{ color: "var(--danger)" }}
+                    onClick={() => {
+                      deleteTask.mutate({ id: task.id });
+                      setConfirmDeleteId(null);
+                    }}
+                    title="削除する"
+                  >
+                    {"\u2713"}
+                  </button>
+                  <button
+                    type="button"
+                    className="schedule-delete"
+                    onClick={() => setConfirmDeleteId(null)}
+                    title="やめる"
+                  >
+                    {"\u2715"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="schedule-delete"
+                  onClick={() => setConfirmDeleteId(task.id)}
+                >
+                  x
+                </button>
+              )}
             </div>
           ))}
         </div>

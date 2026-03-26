@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import { DetailView } from "./ai-feed/DetailView";
 import { MiniCard } from "./ai-feed/MiniCard";
@@ -14,16 +15,19 @@ export function AiFeed({ onClose }: AiFeedProps) {
   // Stagger polling intervals to avoid simultaneous requests
   const delegatable = trpc.listEntries.useQuery(
     { delegatable: true, limit: 100 },
-    { refetchInterval: 10_000 },
+    { refetchInterval: POLL.delegatable },
   );
   const sourced = trpc.listEntries.useQuery(
     { source: "any", limit: 100 },
-    { refetchInterval: 15_000 },
+    { refetchInterval: POLL.sourced },
   );
-  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 12_000 });
+  const unprocessed = trpc.getUnprocessed.useQuery(
+    { limit: 50 },
+    { refetchInterval: POLL.unprocessed },
+  );
   const humanTasks = trpc.listEntries.useQuery(
     { type: "task", status: "pending", limit: 50 },
-    { refetchInterval: 18_000 },
+    { refetchInterval: POLL.humanTasks },
   );
   const utils = trpc.useUtils();
   const invalidateAll = () => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { useClipboard } from "../../hooks/useClipboard";
 import { remarkPlugins, safeUrlTransform } from "../../markdown";
@@ -10,17 +10,28 @@ interface DetailViewProps {
   entry: EntryItem;
   onBack: () => void;
   onClose: () => void;
-  onRetry: (id: string) => void;
 }
 
-export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps) {
+export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
   const utils = trpc.useUtils();
-  const updateEntry = trpc.updateEntry.useMutation({
-    onSuccess: () => utils.listEntries.invalidate(),
+  const invalidateAll = () => {
+    utils.listEntries.invalidate();
+    utils.listEntriesWithCursor.invalidate();
+    utils.countEntries.invalidate();
+  };
+  const updateEntry = trpc.updateEntry.useMutation({ onSuccess: invalidateAll });
+  const reopenTask = trpc.reopenTask.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      onBack();
+    },
   });
   const [copied, copy] = useClipboard();
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
   const [comment, setComment] = useState("");
+  const [showReopenForm, setShowReopenForm] = useState(false);
+  const [reopenFeedback, setReopenFeedback] = useState("");
+  const reopenInputRef = useRef<HTMLTextAreaElement>(null);
   const needsDecision =
     entry.decision_options &&
     entry.decision_options.length > 0 &&
@@ -48,8 +59,8 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
   );
 
   return (
-    <div className="ai-feed">
-      <div className="ai-feed-header">
+    <div className="ai-detail-panel">
+      <div className="ai-detail-panel-header">
         <button type="button" className="ai-detail-back" onClick={onBack}>
           {"<"} 戻る
         </button>
@@ -173,15 +184,87 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
         {resultMarkdown ? (
           <>
             <div className="ai-detail-result">{resultMarkdown}</div>
-            {entry.status === "done" && entry.delegatable && (
-              <button
-                type="button"
-                className="ai-action-btn retry"
-                onClick={() => onRetry(entry.id)}
-              >
-                {"\u21BA"} もう一回やらせる
-              </button>
-            )}
+            {entry.status === "done" &&
+              entry.delegatable &&
+              (showReopenForm ? (
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    background: "var(--bg-card, #0a0a0a)",
+                    border: "1px solid var(--border-subtle, #222)",
+                    borderRadius: 6,
+                    marginTop: 8,
+                  }}
+                >
+                  <textarea
+                    ref={reopenInputRef}
+                    value={reopenFeedback}
+                    onChange={(e) => setReopenFeedback(e.target.value)}
+                    placeholder="追加指示（任意）"
+                    rows={3}
+                    style={{
+                      width: "100%",
+                      background: "var(--bg, #000)",
+                      color: "var(--fg, #eee)",
+                      border: "1px solid var(--border-subtle, #333)",
+                      borderRadius: 4,
+                      padding: "6px 8px",
+                      fontSize: 13,
+                      fontFamily: "var(--font)",
+                      resize: "vertical",
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        reopenTask.mutate({
+                          id: entry.id,
+                          feedback: reopenFeedback.trim() || undefined,
+                        });
+                      }
+                      if (e.key === "Escape") {
+                        setShowReopenForm(false);
+                        setReopenFeedback("");
+                      }
+                    }}
+                  />
+                  <div
+                    style={{ display: "flex", gap: 6, marginTop: 6, justifyContent: "flex-end" }}
+                  >
+                    <button
+                      type="button"
+                      className="ai-action-btn"
+                      onClick={() => {
+                        setShowReopenForm(false);
+                        setReopenFeedback("");
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      type="button"
+                      className="ai-action-btn retry"
+                      onClick={() =>
+                        reopenTask.mutate({
+                          id: entry.id,
+                          feedback: reopenFeedback.trim() || undefined,
+                        })
+                      }
+                    >
+                      {"\u21BA"} 再実行
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="ai-action-btn retry"
+                  onClick={() => {
+                    setShowReopenForm(true);
+                    setTimeout(() => reopenInputRef.current?.focus(), 50);
+                  }}
+                >
+                  {"\u21BA"} もう一回やらせる
+                </button>
+              ))}
           </>
         ) : rawTextMarkdown ? (
           <div className="ai-detail-result">{rawTextMarkdown}</div>

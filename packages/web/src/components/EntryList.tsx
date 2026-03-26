@@ -56,6 +56,14 @@ export function EntryList({ tab }: EntryListProps) {
     },
   });
 
+  const reopenTask = trpc.reopenTask.useMutation({
+    onSuccess: () => {
+      utils.listEntries.invalidate();
+    },
+  });
+  const reopenRef = useRef(reopenTask.mutate);
+  reopenRef.current = reopenTask.mutate;
+
   // Stable refs for mutations to avoid re-creating renderEntry on every render
   const updateRef = useRef(updateEntry.mutate);
   updateRef.current = updateEntry.mutate;
@@ -603,17 +611,27 @@ export function EntryList({ tab }: EntryListProps) {
               <div className="empty-state-hint">「{searchQuery}」に一致するエントリはない。</div>
             </div>
           )}
-          {tab === "llm"
-            ? pending.slice(0, visibleCount).map(renderEntry)
-            : pending.map(renderEntry)}
-          {tab === "llm" && pending.length > visibleCount && (
-            <button
-              type="button"
-              className="btn-load-more"
-              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-            >
-              もっと見る（残り {pending.length - visibleCount} 件）
-            </button>
+          {tab === "done" ? (
+            <DonePageGroups
+              items={filteredItems}
+              renderEntry={renderEntry}
+              onReopen={(id, feedback) => reopenRef.current({ id, feedback })}
+            />
+          ) : tab === "llm" ? (
+            <>
+              {pending.slice(0, visibleCount).map(renderEntry)}
+              {pending.length > visibleCount && (
+                <button
+                  type="button"
+                  className="btn-load-more"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  もっと見る（残り {pending.length - visibleCount} 件）
+                </button>
+              )}
+            </>
+          ) : (
+            pending.map(renderEntry)
           )}
           {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
         </div>
@@ -729,5 +747,266 @@ function DoneSection({
       </button>
       {open && items.map((entry) => renderEntry(entry))}
     </div>
+  );
+}
+
+/* ── Date group helpers for the Done page ── */
+
+interface DateGroup {
+  label: string;
+  items: EntryRow[];
+}
+
+function groupByDate(items: EntryRow[]): DateGroup[] {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+  // Start of this week (Monday-based)
+  const dayOfWeek = todayStart.getDay();
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const thisWeekStart = new Date(todayStart.getTime() - mondayOffset * 86400000);
+  const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86400000);
+
+  const groups: Record<string, EntryRow[]> = {};
+  const groupOrder: string[] = [];
+
+  const addToGroup = (label: string, entry: EntryRow) => {
+    if (!groups[label]) {
+      groups[label] = [];
+      groupOrder.push(label);
+    }
+    groups[label].push(entry);
+  };
+
+  for (const item of items) {
+    if (!item.completed_at) {
+      addToGroup("それ以前", item);
+      continue;
+    }
+    const completedDate = new Date(`${item.completed_at}Z`);
+    if (completedDate >= todayStart) {
+      addToGroup("今日", item);
+    } else if (completedDate >= yesterdayStart) {
+      addToGroup("昨日", item);
+    } else if (completedDate >= thisWeekStart) {
+      addToGroup("今週", item);
+    } else if (completedDate >= lastWeekStart) {
+      addToGroup("先週", item);
+    } else {
+      // Group by month for older items
+      const monthLabel = completedDate.toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "long",
+      });
+      addToGroup(monthLabel, item);
+    }
+  }
+
+  return groupOrder.map((label) => ({ label, items: groups[label] }));
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  task: "タスク",
+  note: "メモ",
+  wish: "ほしいもの",
+};
+
+function DonePageGroups({
+  items,
+  renderEntry,
+  onReopen,
+}: {
+  items: EntryRow[];
+  renderEntry: (entry: EntryRow) => React.ReactNode;
+  onReopen: (id: string, feedback?: string) => void;
+}) {
+  const DONE_PAGE_SIZE = 50;
+  const [visibleCount, setVisibleCount] = useState(DONE_PAGE_SIZE);
+  const [reopenId, setReopenId] = useState<string | null>(null);
+  const [reopenFeedback, setReopenFeedback] = useState("");
+  const reopenInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const visibleItems = items.slice(0, visibleCount);
+  const groups = useMemo(() => groupByDate(visibleItems), [visibleItems]);
+  const hasMore = items.length > visibleCount;
+
+  const handleReopen = (id: string) => {
+    onReopen(id, reopenFeedback.trim() || undefined);
+    setReopenId(null);
+    setReopenFeedback("");
+  };
+
+  return (
+    <>
+      {groups.map((group) => (
+        <div key={group.label} style={{ marginBottom: 8 }}>
+          <div
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "8px 12px",
+              margin: "0 -4px",
+              background: "var(--bg, #000)",
+              borderBottom: "1px solid var(--border-subtle, #222)",
+              fontFamily: "var(--font)",
+              fontSize: 12,
+            }}
+          >
+            <span
+              style={{ color: "var(--fg-muted, #888)", fontWeight: 600, letterSpacing: "0.5px" }}
+            >
+              {group.label}
+            </span>
+            <span
+              style={{
+                color: "var(--dim, #666)",
+                fontSize: 11,
+                background: "var(--bg-card, #0a0a0a)",
+                border: "1px solid var(--border-subtle, #222)",
+                borderRadius: 10,
+                padding: "1px 8px",
+              }}
+            >
+              {group.items.length}
+            </span>
+          </div>
+          {group.items.map((entry) => (
+            <div key={entry.id} style={{ position: "relative" }}>
+              <span
+                className={`entry-type-badge entry-type-${entry.type}`}
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 32,
+                  zIndex: 1,
+                  pointerEvents: "none",
+                }}
+              >
+                {TYPE_LABELS[entry.type] ?? entry.type}
+              </span>
+              {entry.type === "task" && entry.delegatable && (
+                <button
+                  type="button"
+                  className="btn-reopen"
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 56,
+                    zIndex: 2,
+                    background: "none",
+                    border: "1px solid var(--border-subtle, #333)",
+                    color: "var(--fg-muted, #888)",
+                    fontSize: 11,
+                    padding: "1px 8px",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReopenId(reopenId === entry.id ? null : entry.id);
+                    setReopenFeedback("");
+                    setTimeout(() => reopenInputRef.current?.focus(), 50);
+                  }}
+                  title="もう一回やらせる"
+                >
+                  再実行
+                </button>
+              )}
+              {renderEntry(entry)}
+              {reopenId === entry.id && (
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--bg-card, #0a0a0a)",
+                    border: "1px solid var(--border-subtle, #222)",
+                    borderRadius: 6,
+                    margin: "2px 0 6px",
+                  }}
+                >
+                  <textarea
+                    ref={reopenInputRef}
+                    value={reopenFeedback}
+                    onChange={(e) => setReopenFeedback(e.target.value)}
+                    placeholder="追加指示（任意）"
+                    rows={2}
+                    style={{
+                      width: "100%",
+                      background: "var(--bg, #000)",
+                      color: "var(--fg, #eee)",
+                      border: "1px solid var(--border-subtle, #333)",
+                      borderRadius: 4,
+                      padding: "6px 8px",
+                      fontSize: 13,
+                      fontFamily: "var(--font)",
+                      resize: "vertical",
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        handleReopen(entry.id);
+                      }
+                      if (e.key === "Escape") {
+                        setReopenId(null);
+                        setReopenFeedback("");
+                      }
+                    }}
+                  />
+                  <div
+                    style={{ display: "flex", gap: 6, marginTop: 6, justifyContent: "flex-end" }}
+                  >
+                    <button
+                      type="button"
+                      style={{
+                        background: "none",
+                        border: "1px solid var(--border-subtle, #333)",
+                        color: "var(--fg-muted, #888)",
+                        fontSize: 12,
+                        padding: "3px 10px",
+                        borderRadius: 4,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => {
+                        setReopenId(null);
+                        setReopenFeedback("");
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        background: "var(--accent, #2a6)",
+                        border: "none",
+                        color: "#000",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "3px 12px",
+                        borderRadius: 4,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => handleReopen(entry.id)}
+                    >
+                      再実行
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+      {hasMore && (
+        <button
+          type="button"
+          className="btn-load-more"
+          onClick={() => setVisibleCount((c) => c + DONE_PAGE_SIZE)}
+        >
+          もっと見る（残り {items.length - visibleCount} 件）
+        </button>
+      )}
+    </>
   );
 }

@@ -359,6 +359,7 @@ body {
   border-radius: 0 0 8px 8px;
   padding: 16px 20px;
   min-height: 20vh;
+  flex: 1;
 }
 
 .entry-list-box:has(.empty-state) {
@@ -589,6 +590,42 @@ body {
   .result-modal-close:hover {
     color: var(--danger);
     border-color: var(--danger);
+  }
+}
+
+/* Settings modal full-screen on tablet/mobile */
+@media (max-width: 768px) {
+  .result-overlay {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .result-modal {
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-modal-title {
+    flex-shrink: 0;
+  }
+
+  .result-modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .settings-font-list {
+    flex: 1;
+    overflow-y: auto;
   }
 }
 
@@ -942,12 +979,16 @@ body {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 20px;
+  min-height: 100dvh;
 }
 
 .container {
   max-width: 640px;
   width: 100%;
   padding: 32px 0 env(safe-area-inset-bottom);
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
 }
 
 /* Sidebar */
@@ -1212,6 +1253,9 @@ body {
 
 .section {
   margin-bottom: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Done entry */
@@ -1870,7 +1914,7 @@ body {
 @media (max-width: 480px) {
   .container {
     padding: 16px 12px;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 
   .desktop-input {
@@ -2517,13 +2561,17 @@ body {
 .ai-decision-card.compact {
   padding: 0;
   gap: 0;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .ai-decision-compact-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 10px 12px;
   background: none;
   border: none;
@@ -2569,10 +2617,48 @@ body {
   flex-shrink: 0;
 }
 
+/* Inline one-click buttons for binary decisions */
+.ai-decision-inline-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px 0 0;
+  flex-shrink: 0;
+}
+
+.ai-decision-inline-btn {
+  background: var(--bg-elevated, #1a1a1a);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.ai-decision-inline-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.ai-decision-inline-btn:active {
+  transform: scale(0.95);
+}
+
 /* Expanded decision card */
 .ai-decision-card.expanded {
   padding: 0;
   gap: 0;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .ai-decision-card.expanded .ai-decision-compact-row {
@@ -2891,6 +2977,53 @@ body {
   font-size: 11px;
   color: var(--dim);
   line-height: 1.4;
+}
+
+/* Detail panel (slide-over) */
+
+.ai-detail-overlay {
+  display: none;
+}
+
+.ai-detail-panel {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-fullscreen) + 1);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+}
+
+.ai-detail-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+@media (min-width: 900px) {
+  .ai-detail-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-fullscreen) + 1);
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .ai-detail-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(480px, 50vw);
+    z-index: calc(var(--z-fullscreen) + 2);
+    border-left: 1px solid var(--border-subtle);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+  }
 }
 
 /* Detail view */

@@ -193,7 +193,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
   const [expandedDecisionId, setExpandedDecisionId] = useState<string | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showAllCompleted, setShowAllCompleted] = useState(false);
+  const [completedVisible, setCompletedVisible] = useState(12);
   const [showAllHumanTasks, setShowAllHumanTasks] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
   const [decisionComment, setDecisionComment] = useState<Record<string, string>>({});
@@ -218,6 +218,16 @@ export function AiFeed({ onClose }: AiFeedProps) {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [handleEscape]);
 
+  // On touch devices, strip keyboard shortcut hints from the input placeholder
+  useEffect(() => {
+    const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+    if (!isTouchDevice) return;
+    const el = document.querySelector<HTMLTextAreaElement>(".ai-feed-input .input-box");
+    if (el) {
+      el.placeholder = el.placeholder.replace(/\s*\((?:Cmd|Ctrl)\+Shift\+K\)/, "");
+    }
+  }, []);
+
   // Resolve selected entry from latest data so it stays in sync with polling
   const selectedEntry = useMemo(() => {
     if (!selectedId) return null;
@@ -240,22 +250,36 @@ export function AiFeed({ onClose }: AiFeedProps) {
     }
   }, [selectedEntry]);
 
-  if (selectedEntry) {
-    return (
-      <DetailView
-        entry={selectedEntry}
-        onBack={() => setSelectedId(null)}
-        onClose={onClose}
-        onRetry={(id) => {
-          updateEntry.mutate({ id, status: "pending" });
-          setSelectedId(null);
-        }}
-      />
-    );
-  }
-
   return (
-    <div className="ai-feed">
+    <div className={`ai-feed ${selectedEntry ? "has-detail-panel" : ""}`}>
+      {selectedEntry && (
+        <>
+          <div
+            className="ai-detail-overlay"
+            onClick={() => setSelectedId(null)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setSelectedId(null);
+            }}
+            role="dialog"
+            tabIndex={-1}
+            aria-label="閉じる"
+          />
+          <DetailView entry={selectedEntry} onBack={() => setSelectedId(null)} onClose={onClose} />
+        </>
+      )}
+      {/* Accessibility & mobile fixes: improve pipe-label contrast, hide kbd shortcut on mobile */}
+      <style>{`
+        .ai-pipe-label {
+          font-size: 0.75rem !important;
+          color: #bbb !important;
+        }
+        @media (max-width: 480px) {
+          .ai-pipe-label { font-size: 0.6875rem !important; }
+        }
+        @media (max-width: 375px) {
+          .ai-pipe-label { font-size: 0.625rem !important; }
+        }
+      `}</style>
       {confirmDelete && (
         <ConfirmModal
           message={`「${confirmDelete.label}」を削除しますか？`}
@@ -370,6 +394,8 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     const hasOptions = e.decision_options && e.decision_options.length > 0;
                     const selected = decisionSelected[e.id] ?? null;
                     const isExpanded = expandedDecisionId === e.id;
+                    const isBinary =
+                      hasOptions && e.decision_options && e.decision_options.length === 2;
                     return (
                       <div
                         key={e.id}
@@ -395,6 +421,30 @@ export function AiFeed({ onClose }: AiFeedProps) {
                             {isExpanded ? "\u25B2" : "\u25BC"}
                           </span>
                         </button>
+                        {/* One-click inline buttons for binary decisions */}
+                        {isBinary && !isExpanded && (
+                          <div className="ai-decision-inline-actions">
+                            {(e.decision_options ?? []).map((opt, idx) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                className="ai-decision-inline-btn"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  updateEntry.mutate({
+                                    id: e.id,
+                                    delegatable: true,
+                                    decision_selected: idx,
+                                    decision_comment: null,
+                                  });
+                                }}
+                                title={opt}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <button
                           type="button"
                           className="ai-action trash ai-decision-delete"
@@ -551,7 +601,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   )}
                 </div>
                 <div className="ai-mini-cards">
-                  {(showAllCompleted ? completed : completed.slice(0, 6)).map((e) => (
+                  {completed.slice(0, completedVisible).map((e) => (
                     <MiniCard
                       key={e.id}
                       entry={e}
@@ -562,16 +612,16 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     />
                   ))}
                 </div>
-                {!showAllCompleted && completed.length > 6 && (
+                {completedVisible < completed.length && (
                   <button
                     type="button"
                     className="ai-show-more"
-                    onClick={() => setShowAllCompleted(true)}
+                    onClick={() => setCompletedVisible((v) => v + 12)}
                   >
-                    すべて表示 ({completed.length - 6}件)
+                    もっと見る ({completed.length - completedVisible}件)
                   </button>
                 )}
-                {showAllCompleted && completedHasMore && (
+                {completedVisible >= completed.length && completedHasMore && (
                   <button
                     type="button"
                     className="ai-show-more"
@@ -581,15 +631,6 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     {isLoadingMore
                       ? "読み込み中..."
                       : `もっと読み込む${remainingCompleted > 0 ? ` (残り${remainingCompleted}件)` : ""}`}
-                  </button>
-                )}
-                {showAllCompleted && !completedHasMore && completed.length > 6 && (
-                  <button
-                    type="button"
-                    className="ai-show-more"
-                    onClick={() => setShowAllCompleted(false)}
-                  >
-                    閉じる
                   </button>
                 )}
               </div>

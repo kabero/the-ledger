@@ -56,7 +56,10 @@ export function EntryInput() {
     reader.readAsDataURL(file);
   }, []);
 
+  const isBusy = uploading || addEntry.isPending;
+
   const handleSubmit = useCallback(async () => {
+    if (isBusy) return;
     if (!text.trim() && !imageFile) return;
 
     if (imageFile) {
@@ -80,7 +83,7 @@ export function EntryInput() {
     } else {
       addEntry.mutate({ raw_text: text.trim() });
     }
-  }, [text, imageFile, addEntry, reset]);
+  }, [text, imageFile, addEntry, reset, isBusy]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -133,7 +136,8 @@ export function EntryInput() {
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           rows={1}
-          style={{ flex: 1 }}
+          disabled={isBusy}
+          style={{ flex: 1, opacity: isBusy ? 0.5 : 1 }}
         />
         <input
           ref={fileInputRef}
@@ -179,8 +183,10 @@ export function EntryInput() {
           </button>
         </div>
       )}
-      {uploading && (
-        <div style={{ marginTop: 4, fontSize: 12, color: "#aaa" }}>アップロード中...</div>
+      {isBusy && (
+        <div style={{ marginTop: 4, fontSize: 12, color: "#aaa" }}>
+          {uploading ? "アップロード中..." : "送信中..."}
+        </div>
       )}
     </div>
   );

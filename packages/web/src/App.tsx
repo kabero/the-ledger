@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
@@ -44,6 +46,21 @@ export function App() {
     [aiTasks.data],
   );
 
+  // External sourced entries for sidebar
+  const sourcedEntries = trpc.listEntries.useQuery(
+    { source: "any", limit: 10 },
+    { refetchInterval: showAiFeed ? false : 30_000 },
+  );
+  const recentSourced = useMemo(
+    () =>
+      (sourcedEntries.data ?? [])
+        .sort(
+          (a, b) => new Date(`${b.created_at}Z`).getTime() - new Date(`${a.created_at}Z`).getTime(),
+        )
+        .slice(0, 8),
+    [sourcedEntries.data],
+  );
+
   const activeIndex = MAIN_TABS.findIndex((t) => t.key === activeTab);
 
   const handleSwipe = useCallback(() => {
@@ -69,90 +86,125 @@ export function App() {
   }
 
   return (
-    <div className="container">
-      <div className="sticky-top">
-        <div className="header">
-          <div className="header-title-row">
-            {unprocessedCount > 0 ? (
+    <div className="app-layout">
+      <div className="container">
+        <div className="sticky-top">
+          <div className="header">
+            <div className="header-title-row">
+              {unprocessedCount > 0 ? (
+                <button
+                  type="button"
+                  className="header-unprocessed"
+                  onClick={() => setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")}
+                >
+                  {unprocessedCount}
+                </button>
+              ) : (
+                <span className="header-unprocessed-spacer" />
+              )}
+              <button type="button" className="header-title" onClick={() => setShowGallery(true)}>
+                * THE LEDGER *
+              </button>
+              <span className="header-unprocessed-spacer" />
+            </div>
+            <div className="header-sub">
               <button
                 type="button"
-                className="header-unprocessed"
-                onClick={() => setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")}
+                className={`header-link ${activeTab === "all" ? "active" : ""}`}
+                onClick={() => setActiveTab(activeTab === "all" ? "task" : "all")}
               >
-                {unprocessedCount}
+                すべて
               </button>
-            ) : (
-              <span className="header-unprocessed-spacer" />
-            )}
-            <button type="button" className="header-title" onClick={() => setShowGallery(true)}>
-              * THE LEDGER *
-            </button>
-            <span className="header-unprocessed-spacer" />
+              <button
+                type="button"
+                className={`header-link ${activeTab === "done" ? "active" : ""}`}
+                onClick={() => setActiveTab(activeTab === "done" ? "task" : "done")}
+              >
+                完了
+              </button>
+              <button
+                type="button"
+                className={`header-ai-btn ${hasNewAiResults ? "has-new" : ""}`}
+                onClick={() => setShowAiFeed(true)}
+                title="AIフィード"
+              >
+                AI
+              </button>
+              <button
+                type="button"
+                className="header-link header-gear"
+                onClick={() => setShowSettings(true)}
+                title="設定"
+              >
+                {"\u2699"}
+              </button>
+            </div>
           </div>
-          <div className="header-sub">
-            <button
-              type="button"
-              className={`header-link ${activeTab === "all" ? "active" : ""}`}
-              onClick={() => setActiveTab(activeTab === "all" ? "task" : "all")}
-            >
-              すべて
-            </button>
-            <button
-              type="button"
-              className={`header-link ${activeTab === "done" ? "active" : ""}`}
-              onClick={() => setActiveTab(activeTab === "done" ? "task" : "done")}
-            >
-              完了
-            </button>
-            <button
-              type="button"
-              className={`header-ai-btn ${hasNewAiResults ? "has-new" : ""}`}
-              onClick={() => setShowAiFeed(true)}
-              title="AIフィード"
-            >
-              AI
-            </button>
-            <button
-              type="button"
-              className="header-link header-gear"
-              onClick={() => setShowSettings(true)}
-              title="設定"
-            >
-              {"\u2699"}
-            </button>
-          </div>
+          <EntryInput />
         </div>
-        <EntryInput />
-      </div>
 
-      <div className="section">
-        <div className="tabs">
-          {MAIN_TABS.map((tab) => (
-            <button
-              type="button"
-              key={tab.key}
-              className={`tab ${activeTab === tab.key ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="section">
+          <div className="tabs">
+            {MAIN_TABS.map((tab) => (
+              <button
+                type="button"
+                key={tab.key}
+                className={`tab ${activeTab === tab.key ? "active" : ""}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div
+            className="entry-list-box"
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0].clientX;
+              touchEndX.current = -1;
+            }}
+            onTouchMove={(e) => {
+              touchEndX.current = e.touches[0].clientX;
+            }}
+            onTouchEnd={handleSwipe}
+          >
+            <EntryList tab={activeTab} />
+          </div>
         </div>
-        <div
-          className="entry-list-box"
-          onTouchStart={(e) => {
-            touchStartX.current = e.touches[0].clientX;
-            touchEndX.current = -1;
-          }}
-          onTouchMove={(e) => {
-            touchEndX.current = e.touches[0].clientX;
-          }}
-          onTouchEnd={handleSwipe}
-        >
-          <EntryList tab={activeTab} />
-        </div>
+        {showSettings && <Settings onClose={() => setShowSettings(false)} />}
       </div>
-      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+      {recentSourced.length > 0 && (
+        <aside className="sidebar-sourced">
+          <div className="sidebar-title">外部入力</div>
+          {recentSourced.map((e) => (
+            <div key={e.id} className="sidebar-card">
+              <div className="sidebar-card-header">
+                {e.source && <span className="ai-badge source">{e.source}</span>}
+                <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
+              </div>
+              {e.result && (
+                <div className="sidebar-card-summary">
+                  <Markdown remarkPlugins={[remarkGfm]}>
+                    {(e.result.length > 200 ? `${e.result.slice(0, 200)}...` : e.result).replace(
+                      /\\n/g,
+                      "\n",
+                    )}
+                  </Markdown>
+                </div>
+              )}
+              {e.result_url && (
+                <a
+                  href={e.result_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="entry-result-url"
+                >
+                  {"\u2197"} URL
+                </a>
+              )}
+            </div>
+          ))}
+        </aside>
+      )}
     </div>
   );
 }

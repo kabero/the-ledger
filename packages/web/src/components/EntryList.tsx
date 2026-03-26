@@ -27,16 +27,11 @@ export function EntryList({ tab }: EntryListProps) {
   // ローカルのステータス上書き（チェック直後の見た目用、次回refetchでクリア）
   const [localStatus, setLocalStatus] = useState<Record<string, { status: string; completed_at: string | null }>>({});
 
-  const updateEntry = trpc.updateEntry.useMutation({
-    onSuccess: () => {
-      utils.getTodayTasks.invalidate();
-    },
-  });
+  const updateEntry = trpc.updateEntry.useMutation();
 
   const deleteEntry = trpc.deleteEntry.useMutation({
     onSuccess: () => {
       utils.listEntries.invalidate();
-      utils.getTodayTasks.invalidate();
     },
   });
 

@@ -53,9 +53,6 @@ export class EntryService {
     return this.repository.delete(id);
   }
 
-  getTodayTasks(limit: number = 3): Entry[] {
-    return this.repository.getTodayTasks(limit);
-  }
 
   saveImage(data: Buffer, entryId: string, ext: string): string {
     const normalizedExt = ext.toLowerCase().replace(/^\./, "");

@@ -181,31 +181,6 @@ export class EntryRepository {
     return result.changes > 0;
   }
 
-  getTodayTasks(limit: number = 3): Entry[] {
-    const rows = this.db
-      .prepare(
-        `SELECT *,
-          urgent * 10.0 AS urgent_score,
-          CASE
-            WHEN due_date IS NOT NULL THEN
-              MAX(0, 10.0 - (julianday(due_date) - julianday('now')))
-            ELSE 0
-          END AS due_score,
-          MAX(0, 5.0 - (julianday('now') - julianday(created_at))) AS freshness_score
-        FROM entries
-        WHERE type = 'task' AND (status IS NULL OR status = 'pending')
-        ORDER BY (urgent * 10.0 +
-          CASE
-            WHEN due_date IS NOT NULL THEN
-              MAX(0, 10.0 - (julianday(due_date) - julianday('now')))
-            ELSE 0
-          END +
-          MAX(0, 5.0 - (julianday('now') - julianday(created_at)))) DESC
-        LIMIT ?`,
-      )
-      .all(limit) as EntryRow[];
-    return this.rowsToEntries(rows);
-  }
 
   getStats(): {
     streak: number;

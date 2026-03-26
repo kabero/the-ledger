@@ -102,11 +102,6 @@ export const appRouter = t.router({
     return ctx.service.deleteEntry(input.id);
   }),
 
-  getTodayTasks: t.procedure
-    .input(z.object({ limit: z.number().int().positive().max(10).optional() }).optional())
-    .query(({ input, ctx }) => {
-      return ctx.service.getTodayTasks(input?.limit);
-    }),
 
   getStats: t.procedure.query(({ ctx }) => {
     return ctx.service.getStats();

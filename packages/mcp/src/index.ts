@@ -112,79 +112,25 @@ server.tool(
 );
 
 server.tool(
-  "list_entries",
-  "List entries with optional filters: type, status, tag, text search query.",
+  "get_delegatable_tasks",
+  "Get pending tasks that can be delegated to an LLM. Use this to find work you can do.",
   {
-    type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
-    status: z.enum(TASK_STATUSES).optional().describe("Filter by task status"),
-    tag: z.string().optional().describe("Filter by tag"),
-    query: z.string().optional().describe("Full-text search query"),
-    processed: z.boolean().optional().describe("Filter by processed status"),
-    delegatable: z.boolean().optional().describe("Filter by LLM-delegatable tasks"),
-    limit: z.number().int().positive().max(100).default(20).describe("Max results"),
-    offset: z.number().int().nonnegative().default(0).describe("Offset for pagination"),
+    limit: z.number().int().positive().max(50).default(10).describe("Max tasks to return"),
   },
-  async (params) => {
-    const entries = service.listEntries(params);
+  async ({ limit }) => {
+    const entries = service.listEntries({
+      type: "task",
+      status: "pending",
+      delegatable: true,
+      limit,
+      offset: 0,
+    });
     return {
       content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
     };
   },
 );
 
-server.tool(
-  "update_entry",
-  "Update an entry's fields: title, tags, urgent, due_date, status, type, result.",
-  {
-    id: z.string().describe("Entry ID"),
-    title: z.string().optional().describe("New title"),
-    tags: z.array(z.string()).optional().describe("Replace tags"),
-    urgent: z.boolean().optional().describe("Whether this is urgent"),
-    due_date: z.string().nullable().optional().describe("New due date"),
-    status: z.enum(TASK_STATUSES).optional().describe("New status (tasks only)"),
-    type: z.enum(ENTRY_TYPES).optional().describe("Change type"),
-    result: z
-      .string()
-      .optional()
-      .describe(
-        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure. Written when completing a delegatable task.",
-      ),
-  },
-  async ({ id, title, tags, urgent, due_date, status, type, result }) => {
-    const entry = service.updateEntry({ id, title, tags, urgent, due_date, status, type, result });
-    return {
-      content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
-    };
-  },
-);
-
-server.tool(
-  "delete_entry",
-  "Delete an entry permanently.",
-  {
-    id: z.string().describe("Entry ID to delete"),
-  },
-  async ({ id }) => {
-    const deleted = service.deleteEntry(id);
-    return {
-      content: [{ type: "text", text: deleted ? "Deleted" : "Entry not found" }],
-    };
-  },
-);
-
-server.tool(
-  "get_today_tasks",
-  "Get today's top tasks ranked by priority, urgency, and freshness. Default: top 3.",
-  {
-    limit: z.number().int().positive().max(10).default(3).describe("Number of tasks to return"),
-  },
-  async ({ limit }) => {
-    const tasks = service.getTodayTasks(limit);
-    return {
-      content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
-    };
-  },
-);
 
 server.tool(
   "complete_task",

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 // @ts-expect-error no type definitions for react-force-graph-2d
 import ForceGraph2D from "react-force-graph-2d";
 import { trpc } from "../trpc";
@@ -95,6 +95,12 @@ export function GraphView({ fullscreen }: GraphViewProps) {
   const nodeSize = fullscreen ? 4 : 3;
   const fontSize = fullscreen ? 4 : 3;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fgRef = useRef<any>(null);
+  const onEngineStop = useCallback(() => {
+    fgRef.current?.zoomToFit(300, 60);
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -108,6 +114,7 @@ export function GraphView({ fullscreen }: GraphViewProps) {
         <div className="unprocessed-text">グラフに表示するエントリがありません。</div>
       ) : (
         <ForceGraph2D
+          ref={fgRef}
           graphData={graphData}
           width={size.width}
           height={size.height}
@@ -140,6 +147,7 @@ export function GraphView({ fullscreen }: GraphViewProps) {
           linkColor={() => "rgba(255,255,255,0.15)"}
           linkWidth={(link: GraphLink) => Math.min(link.value * 2, 4)}
           cooldownTicks={100}
+          onEngineStop={onEngineStop}
           enableZoomInteraction={true}
           enablePanInteraction={true}
         />

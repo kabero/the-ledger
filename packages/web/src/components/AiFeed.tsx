@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
+import { ActivityChart } from "./ai-feed/ActivityChart";
 import { DetailView } from "./ai-feed/DetailView";
 import { MiniCard } from "./ai-feed/MiniCard";
 import { PromptCopy } from "./ai-feed/PromptCopy";
@@ -328,6 +329,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
             </div>
           )}
         </div>
+        <ActivityChart completed={completed} />
         <div className="ai-dash-body">
           <div className="ai-dash-main">
             {/* Unprocessed — top priority */}

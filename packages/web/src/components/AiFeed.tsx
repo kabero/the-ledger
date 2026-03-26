@@ -338,6 +338,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
               {humanPending.slice(0, 6).map((e) => (
                 <div key={e.id} className={`ai-mini human ${e.urgent ? "urgent" : ""}`}>
                   <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
+                  {e.tags.length > 0 && (
+                    <div className="ai-card-tags">
+                      {e.tags.map((t) => (
+                        <span key={t} className="tag">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="ai-mini-meta">
                     {e.due_date && <span className="ai-badge type">{e.due_date}</span>}
                     {e.urgent && <span className="ai-badge urgent">!</span>}

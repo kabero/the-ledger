@@ -28,7 +28,9 @@ export const appRouter = t.router({
     .mutation(({ input, ctx }) => {
       if (input.image && input.image_ext) {
         const imageData = Buffer.from(input.image, "base64");
-        return ctx.service.createEntryWithImage(input.raw_text, imageData, input.image_ext);
+        return ctx.service.createEntryWithImage(imageData, input.image_ext, {
+          raw_text: input.raw_text,
+        });
       }
       return ctx.service.createEntry({ raw_text: input.raw_text });
     }),

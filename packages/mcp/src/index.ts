@@ -71,7 +71,18 @@ server.tool(
     let entry: Entry;
     if (image && image_ext) {
       const imageData = Buffer.from(image, "base64");
-      entry = service.createEntryWithImage(raw_text, imageData, image_ext);
+      entry = service.createEntryWithImage(imageData, image_ext, {
+        raw_text,
+        type,
+        title,
+        tags,
+        urgent,
+        due_date,
+        delegatable,
+        source,
+        result,
+        result_url,
+      });
     } else {
       entry = service.createEntry({
         raw_text,
@@ -181,7 +192,7 @@ server.tool(
 
 const processedEntrySchema = z.object({
   id: z.string().describe("Entry ID"),
-  type: z.enum(ENTRY_TYPES).describe("Classified type: task, event, note, or wish"),
+  type: z.enum(ENTRY_TYPES).describe("Classified type: task, note, wish, or trash"),
   title: z.string().describe("Short title summarizing the entry"),
   tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
   urgent: z.boolean().default(false).describe("Whether this is urgent"),

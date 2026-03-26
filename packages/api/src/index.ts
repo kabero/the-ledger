@@ -48,7 +48,7 @@ function validateAndCreateEntryFromImage(
   if (imageData.length > MAX_IMAGE_SIZE) {
     throw new Error("画像サイズが10MBを超えています");
   }
-  return svc.createEntryWithImage(rawText, imageData, normalizedExt);
+  return svc.createEntryWithImage(imageData, normalizedExt, { raw_text: rawText });
 }
 
 app.post("/upload", async (c) => {

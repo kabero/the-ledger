@@ -100,7 +100,14 @@ export class EntryRepository {
     }
     if (filter.query !== undefined) {
       conditions.push("e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)");
-      params.push(filter.query);
+      // Sanitize FTS5 query: wrap each term in double quotes to escape special syntax
+      const sanitized = filter.query
+        .replace(/"/g, '""') // escape existing double quotes
+        .split(/\s+/)
+        .filter((t) => t.length > 0)
+        .map((t) => `"${t}"`)
+        .join(" ");
+      params.push(sanitized || '""');
     }
     if (filter.source !== undefined) {
       if (filter.source === "any") {
@@ -351,8 +358,13 @@ export class EntryRepository {
   private replaceTags(entryId: string, tags: string[]): void {
     this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(entryId);
     const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);
+    const seen = new Set<string>();
     for (const tag of tags) {
-      insertTag.run(entryId, tag);
+      const trimmed = tag.slice(0, 20); // enforce max 20 chars
+      if (trimmed.length === 0) continue;
+      if (seen.has(trimmed)) continue;
+      seen.add(trimmed);
+      insertTag.run(entryId, trimmed);
     }
   }
 

@@ -73,10 +73,18 @@ export class EntryService {
     return filePath;
   }
 
-  createEntryWithImage(rawText: string, imageData: Buffer, ext: string): Entry {
+  createEntryWithImage(
+    imageData: Buffer,
+    ext: string,
+    input: Omit<CreateEntryInput, "image_path"> = { raw_text: "(画像)" },
+  ): Entry {
     const tempId = uuidv4();
     const imagePath = this.saveImage(imageData, tempId, ext);
-    return this.repository.create({ raw_text: rawText || "(画像)", image_path: imagePath });
+    return this.repository.create({
+      ...input,
+      raw_text: input.raw_text || "(画像)",
+      image_path: imagePath,
+    });
   }
 
   private ensureScheduledTaskRepo(): ScheduledTaskRepository {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "../trpc";
 import { DetailView } from "./ai-feed/DetailView";
 import { MiniCard } from "./ai-feed/MiniCard";
@@ -88,12 +88,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
   const [selectedEntry, setSelectedEntry] = useState<EntryItem | null>(null);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
 
+  const mutateRef = useRef(updateEntry.mutate);
+  mutateRef.current = updateEntry.mutate;
+
   useEffect(() => {
     if (!selectedEntry) return;
     if (selectedEntry.result && !selectedEntry.result_seen) {
-      updateEntry.mutate({ id: selectedEntry.id, result_seen: true });
+      mutateRef.current({ id: selectedEntry.id, result_seen: true });
     }
-  }, [selectedEntry, updateEntry.mutate]);
+  }, [selectedEntry]);
 
   if (selectedEntry) {
     return (
@@ -113,7 +116,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
     <div className="ai-feed">
       <div className="ai-feed-header">
         <span className="ai-feed-title">AI Dashboard</span>
-        <button type="button" className="gallery-close" onClick={onClose}>
+        <button type="button" className="gallery-close" aria-label="閉じる" onClick={onClose}>
           x
         </button>
       </div>

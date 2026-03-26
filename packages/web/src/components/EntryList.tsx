@@ -232,6 +232,7 @@ export function EntryList({ tab }: EntryListProps) {
               <button
                 type="button"
                 className="btn-del"
+                aria-label="削除"
                 onClick={() => deleteEntry.mutate({ id: entry.id })}
               >
                 x
@@ -285,24 +286,27 @@ function ResultModal({
 }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     try {
-      const textarea = document.createElement("textarea");
-      textarea.value = result;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(result);
+      } else {
+        // Fallback for older browsers
+        const textarea = document.createElement("textarea");
+        textarea.value = result;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      navigator.clipboard.writeText(result).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      });
+      // Show error feedback if both methods fail
+      console.error("Failed to copy to clipboard");
     }
   };
 
@@ -310,6 +314,7 @@ function ResultModal({
     <div
       className="result-overlay"
       role="dialog"
+      aria-label={title}
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();

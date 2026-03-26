@@ -17,7 +17,7 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
         <button type="button" className="ai-detail-back" onClick={onBack}>
           {"<"} 戻る
         </button>
-        <button type="button" className="gallery-close" onClick={onClose}>
+        <button type="button" className="gallery-close" aria-label="閉じる" onClick={onClose}>
           x
         </button>
       </div>

@@ -190,7 +190,7 @@ export function Gallery({ onClose }: GalleryProps) {
             統計
           </button>
         </div>
-        <button type="button" className="gallery-close" onClick={onClose}>
+        <button type="button" className="gallery-close" aria-label="閉じる" onClick={onClose}>
           x
         </button>
       </div>

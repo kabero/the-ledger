@@ -254,6 +254,7 @@ export function Settings({ onClose }: SettingsProps) {
     <div
       className="result-overlay"
       role="dialog"
+      aria-label="フォント設定"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
@@ -262,7 +263,7 @@ export function Settings({ onClose }: SettingsProps) {
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
       <div className="result-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="result-modal-close" onClick={onClose}>
+        <button type="button" className="result-modal-close" aria-label="閉じる" onClick={onClose}>
           x
         </button>
         <div className="result-modal-title">フォント設定</div>

@@ -1830,3 +1830,110 @@ html {
     justify-content: center;
   }
 }
+
+/* ============================================================
+   1. Entry card hover state — background shift + pointer cursor
+   ============================================================ */
+.entry {
+  cursor: pointer;
+  transition:
+    opacity 0.3s ease,
+    background 0.2s ease,
+    border-left-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .entry:hover {
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+  }
+}
+
+/* ============================================================
+   2. Mobile badge position — smaller badges on narrow screens
+   ============================================================ */
+@media (max-width: 480px) {
+  .tab .badge,
+  .tab .tab-new-count,
+  .tab .tab-overdue-count {
+    font-size: 7px;
+    min-width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    padding: 0 2px;
+    margin-left: 2px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+}
+
+/* ============================================================
+   3. FAB bottom sheet drag handle
+   ============================================================ */
+.fab-sheet::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 5px;
+  background: var(--dim, #666);
+  border-radius: 3px;
+  margin: 8px auto 12px;
+  opacity: 0.5;
+}
+
+/* ============================================================
+   4. Tab button focus ring for keyboard navigation
+   ============================================================ */
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 6px 6px 0 0;
+}
+
+/* ============================================================
+   5. Skeleton loading — pulse animation + skeleton-card class
+   ============================================================ */
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.skeleton-card {
+  background: var(--bg-card, #1a1a1a);
+  border: 1px solid var(--border-subtle, #222);
+  border-radius: 6px;
+  padding: 12px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-card .skeleton-line {
+  background: var(--border-subtle, #333);
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.skeleton-card .skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================
+   6. Done view count header
+   ============================================================ */
+.done-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+  padding: 8px 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--border-subtle, #222);
+}

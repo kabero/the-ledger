@@ -474,6 +474,20 @@ export function AiFeed({ onClose }: AiFeedProps) {
                                   ? `「${(e.decision_options ?? [])[selected]}」で決定して委譲`
                                   : "決定して委譲"}
                               </button>
+                              <button
+                                type="button"
+                                className="ai-decision-delegate-btn"
+                                onClick={() => {
+                                  updateEntry.mutate({
+                                    id: e.id,
+                                    delegatable: false,
+                                    type: "task",
+                                  });
+                                  setExpandedDecisionId(null);
+                                }}
+                              >
+                                人間タスクに変更
+                              </button>
                             </div>
                           </div>
                         )}

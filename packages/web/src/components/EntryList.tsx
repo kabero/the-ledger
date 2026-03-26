@@ -291,6 +291,17 @@ export function EntryList({ tab }: EntryListProps) {
                 {!entry.result_seen && <span className="badge-new">NEW</span>}
                 {entry.title ?? entry.raw_text}
               </button>
+            ) : tabRef.current === "note" ? (
+              <span
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {entry.raw_text}
+              </span>
             ) : (
               (entry.title ?? entry.raw_text)
             )}

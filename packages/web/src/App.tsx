@@ -160,6 +160,8 @@ export function App() {
                 type="button"
                 className={`header-link ${activeTab === "all" ? "active" : ""}`}
                 onClick={() => setActiveTab(activeTab === "all" ? "task" : "all")}
+                aria-pressed={activeTab === "all"}
+                aria-label="すべて表示"
               >
                 すべて
               </button>
@@ -167,6 +169,8 @@ export function App() {
                 type="button"
                 className={`header-link ${activeTab === "done" ? "active" : ""}`}
                 onClick={() => setActiveTab(activeTab === "done" ? "task" : "done")}
+                aria-pressed={activeTab === "done"}
+                aria-label="完了済み表示"
               >
                 完了
               </button>
@@ -176,6 +180,7 @@ export function App() {
                   className={`header-ai-btn ${hasNewAiResults ? "has-new" : ""}`}
                   onClick={() => setShowAiFeed(true)}
                   title="AIフィード"
+                  aria-label="AIフィードを開く"
                 >
                   AI
                   {newAiResultCount > 0 && (
@@ -199,6 +204,8 @@ export function App() {
                   className={`header-link header-sourced-btn ${showSourcedModal ? "active" : ""}`}
                   onClick={() => setShowSourcedModal(true)}
                   title="外部入力・サマリ"
+                  aria-pressed={showSourcedModal}
+                  aria-label="外部入力・サマリを表示"
                 >
                   外部
                   <span className="header-sourced-count">
@@ -211,6 +218,7 @@ export function App() {
                 className="header-link header-gear"
                 onClick={() => setShowSettings(true)}
                 title="設定"
+                aria-label="設定を開く"
               >
                 {"\u2699"}
               </button>
@@ -245,6 +253,8 @@ export function App() {
               <button
                 type="button"
                 key={tab.key}
+                role="tab"
+                aria-selected={activeTab === tab.key}
                 className={`tab ${activeTab === tab.key ? "active" : ""}`}
                 onClick={() => setActiveTab(tab.key)}
               >

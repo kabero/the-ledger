@@ -40,6 +40,7 @@ export const MiniCard = memo(function MiniCard({
         type="button"
         className={`ai-mini ${className} ${entry.result_url ? "has-link" : ""}`}
         onClick={onClick}
+        title={entry.raw_text || entry.title}
       >
         <div className="ai-mini-top">
           <div className="ai-mini-title">{entry.title ?? entry.raw_text}</div>

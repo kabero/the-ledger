@@ -24,6 +24,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showAiFeed, setShowAiFeed] = useState(false);
   const [showMobileInput, setShowMobileInput] = useState(false);
+  const [showSourcedModal, setShowSourcedModal] = useState(false);
 
   useEffect(() => {
     applyFont();
@@ -138,6 +139,17 @@ export function App() {
               >
                 AI
               </button>
+              {recentSourced.length > 0 && (
+                <button
+                  type="button"
+                  className={`header-link header-sourced-btn ${showSourcedModal ? "active" : ""}`}
+                  onClick={() => setShowSourcedModal(true)}
+                  title="外部入力"
+                >
+                  外部
+                  <span className="header-sourced-count">{recentSourced.length}</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="header-link header-gear"
@@ -204,6 +216,61 @@ export function App() {
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
             <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
               <EntryInput onSubmitted={() => setShowMobileInput(false)} />
+            </div>
+          </div>
+        )}
+        {showSourcedModal && recentSourced.length > 0 && (
+          <div
+            className="bottom-sheet-overlay"
+            role="dialog"
+            onClick={() => setShowSourcedModal(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowSourcedModal(false);
+            }}
+          >
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
+            <div className="bottom-sheet sourced-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="sourced-modal-header">
+                <span className="sourced-modal-title">外部入力</span>
+                <button
+                  type="button"
+                  className="sourced-modal-close"
+                  onClick={() => setShowSourcedModal(false)}
+                >
+                  {"\u2715"}
+                </button>
+              </div>
+              <div className="sourced-modal-list">
+                {recentSourced.map((e) => (
+                  <div key={e.id} className="sidebar-card">
+                    <div className="sidebar-card-header">
+                      {e.source && <span className="ai-badge source">{e.source}</span>}
+                      <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
+                    </div>
+                    {e.result && (
+                      <div className="sidebar-card-summary">
+                        <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                          {(e.result.length > 200
+                            ? `${e.result.slice(0, 200)}...`
+                            : e.result
+                          ).replace(/\\n/g, "\n")}
+                        </Markdown>
+                      </div>
+                    )}
+                    {e.result_url && (
+                      <a
+                        href={e.result_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="entry-result-url"
+                      >
+                        {"\u2197"} URL
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import { DetailView } from "./ai-feed/DetailView";
@@ -109,6 +109,26 @@ export function AiFeed({ onClose }: AiFeedProps) {
   const [showAllHumanTasks, setShowAllHumanTasks] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
   const [decisionComment, setDecisionComment] = useState<Record<string, string>>({});
+
+  // Escape key: go back from detail or close feed
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (confirmDelete) {
+        setConfirmDelete(null);
+      } else if (selectedId) {
+        setSelectedId(null);
+      } else {
+        onClose();
+      }
+    },
+    [confirmDelete, selectedId, onClose],
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [handleEscape]);
 
   // Resolve selected entry from latest data so it stays in sync with polling
   const selectedEntry = useMemo(() => {

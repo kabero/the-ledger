@@ -29,6 +29,42 @@ export function App() {
   useEffect(() => {
     applyFont();
   }, []);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Escape: close topmost modal/view
+      if (e.key === "Escape") {
+        if (showSourcedModal) {
+          setShowSourcedModal(false);
+          e.preventDefault();
+        } else if (showSettings) {
+          setShowSettings(false);
+          e.preventDefault();
+        } else if (showMobileInput) {
+          setShowMobileInput(false);
+          e.preventDefault();
+        } else if (showGallery) {
+          setShowGallery(false);
+          e.preventDefault();
+        } else if (showAiFeed) {
+          setShowAiFeed(false);
+          e.preventDefault();
+        }
+      }
+      // Cmd+K or Ctrl+K: focus the search/input textarea
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        const textarea = document.querySelector<HTMLTextAreaElement>(".input-box");
+        if (textarea) {
+          textarea.focus();
+          textarea.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [showSourcedModal, showSettings, showMobileInput, showGallery, showAiFeed]);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchEndX = useRef(0);

@@ -1,0 +1,97 @@
+/* === Enhancements CSS === */
+/* Spinner for loading states */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border, #333);
+  border-top-color: var(--accent, #4fc3f7);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.input-loading {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* AI Detail actions row */
+.ai-detail-actions {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.ai-action-btn.urgent-active {
+  color: var(--danger, #ff5252);
+  border-color: var(--danger, #ff5252);
+}
+
+.ai-action-btn.copied {
+  color: var(--accent, #4fc3f7);
+  border-color: var(--accent, #4fc3f7);
+}
+
+/* Decision display in detail view */
+.ai-detail-decision {
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid var(--border, #333);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.ai-detail-decision-label {
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.ai-detail-decision-value {
+  font-weight: bold;
+  color: var(--accent, #4fc3f7);
+}
+
+.ai-detail-decision-comment {
+  margin-top: 6px;
+  color: #aaa;
+  font-style: italic;
+}
+
+/* Entry fade-in animation */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-mini,
+.ai-decision-card {
+  animation: fadeSlideIn 0.2s ease-out;
+}
+
+/* Keyboard shortcut hint */
+.shortcut-hint {
+  font-size: 10px;
+  color: #555;
+  border: 1px solid #444;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: monospace;
+  margin-left: 4px;
+}

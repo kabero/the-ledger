@@ -190,8 +190,9 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
         </div>
       )}
       {isBusy && (
-        <div style={{ marginTop: 4, fontSize: 12, color: "#aaa" }}>
-          {uploading ? "アップロード中..." : "送信中..."}
+        <div className="input-loading">
+          <span className="spinner" />
+          <span>{uploading ? "アップロード中..." : "送信中..."}</span>
         </div>
       )}
     </div>

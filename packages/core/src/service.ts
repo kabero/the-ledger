@@ -67,6 +67,18 @@ export class EntryService {
   }
 
   updateEntry(input: UpdateEntryInput): Entry | null {
+    // Validate decision_selected is within bounds of decision_options
+    if (input.decision_selected != null) {
+      const entry = this.repository.getById(input.id);
+      if (entry) {
+        const options = entry.decision_options;
+        if (!options || input.decision_selected < 0 || input.decision_selected >= options.length) {
+          throw new Error(
+            `decision_selected index ${input.decision_selected} is out of bounds (entry has ${options?.length ?? 0} options)`,
+          );
+        }
+      }
+    }
     return this.repository.update(input);
   }
 

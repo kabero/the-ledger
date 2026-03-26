@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { remarkPlugins, safeUrlTransform } from "../../markdown";
+import { trpc } from "../../trpc";
 import type { EntryItem } from "./types";
 import { formatDateTime, normalizeResult } from "./utils";
 
@@ -12,6 +13,35 @@ interface DetailViewProps {
 }
 
 export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps) {
+  const utils = trpc.useUtils();
+  const updateEntry = trpc.updateEntry.useMutation({
+    onSuccess: () => utils.listEntries.invalidate(),
+  });
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyResult = async () => {
+    if (!entry.result) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(entry.result);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = entry.result;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
+
   const resultMarkdown = useMemo(
     () =>
       entry.result ? (
@@ -47,6 +77,7 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
           {entry.source && <span className="ai-badge source">{entry.source}</span>}
           <span className="ai-badge type">{entry.type}</span>
           {entry.status === "done" && <span className="ai-badge done">{"\u2713"}</span>}
+          {entry.urgent && <span className="ai-badge urgent">!</span>}
         </div>
         <h2 className="ai-detail-title">{entry.title ?? entry.raw_text}</h2>
         <div className="ai-detail-timestamps">
@@ -62,6 +93,26 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
             ))}
           </div>
         )}
+        {/* Action buttons row */}
+        <div className="ai-detail-actions">
+          <button
+            type="button"
+            className={`ai-action-btn ${entry.urgent ? "urgent-active" : ""}`}
+            onClick={() => updateEntry.mutate({ id: entry.id, urgent: !entry.urgent })}
+            title={entry.urgent ? "優先フラグを外す" : "優先フラグを付ける"}
+          >
+            {entry.urgent ? "! 優先" : "優先フラグ"}
+          </button>
+          {entry.result && (
+            <button
+              type="button"
+              className={`ai-action-btn ${copied ? "copied" : ""}`}
+              onClick={handleCopyResult}
+            >
+              {copied ? "\u2713 copied" : "copy"}
+            </button>
+          )}
+        </div>
         {entry.result_url && (
           <a
             href={entry.result_url}
@@ -71,6 +122,18 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
           >
             {"\u2197"} {entry.result_url}
           </a>
+        )}
+        {/* Decision info if applicable */}
+        {entry.decision_options && entry.decision_selected != null && (
+          <div className="ai-detail-decision">
+            <div className="ai-detail-decision-label">選択済み:</div>
+            <div className="ai-detail-decision-value">
+              {entry.decision_options[entry.decision_selected]}
+            </div>
+            {entry.decision_comment && (
+              <div className="ai-detail-decision-comment">コメント: {entry.decision_comment}</div>
+            )}
+          </div>
         )}
         {resultMarkdown ? (
           <>

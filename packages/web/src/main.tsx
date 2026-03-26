@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { trpc, trpcClient } from "./trpc";
 import "./styles.css";
+import "./enhancements.css";
 
 const queryClient = new QueryClient();
 

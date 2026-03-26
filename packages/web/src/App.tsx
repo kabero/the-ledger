@@ -280,6 +280,13 @@ export function App() {
               </button>
             ))}
           </div>
+          {activeIndex >= 0 && (
+            <div className="swipe-dots">
+              {MAIN_TABS.map((tab, i) => (
+                <span key={tab.key} className={`swipe-dot ${i === activeIndex ? "active" : ""}`} />
+              ))}
+            </div>
+          )}
           {activeTab === "llm" && hasNewAiResults && (
             <div className="tab-action-bar">
               <button

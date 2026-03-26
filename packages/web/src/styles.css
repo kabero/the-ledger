@@ -897,7 +897,7 @@ body {
 .tag {
   font-size: 11px;
   color: var(--fg);
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-card));
   opacity: 0.85;
   padding: 1px 5px;
   border-radius: 2px;

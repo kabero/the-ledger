@@ -86,6 +86,7 @@ export function FocusMode({ onClose }: FocusModeProps) {
 
   return (
     <div className="focus-mode">
+      <span className="focus-mode-label">Focus</span>
       <div className="focus-mode-header">
         <button type="button" className="focus-mode-close" onClick={onClose}>
           {"\u2715"}
@@ -173,6 +174,11 @@ export function FocusMode({ onClose }: FocusModeProps) {
 
       <div className="focus-mode-footer">
         <span className="focus-mode-remaining">残り {remainingCount} 件</span>
+        {currentTask && (
+          <div className="focus-mode-hints">
+            <kbd>Enter</kbd> 完了 <kbd>→</kbd> スキップ
+          </div>
+        )}
       </div>
     </div>
   );

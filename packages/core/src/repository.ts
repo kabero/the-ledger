@@ -183,11 +183,14 @@ export class EntryRepository {
           input.id,
         );
 
-      // Set status to "pending" only for tasks that don't already have a status
+      // Set status to "pending" for tasks or delegatable entries that aren't already done
       const current = this.db.prepare("SELECT status FROM entries WHERE id = ?").get(input.id) as
         | { status: string | null }
         | undefined;
-      if (input.type === "task" && (!current?.status || current.status !== "done")) {
+      if (
+        (input.type === "task" || input.delegatable) &&
+        (!current?.status || current.status !== "done")
+      ) {
         this.db.prepare("UPDATE entries SET status = 'pending' WHERE id = ?").run(input.id);
       }
 

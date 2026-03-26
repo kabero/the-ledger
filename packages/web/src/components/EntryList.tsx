@@ -227,6 +227,16 @@ export function EntryList({ tab }: EntryListProps) {
             {entry.status === "done" ? "\u2713" : ""}
           </button>
         )}
+        {entry.type === "task" && entry.status !== "done" && (
+          <button
+            type="button"
+            className={`btn-priority ${entry.urgent ? "active" : ""}`}
+            onClick={() => updateEntry.mutate({ id: entry.id, urgent: !entry.urgent })}
+            title={entry.urgent ? "優先フラグを外す" : "優先フラグを付ける"}
+          >
+            !
+          </button>
+        )}
         <div className="entry-title">
           <div>
             {entry.result ? (
@@ -250,15 +260,17 @@ export function EntryList({ tab }: EntryListProps) {
               (entry.title ?? entry.raw_text)
             )}
             {entry.result_url && (
-              <a
-                href={entry.result_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="entry-result-url"
-                onClick={(e) => e.stopPropagation()}
+              <button
+                type="button"
+                className="entry-result-url-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(entry.result_url as string, "_blank", "noopener,noreferrer,popup");
+                }}
+                title={entry.result_url}
               >
                 {"\u2197"} URL
-              </a>
+              </button>
             )}
           </div>
           <div className="entry-tags">

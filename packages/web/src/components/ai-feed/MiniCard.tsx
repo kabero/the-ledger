@@ -49,7 +49,7 @@ export const MiniCard = memo(function MiniCard({
               title={entry.result_url}
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(entry.result_url as string, "_blank", "noopener,noreferrer");
+                window.open(entry.result_url as string, "_blank", "noopener,noreferrer,popup");
               }}
             >
               {"\u2197"}

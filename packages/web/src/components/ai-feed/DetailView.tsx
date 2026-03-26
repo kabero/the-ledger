@@ -117,7 +117,9 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
           <button
             type="button"
             className="ai-result-url"
-            onClick={() => window.open(entry.result_url as string, "_blank", "noopener,noreferrer")}
+            onClick={() =>
+              window.open(entry.result_url as string, "_blank", "noopener,noreferrer,popup")
+            }
           >
             {"\u2197"} {entry.result_url}
           </button>

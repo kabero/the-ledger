@@ -248,6 +248,28 @@ export function AiFeed({ onClose }: AiFeedProps) {
           </div>
         </div>
 
+        {/* In-progress summary report */}
+        {inProgress.length > 0 && (
+          <div className="ai-progress-summary">
+            <div className="ai-progress-summary-title">
+              AI 進行中レポート ({inProgress.length}件)
+            </div>
+            {inProgress.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                className="ai-progress-item"
+                onClick={() => setSelectedId(e.id)}
+              >
+                {e.urgent && <span className="ai-badge urgent">!</span>}
+                {e.source && <span className="ai-badge source">{e.source}</span>}
+                <span className="ai-progress-item-title">{e.title ?? e.raw_text}</span>
+                <span className="ai-progress-item-time">{formatTime(e.created_at)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Sources */}
         {sources.length > 0 && (
           <div className="ai-sources">

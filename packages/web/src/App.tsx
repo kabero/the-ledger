@@ -270,6 +270,17 @@ export function App() {
               </button>
             ))}
           </div>
+          {activeTab === "llm" && hasNewAiResults && (
+            <div className="tab-action-bar">
+              <button
+                type="button"
+                className="tab-mark-all-seen"
+                onClick={() => markAllSeen.mutate()}
+              >
+                {"\u2713"} すべて既読
+              </button>
+            </div>
+          )}
           <div
             className="entry-list-box"
             onTouchStart={(e) => {
@@ -351,14 +362,15 @@ export function App() {
                       </div>
                     )}
                     {e.result_url && (
-                      <a
-                        href={e.result_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="entry-result-url"
+                      <button
+                        type="button"
+                        className="entry-result-url-btn"
+                        onClick={() =>
+                          window.open(e.result_url as string, "_blank", "noopener,noreferrer,popup")
+                        }
                       >
                         {"\u2197"} URL
-                      </a>
+                      </button>
                     )}
                   </div>
                 ))}

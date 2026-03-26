@@ -50,6 +50,17 @@ export class EntryService {
   }
 
   deleteEntry(id: string): boolean {
+    // Clean up image file before deleting DB record
+    const entry = this.repository.getById(id);
+    if (entry?.image_path) {
+      try {
+        if (fs.existsSync(entry.image_path)) {
+          fs.unlinkSync(entry.image_path);
+        }
+      } catch {
+        // Ignore file deletion errors — DB record should still be deleted
+      }
+    }
     return this.repository.delete(id);
   }
 
@@ -127,9 +138,14 @@ export class EntryService {
     const dueTasks = repo.getDue();
     const createdEntries: Entry[] = [];
     for (const task of dueTasks) {
-      const entry = this.createEntry({ raw_text: task.raw_text });
-      createdEntries.push(entry);
-      repo.markRun(task.id);
+      try {
+        const entry = this.createEntry({ raw_text: task.raw_text });
+        repo.markRun(task.id);
+        createdEntries.push(entry);
+      } catch (err) {
+        console.error(`Failed to run scheduled task ${task.id}:`, err);
+        // Continue with remaining tasks instead of aborting
+      }
     }
     return createdEntries;
   }

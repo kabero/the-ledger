@@ -114,14 +114,13 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
           )}
         </div>
         {entry.result_url && (
-          <a
-            href={entry.result_url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
             className="ai-result-url"
+            onClick={() => window.open(entry.result_url as string, "_blank", "noopener,noreferrer")}
           >
             {"\u2197"} {entry.result_url}
-          </a>
+          </button>
         )}
         {/* Decision info if applicable */}
         {entry.decision_options && entry.decision_selected != null && (

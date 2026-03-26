@@ -128,7 +128,10 @@ export function GraphView({ fullscreen }: GraphViewProps) {
             ctx.fillStyle = node.color;
             ctx.fill();
 
-            ctx.font = `${fontSize}px 'DotGothic16', monospace`;
+            const fontFamily =
+              getComputedStyle(document.documentElement).getPropertyValue("--font").trim() ||
+              "'DotGothic16', monospace";
+            ctx.font = `${fontSize}px ${fontFamily}`;
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
             ctx.fillStyle = "rgba(255,255,255,0.8)";

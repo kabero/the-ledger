@@ -27,7 +27,9 @@ export function App() {
     applyFont();
   }, []);
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const touchEndX = useRef(0);
+  const touchEndY = useRef(0);
 
   // Disable polling when AiFeed is open (it has its own queries)
   const unprocessed = trpc.getUnprocessed.useQuery(
@@ -65,9 +67,13 @@ export function App() {
 
   const handleSwipe = useCallback(() => {
     if (touchEndX.current === -1) return;
-    const diff = touchStartX.current - touchEndX.current;
+    const diffX = touchStartX.current - touchEndX.current;
+    const diffY = Math.abs(touchStartY.current - touchEndY.current);
     const threshold = 80;
-    if (Math.abs(diff) < threshold) return;
+    // Ignore if vertical movement exceeds horizontal (scrolling, not swiping)
+    if (diffY > Math.abs(diffX)) return;
+    if (Math.abs(diffX) < threshold) return;
+    const diff = diffX;
 
     // Only swipe between main tabs
     if (activeIndex === -1) return;
@@ -160,10 +166,12 @@ export function App() {
             className="entry-list-box"
             onTouchStart={(e) => {
               touchStartX.current = e.touches[0].clientX;
+              touchStartY.current = e.touches[0].clientY;
               touchEndX.current = -1;
             }}
             onTouchMove={(e) => {
               touchEndX.current = e.touches[0].clientX;
+              touchEndY.current = e.touches[0].clientY;
             }}
             onTouchEnd={handleSwipe}
           >

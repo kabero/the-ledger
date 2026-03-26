@@ -198,6 +198,9 @@ export function App() {
                   title="AIフィード"
                 >
                   AI
+                  {newAiResultCount > 0 && (
+                    <span className="header-ai-count">{newAiResultCount}</span>
+                  )}
                 </button>
                 {hasNewAiResults && (
                   <button

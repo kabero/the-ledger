@@ -94,6 +94,27 @@ export const listEntriesFilterSchema = z.object({
   cursor: z.string().optional(),
 });
 
+// ─── ReopenTaskInput ────────────────────────────────────────────
+
+export const reopenTaskInputSchema = z.object({
+  id: z.string(),
+  feedback: z.string().max(10_000, "feedback too long").optional(),
+});
+
+// ─── BulkTagRenameInput ─────────────────────────────────────────
+
+export const bulkTagRenameInputSchema = z.object({
+  old_tag: z.string().min(1).max(20),
+  new_tag: z.string().min(1).max(20),
+});
+
+// ─── MergeTagsInput ─────────────────────────────────────────────
+
+export const mergeTagsInputSchema = z.object({
+  source_tags: z.array(z.string().min(1).max(20)).min(1),
+  target_tag: z.string().min(1).max(20),
+});
+
 // ─── CreateScheduledTaskInput ────────────────────────────────────
 
 export const createScheduledTaskInputSchema = z.object({

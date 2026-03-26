@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  bulkTagRenameInputSchema,
   createEntryInputSchema,
   createScheduledTaskInputSchema,
   listEntriesFilterSchema,
+  mergeTagsInputSchema,
+  reopenTaskInputSchema,
   submitProcessedInputSchema,
   updateEntryInputSchema,
   updateScheduledTaskInputSchema,
@@ -353,6 +356,94 @@ describe("updateScheduledTaskInputSchema", () => {
     const result = updateScheduledTaskInputSchema.safeParse({
       id: "abc-123",
       raw_text: "",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("reopenTaskInputSchema", () => {
+  it("accepts id only", () => {
+    const result = reopenTaskInputSchema.safeParse({ id: "abc-123" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts id with feedback", () => {
+    const result = reopenTaskInputSchema.safeParse({
+      id: "abc-123",
+      feedback: "This was wrong",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects missing id", () => {
+    const result = reopenTaskInputSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects feedback longer than 10000 chars", () => {
+    const result = reopenTaskInputSchema.safeParse({
+      id: "abc-123",
+      feedback: "x".repeat(10001),
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("bulkTagRenameInputSchema", () => {
+  it("accepts valid old and new tags", () => {
+    const result = bulkTagRenameInputSchema.safeParse({
+      old_tag: "foo",
+      new_tag: "bar",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty old_tag", () => {
+    const result = bulkTagRenameInputSchema.safeParse({
+      old_tag: "",
+      new_tag: "bar",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty new_tag", () => {
+    const result = bulkTagRenameInputSchema.safeParse({
+      old_tag: "foo",
+      new_tag: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects tags longer than 20 chars", () => {
+    const result = bulkTagRenameInputSchema.safeParse({
+      old_tag: "a".repeat(21),
+      new_tag: "bar",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("mergeTagsInputSchema", () => {
+  it("accepts valid source and target", () => {
+    const result = mergeTagsInputSchema.safeParse({
+      source_tags: ["a", "b"],
+      target_tag: "c",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty source_tags array", () => {
+    const result = mergeTagsInputSchema.safeParse({
+      source_tags: [],
+      target_tag: "c",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty target_tag", () => {
+    const result = mergeTagsInputSchema.safeParse({
+      source_tags: ["a"],
+      target_tag: "",
     });
     expect(result.success).toBe(false);
   });

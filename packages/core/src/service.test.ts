@@ -1813,4 +1813,202 @@ describe("EntryService", () => {
       expect(result.entries[0].type).toBe("task");
     });
   });
+
+  // ─── reopenTask ───────────────────────────────────────────
+
+  describe("reopenTask", () => {
+    it("reopens a completed task back to pending", () => {
+      const entry = service.createEntry({
+        raw_text: "do something",
+        type: "task",
+        title: "Task",
+        tags: ["test"],
+      });
+      service.updateEntry({ id: entry.id, status: "done", result: "Did it" });
+
+      const reopened = service.reopenTask(entry.id);
+      expect(reopened.status).toBe("pending");
+      expect(reopened.completed_at).toBeNull();
+    });
+
+    it("appends feedback to existing result", () => {
+      const entry = service.createEntry({
+        raw_text: "do something",
+        type: "task",
+        title: "Task",
+        tags: ["test"],
+      });
+      service.updateEntry({ id: entry.id, status: "done", result: "Original result" });
+
+      const reopened = service.reopenTask(entry.id, "This was wrong, try again");
+      expect(reopened.status).toBe("pending");
+      expect(reopened.result).toContain("Original result");
+      expect(reopened.result).toContain("**Feedback (reopen):** This was wrong, try again");
+    });
+
+    it("throws when entry not found", () => {
+      expect(() => service.reopenTask("nonexistent")).toThrow(/not found/);
+    });
+
+    it("throws when entry is not done", () => {
+      const entry = service.createEntry({
+        raw_text: "pending task",
+        type: "task",
+        title: "Task",
+        tags: [],
+      });
+      expect(() => service.reopenTask(entry.id)).toThrow(/not done/);
+    });
+
+    it("works without feedback when result is null", () => {
+      const entry = service.createEntry({
+        raw_text: "task",
+        type: "task",
+        title: "Task",
+        tags: [],
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      const reopened = service.reopenTask(entry.id);
+      expect(reopened.status).toBe("pending");
+      expect(reopened.result).toBeNull();
+    });
+
+    it("sets feedback as result when original result is null", () => {
+      const entry = service.createEntry({
+        raw_text: "task",
+        type: "task",
+        title: "Task",
+        tags: [],
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      const reopened = service.reopenTask(entry.id, "Please do this properly");
+      expect(reopened.status).toBe("pending");
+      expect(reopened.result).toContain("**Feedback (reopen):** Please do this properly");
+    });
+  });
+
+  // ─── bulkTagRename ────────────────────────────────────────
+
+  describe("bulkTagRename", () => {
+    it("renames a tag across multiple entries", () => {
+      service.createEntry({ raw_text: "a", type: "note", title: "A", tags: ["old-tag"] });
+      service.createEntry({ raw_text: "b", type: "note", title: "B", tags: ["old-tag", "other"] });
+
+      const count = service.bulkTagRename("old-tag", "new-tag");
+      expect(count).toBe(2);
+
+      const entries = service.listEntries({ tag: "new-tag" });
+      expect(entries.length).toBe(2);
+
+      const oldEntries = service.listEntries({ tag: "old-tag" });
+      expect(oldEntries.length).toBe(0);
+    });
+
+    it("handles conflict when entry already has the new tag", () => {
+      service.createEntry({
+        raw_text: "c",
+        type: "note",
+        title: "C",
+        tags: ["old-tag", "new-tag"],
+      });
+
+      const count = service.bulkTagRename("old-tag", "new-tag");
+      expect(count).toBe(1);
+
+      const entries = service.listEntries({ tag: "new-tag" });
+      expect(entries.length).toBe(1);
+      // Should not have duplicate tags
+      expect(entries[0].tags.filter((t) => t === "new-tag").length).toBe(1);
+    });
+
+    it("normalizes tag names", () => {
+      service.createEntry({ raw_text: "d", type: "note", title: "D", tags: ["foo"] });
+
+      const count = service.bulkTagRename("FOO", "BAR");
+      expect(count).toBe(1);
+
+      const entries = service.listEntries({ tag: "bar" });
+      expect(entries.length).toBe(1);
+    });
+
+    it("throws when tags are empty", () => {
+      expect(() => service.bulkTagRename("", "new")).toThrow(/empty/);
+      expect(() => service.bulkTagRename("old", "")).toThrow(/empty/);
+    });
+
+    it("throws when old and new tag are the same", () => {
+      expect(() => service.bulkTagRename("same", "same")).toThrow(/same/);
+    });
+
+    it("returns 0 when old tag does not exist", () => {
+      const count = service.bulkTagRename("nonexistent", "something");
+      expect(count).toBe(0);
+    });
+  });
+
+  // ─── mergeTags ────────────────────────────────────────────
+
+  describe("mergeTags", () => {
+    it("merges multiple source tags into one target", () => {
+      service.createEntry({ raw_text: "e", type: "note", title: "E", tags: ["tag-a"] });
+      service.createEntry({ raw_text: "f", type: "note", title: "F", tags: ["tag-b"] });
+      service.createEntry({ raw_text: "g", type: "note", title: "G", tags: ["tag-c"] });
+
+      const count = service.mergeTags(["tag-a", "tag-b", "tag-c"], "merged");
+      expect(count).toBe(3);
+
+      const entries = service.listEntries({ tag: "merged" });
+      expect(entries.length).toBe(3);
+    });
+
+    it("skips source tags that equal the target", () => {
+      service.createEntry({ raw_text: "h", type: "note", title: "H", tags: ["keep"] });
+      service.createEntry({ raw_text: "i", type: "note", title: "I", tags: ["remove"] });
+
+      const count = service.mergeTags(["keep", "remove"], "keep");
+      // Only "remove" should be renamed, "keep" is skipped
+      expect(count).toBe(1);
+    });
+
+    it("throws when target is empty", () => {
+      expect(() => service.mergeTags(["a"], "")).toThrow(/empty/);
+    });
+
+    it("throws when no valid source tags remain after filtering", () => {
+      expect(() => service.mergeTags(["target"], "target")).toThrow(/No valid source/);
+    });
+  });
+
+  // ─── exportEntries ────────────────────────────────────────
+
+  describe("exportEntries", () => {
+    it("exports all entries matching a filter", () => {
+      service.createEntry({ raw_text: "t1", type: "task", title: "T1", tags: ["work"] });
+      service.createEntry({ raw_text: "t2", type: "task", title: "T2", tags: ["work"] });
+      service.createEntry({ raw_text: "n1", type: "note", title: "N1", tags: ["personal"] });
+
+      const exported = service.exportEntries({ type: "task" });
+      expect(exported.length).toBe(2);
+      expect(exported.every((e) => e.type === "task")).toBe(true);
+    });
+
+    it("exports all entries without filter", () => {
+      service.createEntry({ raw_text: "a", type: "task", title: "A", tags: [] });
+      service.createEntry({ raw_text: "b", type: "note", title: "B", tags: [] });
+
+      const exported = service.exportEntries();
+      expect(exported.length).toBe(2);
+    });
+
+    it("respects limit parameter", () => {
+      for (let i = 0; i < 5; i++) {
+        service.createEntry({ raw_text: `entry-${i}`, type: "note", title: `E${i}`, tags: [] });
+      }
+
+      const exported = service.exportEntries({ limit: 3 });
+      expect(exported.length).toBe(3);
+    });
+  });
 });

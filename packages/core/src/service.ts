@@ -315,6 +315,82 @@ export class EntryService {
     return this.repository.getTagVocabulary();
   }
 
+  /**
+   * Reopen a completed task, resetting status to pending.
+   * Optionally append feedback text to the result field so the next worker
+   * can see what was wrong and retry.
+   */
+  reopenTask(id: string, feedback?: string): Entry {
+    const entry = this.repository.getById(id);
+    if (!entry) {
+      throw new Error(`Entry not found: ${id}`);
+    }
+    if (entry.status !== "done") {
+      throw new Error(`Entry is not done (status=${entry.status}), cannot reopen`);
+    }
+
+    const updatedResult = feedback
+      ? `${entry.result ?? ""}\n\n---\n**Feedback (reopen):** ${feedback}`.trim()
+      : entry.result;
+
+    const updated = this.repository.update({
+      id,
+      status: "pending",
+      result: updatedResult ?? undefined,
+      result_seen: true, // mark old result as seen since we're reopening
+    });
+    if (!updated) {
+      throw new Error(`Failed to reopen entry: ${id}`);
+    }
+    return updated;
+  }
+
+  /**
+   * Rename a tag across all entries. Returns number of entries affected.
+   */
+  bulkTagRename(oldTag: string, newTag: string): number {
+    const normalizedOld = oldTag.trim().toLowerCase().slice(0, 20);
+    const normalizedNew = newTag.trim().toLowerCase().slice(0, 20);
+    if (!normalizedOld || !normalizedNew) {
+      throw new Error("Tags must not be empty");
+    }
+    if (normalizedOld === normalizedNew) {
+      throw new Error("Old and new tag are the same");
+    }
+    return this.repository.bulkTagRename(normalizedOld, normalizedNew);
+  }
+
+  /**
+   * Merge multiple source tags into a single target tag.
+   * All entries with any of the source tags will have that tag replaced with the target.
+   * Returns total number of tag replacements made.
+   */
+  mergeTags(sourceTags: string[], targetTag: string): number {
+    const normalizedTarget = targetTag.trim().toLowerCase().slice(0, 20);
+    if (!normalizedTarget) {
+      throw new Error("Target tag must not be empty");
+    }
+    const normalizedSources = sourceTags
+      .map((t) => t.trim().toLowerCase().slice(0, 20))
+      .filter((t) => t && t !== normalizedTarget);
+    if (normalizedSources.length === 0) {
+      throw new Error("No valid source tags to merge");
+    }
+    let total = 0;
+    for (const src of normalizedSources) {
+      total += this.repository.bulkTagRename(src, normalizedTarget);
+    }
+    return total;
+  }
+
+  /**
+   * Export entries matching a filter as a JSON-serializable array.
+   */
+  exportEntries(filter: ListEntriesFilter = {}): Entry[] {
+    // Override limit to allow full export
+    return this.repository.list({ ...filter, limit: filter.limit ?? 10000 });
+  }
+
   getStats() {
     return this.repository.getStats();
   }

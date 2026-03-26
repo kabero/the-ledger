@@ -106,7 +106,7 @@ export function EntryList({ tab }: EntryListProps) {
     (entry: EntryRow) => (
       <div
         key={entry.id}
-        className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}
+        className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.result_url ? "has-url" : ""}`}
       >
         {entry.type === "task" && (
           <button

@@ -139,6 +139,14 @@ body {
   border-left-color: var(--danger);
 }
 
+.entry.has-url {
+  border-left-color: #4af;
+}
+
+.entry.urgent.has-url {
+  border-left-color: var(--danger);
+}
+
 .entry-title {
   flex: 1;
   font-size: 14px;

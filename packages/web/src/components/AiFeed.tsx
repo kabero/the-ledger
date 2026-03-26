@@ -185,6 +185,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
           e.decision_options &&
           e.decision_options.length > 0 &&
           e.decision_selected == null &&
+          !e.decision_comment &&
           e.status !== "done",
       ),
     [allAi],
@@ -515,7 +516,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                                   updateEntry.mutate({
                                     id: e.id,
                                     delegatable: true,
-                                    decision_selected: selected,
+                                    ...(selected != null ? { decision_selected: selected } : {}),
                                     decision_comment: decisionComment[e.id] || null,
                                   });
                                   setDecisionSelected((prev) => {

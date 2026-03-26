@@ -36,6 +36,7 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
     entry.decision_options &&
     entry.decision_options.length > 0 &&
     entry.decision_selected == null &&
+    !entry.decision_comment &&
     entry.status !== "done";
 
   const resultMarkdown = useMemo(
@@ -169,7 +170,7 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
                 updateEntry.mutate({
                   id: entry.id,
                   delegatable: true,
-                  decision_selected: selectedOpt,
+                  ...(selectedOpt != null ? { decision_selected: selectedOpt } : {}),
                   decision_comment: comment || null,
                 });
                 onBack();

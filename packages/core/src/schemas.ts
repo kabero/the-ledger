@@ -88,6 +88,7 @@ export const listEntriesFilterSchema = z.object({
   since: z.string().optional(),
   until: z.string().optional(),
   includeArchived: z.boolean().optional(),
+  parent_id: z.string().nullable().optional(),
   limit: z.number().int().positive().max(100).optional(),
   offset: z.number().int().nonnegative().optional(),
   sort: z.enum(["created_at", "updated_at", "completed_at"]).optional(),
@@ -113,6 +114,26 @@ export const bulkTagRenameInputSchema = z.object({
 export const mergeTagsInputSchema = z.object({
   source_tags: z.array(z.string().min(1).max(20)).min(1),
   target_tag: z.string().min(1).max(20),
+});
+
+// ─── SubtaskInput / AddSubtasksInput ─────────────────────────────
+
+export const subtaskInputSchema = z.object({
+  raw_text: z.string().min(1).max(50_000),
+  title: z.string().max(200).optional(),
+  tags: tagsSchema.optional(),
+  urgent: z.boolean().optional(),
+  due_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}/, "Invalid due_date format")
+    .nullable()
+    .optional(),
+  delegatable: z.boolean().optional(),
+});
+
+export const addSubtasksInputSchema = z.object({
+  parent_id: z.string(),
+  subtasks: z.array(subtaskInputSchema).min(1).max(50),
 });
 
 // ─── CreateScheduledTaskInput ────────────────────────────────────

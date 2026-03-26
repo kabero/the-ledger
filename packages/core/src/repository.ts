@@ -30,6 +30,7 @@ interface EntryRow {
   decision_selected: number | null;
   decision_comment: string | null;
   archived_at: string | null;
+  parent_id: string | null;
 }
 
 function parseDecisionOptions(raw: string | null): string[] | null {
@@ -55,8 +56,8 @@ export class EntryRepository {
 
     this.db
       .prepare(
-        `INSERT INTO entries (id, raw_text, image_path, type, title, urgent, due_date, status, delegatable, source, result, result_url, decision_options, processed, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO entries (id, raw_text, image_path, type, title, urgent, due_date, status, delegatable, source, result, result_url, decision_options, processed, parent_id, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
       .run(
         id,
@@ -73,6 +74,7 @@ export class EntryRepository {
         input.result_url ?? null,
         input.decision_options ? JSON.stringify(input.decision_options) : null,
         preClassified ? 1 : 0,
+        input.parent_id ?? null,
       );
 
     if (preClassified && input.tags?.length) {
@@ -152,6 +154,14 @@ export class EntryRepository {
     if (filter.until !== undefined) {
       conditions.push("e.created_at < ?");
       params.push(filter.until);
+    }
+    if (filter.parent_id !== undefined) {
+      if (filter.parent_id === null) {
+        conditions.push("e.parent_id IS NULL");
+      } else {
+        conditions.push("e.parent_id = ?");
+        params.push(filter.parent_id);
+      }
     }
 
     return { conditions, params };
@@ -527,6 +537,26 @@ export class EntryRepository {
   }
 
   /**
+   * Get tag breakdown of completed entries within a date range.
+   * Returns tags with their completion counts, sorted by count descending.
+   */
+  getCompletedTagBreakdown(since: string, until: string): { tag: string; count: number }[] {
+    return this.db
+      .prepare(
+        `SELECT et.tag, COUNT(*) as count
+         FROM entry_tags et
+         JOIN entries e ON e.id = et.entry_id
+         WHERE e.completed_at IS NOT NULL
+           AND e.completed_at >= ?
+           AND e.completed_at < ?
+           AND e.archived_at IS NULL
+         GROUP BY et.tag
+         ORDER BY count DESC`,
+      )
+      .all(since, until) as { tag: string; count: number }[];
+  }
+
+  /**
    * Rename a tag across all entries. Handles conflicts: if an entry already has
    * the new tag, the old tag row is simply deleted instead of creating a duplicate.
    * Returns the number of entries that were affected.
@@ -734,6 +764,18 @@ export class EntryRepository {
   }
 
   /**
+   * Get subtasks (children) of a given parent entry.
+   */
+  getSubtasks(parentId: string): Entry[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM entries WHERE parent_id = ? AND archived_at IS NULL ORDER BY created_at ASC`,
+      )
+      .all(parentId) as EntryRow[];
+    return this.rowsToEntries(rows);
+  }
+
+  /**
    * Rebuild the FTS index from scratch. Useful after bulk operations
    * or if the index gets out of sync.
    */
@@ -807,6 +849,7 @@ export class EntryRepository {
       decision_selected: row.decision_selected ?? null,
       decision_comment: row.decision_comment ?? null,
       archived_at: row.archived_at ?? null,
+      parent_id: row.parent_id ?? null,
     }));
   }
 
@@ -837,6 +880,7 @@ export class EntryRepository {
       decision_selected: row.decision_selected ?? null,
       decision_comment: row.decision_comment ?? null,
       archived_at: row.archived_at ?? null,
+      parent_id: row.parent_id ?? null,
     };
   }
 }

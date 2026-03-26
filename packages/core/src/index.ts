@@ -2,6 +2,7 @@ export { createDatabase } from "./db.js";
 export { EntryRepository } from "./repository.js";
 export { ScheduledTaskRepository } from "./scheduled-task-repository.js";
 export {
+  addSubtasksInputSchema,
   bulkTagRenameInputSchema,
   createEntryInputSchema,
   createScheduledTaskInputSchema,
@@ -11,6 +12,7 @@ export {
   reopenTaskInputSchema,
   scheduleFrequencySchema,
   submitProcessedInputSchema,
+  subtaskInputSchema,
   tagSchema,
   tagsSchema,
   taskStatusSchema,
@@ -29,6 +31,7 @@ export type {
   ScheduledTask,
   ScheduleFrequency,
   SubmitProcessedInput,
+  SubtaskInput,
   TaskStatus,
   UpdateEntryInput,
   UpdateScheduledTaskInput,

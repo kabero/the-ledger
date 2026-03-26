@@ -41,6 +41,7 @@ export interface Entry extends RawEntry {
   decision_selected: number | null;
   decision_comment: string | null;
   archived_at: string | null;
+  parent_id: string | null;
 }
 
 export interface CreateEntryInput {
@@ -57,6 +58,7 @@ export interface CreateEntryInput {
   result?: string;
   result_url?: string;
   decision_options?: string[];
+  parent_id?: string;
 }
 
 export interface SubmitProcessedInput {
@@ -96,10 +98,20 @@ export interface ListEntriesFilter {
   since?: string; // ISO date — filter entries created on or after this date
   until?: string; // ISO date — filter entries created before this date
   includeArchived?: boolean; // include soft-deleted entries (default: false)
+  parent_id?: string | null; // filter by parent_id; null means top-level only
   limit?: number;
   offset?: number;
   sort?: "created_at" | "updated_at" | "completed_at";
   cursor?: string; // cursor for cursor-based pagination (created_at|id)
+}
+
+export interface SubtaskInput {
+  raw_text: string;
+  title?: string;
+  tags?: string[];
+  urgent?: boolean;
+  due_date?: string | null;
+  delegatable?: boolean;
 }
 
 export type ScheduleFrequency = "daily" | "weekly" | "monthly";

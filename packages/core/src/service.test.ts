@@ -2011,4 +2011,632 @@ describe("EntryService", () => {
       expect(exported.length).toBe(3);
     });
   });
+
+  // ─── getTodayBriefingData ────────────────────────────────
+
+  describe("getTodayBriefingData", () => {
+    const TODAY = "2026-03-26";
+    const YESTERDAY = "2026-03-25";
+    const TOMORROW = "2026-03-27";
+    const LAST_WEEK = "2026-03-19";
+
+    it("returns empty arrays when no entries exist", () => {
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.overdue).toEqual([]);
+      expect(data.dueToday).toEqual([]);
+      expect(data.urgent).toEqual([]);
+      expect(data.completedYesterday).toEqual([]);
+    });
+
+    it("returns overdue tasks (due before today, still pending)", () => {
+      service.createEntry({
+        raw_text: "overdue task",
+        type: "task",
+        title: "Overdue",
+        tags: [],
+        due_date: YESTERDAY,
+      });
+      service.createEntry({
+        raw_text: "old overdue",
+        type: "task",
+        title: "Old Overdue",
+        tags: [],
+        due_date: LAST_WEEK,
+      });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.overdue.length).toBe(2);
+    });
+
+    it("does not include completed tasks in overdue", () => {
+      const entry = service.createEntry({
+        raw_text: "done task",
+        type: "task",
+        title: "Done",
+        tags: [],
+        due_date: YESTERDAY,
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.overdue.length).toBe(0);
+    });
+
+    it("returns tasks due today", () => {
+      service.createEntry({
+        raw_text: "today task",
+        type: "task",
+        title: "Today",
+        tags: [],
+        due_date: TODAY,
+      });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.dueToday.length).toBe(1);
+      expect(data.dueToday[0].title).toBe("Today");
+    });
+
+    it("does not include tomorrow's tasks in dueToday", () => {
+      service.createEntry({
+        raw_text: "tomorrow task",
+        type: "task",
+        title: "Tomorrow",
+        tags: [],
+        due_date: TOMORROW,
+      });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.dueToday.length).toBe(0);
+    });
+
+    it("returns urgent pending tasks", () => {
+      service.createEntry({
+        raw_text: "urgent task",
+        type: "task",
+        title: "Urgent",
+        tags: [],
+        urgent: true,
+      });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.urgent.length).toBe(1);
+      expect(data.urgent[0].title).toBe("Urgent");
+    });
+
+    it("does not duplicate overdue tasks in urgent", () => {
+      service.createEntry({
+        raw_text: "overdue urgent",
+        type: "task",
+        title: "Overdue Urgent",
+        tags: [],
+        due_date: YESTERDAY,
+        urgent: true,
+      });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.overdue.length).toBe(1);
+      expect(data.urgent.length).toBe(0);
+    });
+
+    it("does not duplicate dueToday tasks in urgent", () => {
+      service.createEntry({
+        raw_text: "today urgent",
+        type: "task",
+        title: "Today Urgent",
+        tags: [],
+        due_date: TODAY,
+        urgent: true,
+      });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.dueToday.length).toBe(1);
+      expect(data.urgent.length).toBe(0);
+    });
+
+    it("returns tasks completed yesterday", () => {
+      const entry = service.createEntry({
+        raw_text: "completed task",
+        type: "task",
+        title: "Completed",
+        tags: [],
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      // completed_at is set to now, so we need to check with a broader today
+      // For deterministic testing, we check that the method filters correctly
+      const data = service.getTodayBriefingData(TOMORROW);
+      // The task was completed "today" (test execution time),
+      // so when briefing date = tomorrow, completed_at falls in "yesterday"
+      expect(data.completedYesterday.length).toBe(1);
+    });
+
+    it("does not include tasks completed before yesterday in completedYesterday", () => {
+      const entry = service.createEntry({
+        raw_text: "old completed",
+        type: "task",
+        title: "Old Completed",
+        tags: [],
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      // Briefing for 2 days later: completed_at should be "2 days ago", not yesterday
+      const twoDaysLater = "2026-03-28";
+      const data = service.getTodayBriefingData(twoDaysLater);
+      expect(data.completedYesterday.length).toBe(0);
+    });
+
+    it("does not include notes in any category", () => {
+      service.createEntry({
+        raw_text: "just a note",
+        type: "note",
+        title: "Note",
+        tags: [],
+        urgent: true,
+        due_date: YESTERDAY,
+      });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.overdue.length).toBe(0);
+      expect(data.dueToday.length).toBe(0);
+      expect(data.urgent.length).toBe(0);
+    });
+
+    it("does not include completed urgent tasks in urgent", () => {
+      const entry = service.createEntry({
+        raw_text: "done urgent",
+        type: "task",
+        title: "Done Urgent",
+        tags: [],
+        urgent: true,
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.urgent.length).toBe(0);
+    });
+
+    it("defaults today to current date when not provided", () => {
+      const data = service.getTodayBriefingData();
+      expect(data.overdue).toEqual([]);
+      expect(data.dueToday).toEqual([]);
+      expect(data.urgent).toEqual([]);
+      expect(data.completedYesterday).toEqual([]);
+    });
+
+    it("handles mixed scenario with all categories populated", () => {
+      // Overdue
+      service.createEntry({
+        raw_text: "overdue1",
+        type: "task",
+        title: "Overdue1",
+        tags: [],
+        due_date: LAST_WEEK,
+      });
+      // Due today
+      service.createEntry({
+        raw_text: "today1",
+        type: "task",
+        title: "Today1",
+        tags: [],
+        due_date: TODAY,
+      });
+      // Urgent (no due date)
+      service.createEntry({
+        raw_text: "urgent1",
+        type: "task",
+        title: "Urgent1",
+        tags: [],
+        urgent: true,
+      });
+      // Completed (will show as completedYesterday when briefing = tomorrow)
+      const done = service.createEntry({
+        raw_text: "done1",
+        type: "task",
+        title: "Done1",
+        tags: [],
+      });
+      service.updateEntry({ id: done.id, status: "done" });
+
+      const data = service.getTodayBriefingData(TODAY);
+      expect(data.overdue.length).toBe(1);
+      expect(data.dueToday.length).toBe(1);
+      expect(data.urgent.length).toBe(1);
+    });
+  });
+
+  // ─── getWeeklyReportData ─────────────────────────────────
+
+  describe("getWeeklyReportData", () => {
+    // completed_at is set by the DB to datetime('now'), so we use
+    // an asOfDate a few days in the future to ensure tasks completed
+    // during the test fall within the 7-day report window.
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 3);
+    const FUTURE = futureDate.toISOString();
+
+    it("returns empty arrays when no entries exist", () => {
+      const data = service.getWeeklyReportData(FUTURE);
+      expect(data.completedThisWeek).toEqual([]);
+      expect(data.addedThisWeek).toEqual([]);
+      expect(data.stillPending).toEqual([]);
+      expect(data.tagBreakdown).toEqual([]);
+      expect(data.period.since).toBeDefined();
+      expect(data.period.until).toBeDefined();
+    });
+
+    it("returns period covering 7 days before asOfDate", () => {
+      const data = service.getWeeklyReportData("2026-04-10T12:00:00.000Z");
+      expect(data.period.since).toBe("2026-04-03T12:00:00.000Z");
+      expect(data.period.until).toBe("2026-04-10T12:00:00.000Z");
+    });
+
+    it("includes tasks completed this week in completedThisWeek", () => {
+      const entry = service.createEntry({
+        raw_text: "weekly task",
+        type: "task",
+        title: "Done Task",
+        tags: ["work"],
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      // Use future date so completed_at (now) falls within the week window
+      const data = service.getWeeklyReportData(FUTURE);
+      expect(data.completedThisWeek.length).toBe(1);
+      expect(data.completedThisWeek[0].title).toBe("Done Task");
+    });
+
+    it("excludes tasks completed outside the week window", () => {
+      const entry = service.createEntry({
+        raw_text: "old task",
+        type: "task",
+        title: "Old Done",
+        tags: [],
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      // Use a date far enough that the completion falls outside the window
+      const data = service.getWeeklyReportData("2020-01-01T00:00:00.000Z");
+      expect(data.completedThisWeek.length).toBe(0);
+    });
+
+    it("includes entries added this week in addedThisWeek", () => {
+      service.createEntry({
+        raw_text: "new note",
+        type: "note",
+        title: "New Note",
+        tags: [],
+      });
+
+      const data = service.getWeeklyReportData(FUTURE);
+      expect(data.addedThisWeek.length).toBeGreaterThanOrEqual(1);
+      expect(data.addedThisWeek.some((e) => e.title === "New Note")).toBe(true);
+    });
+
+    it("excludes entries added outside the week window from addedThisWeek", () => {
+      service.createEntry({
+        raw_text: "old note",
+        type: "note",
+        title: "Old Note",
+        tags: [],
+      });
+
+      const data = service.getWeeklyReportData("2020-01-01T00:00:00.000Z");
+      expect(data.addedThisWeek.length).toBe(0);
+    });
+
+    it("includes stale pending tasks in stillPending", () => {
+      service.createEntry({
+        raw_text: "stale task",
+        type: "task",
+        title: "Stale",
+        tags: [],
+      });
+
+      // Use a date far enough in the future that the task is older than 7 days
+      const farFuture = "2028-01-01T00:00:00.000Z";
+      const data = service.getWeeklyReportData(farFuture);
+      expect(data.stillPending.length).toBe(1);
+      expect(data.stillPending[0].title).toBe("Stale");
+    });
+
+    it("excludes recently created pending tasks from stillPending", () => {
+      service.createEntry({
+        raw_text: "fresh task",
+        type: "task",
+        title: "Fresh",
+        tags: [],
+      });
+
+      // Use near-future so the task was created within 7 days
+      const data = service.getWeeklyReportData(FUTURE);
+      expect(data.stillPending.length).toBe(0);
+    });
+
+    it("excludes completed tasks from stillPending", () => {
+      const entry = service.createEntry({
+        raw_text: "done stale",
+        type: "task",
+        title: "Done Stale",
+        tags: [],
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+
+      const farFuture = "2028-01-01T00:00:00.000Z";
+      const data = service.getWeeklyReportData(farFuture);
+      expect(data.stillPending.length).toBe(0);
+    });
+
+    it("returns tag breakdown of completed tasks", () => {
+      const e1 = service.createEntry({
+        raw_text: "t1",
+        type: "task",
+        title: "T1",
+        tags: ["work", "urgent"],
+      });
+      const e2 = service.createEntry({
+        raw_text: "t2",
+        type: "task",
+        title: "T2",
+        tags: ["work"],
+      });
+      service.updateEntry({ id: e1.id, status: "done" });
+      service.updateEntry({ id: e2.id, status: "done" });
+
+      const data = service.getWeeklyReportData(FUTURE);
+      expect(data.tagBreakdown.length).toBeGreaterThanOrEqual(1);
+      const workTag = data.tagBreakdown.find((t) => t.tag === "work");
+      expect(workTag).toBeDefined();
+      expect(workTag?.count).toBe(2);
+      const urgentTag = data.tagBreakdown.find((t) => t.tag === "urgent");
+      expect(urgentTag).toBeDefined();
+      expect(urgentTag?.count).toBe(1);
+    });
+
+    it("includes overall stats", () => {
+      const data = service.getWeeklyReportData(FUTURE);
+      expect(data.stats).toBeDefined();
+      expect(data.stats.streak).toBeDefined();
+      expect(data.stats.weeklyCompletions).toBeDefined();
+    });
+
+    it("defaults to current date when asOfDate is not provided", () => {
+      const data = service.getWeeklyReportData();
+      expect(data.period.until).toBeDefined();
+      // The period should end approximately now
+      const untilDate = new Date(data.period.until);
+      const now = new Date();
+      expect(Math.abs(untilDate.getTime() - now.getTime())).toBeLessThan(5000);
+    });
+
+    it("handles mixed scenario with all categories populated", () => {
+      // Completed task
+      const done = service.createEntry({
+        raw_text: "done",
+        type: "task",
+        title: "Completed",
+        tags: ["dev"],
+      });
+      service.updateEntry({ id: done.id, status: "done" });
+
+      // New note
+      service.createEntry({
+        raw_text: "note",
+        type: "note",
+        title: "Weekly Note",
+        tags: [],
+      });
+
+      // Pending task (will be stale when viewed from far future)
+      service.createEntry({
+        raw_text: "pending",
+        type: "task",
+        title: "Pending Old",
+        tags: [],
+      });
+
+      const farFuture = "2028-01-01T00:00:00.000Z";
+      const data = service.getWeeklyReportData(farFuture);
+
+      // completedThisWeek should be empty since completion was long ago
+      expect(data.completedThisWeek.length).toBe(0);
+      // addedThisWeek should be empty since entries were added long ago
+      expect(data.addedThisWeek.length).toBe(0);
+      // stillPending should include the pending task
+      expect(data.stillPending.length).toBe(1);
+      expect(data.stillPending[0].title).toBe("Pending Old");
+    });
+
+    it("does not include archived entries in any category", () => {
+      const entry = service.createEntry({
+        raw_text: "to delete",
+        type: "task",
+        title: "Deleted",
+        tags: [],
+      });
+      service.deleteEntry(entry.id);
+
+      const data = service.getWeeklyReportData(FUTURE);
+      expect(data.addedThisWeek.some((e) => e.id === entry.id)).toBe(false);
+      expect(data.stillPending.some((e) => e.id === entry.id)).toBe(false);
+    });
+
+    it("does not include notes in stillPending", () => {
+      service.createEntry({
+        raw_text: "old note",
+        type: "note",
+        title: "Old Note",
+        tags: [],
+      });
+
+      const farFuture = "2028-01-01T00:00:00.000Z";
+      const data = service.getWeeklyReportData(farFuture);
+      expect(data.stillPending.length).toBe(0);
+    });
+  });
+
+  // ─── subtasks ──────────────────────────────────────────────
+
+  describe("subtasks", () => {
+    it("addSubtasks creates child entries linked to parent", () => {
+      const parent = service.createEntry({
+        raw_text: "Big project",
+        type: "task",
+        title: "Big project",
+        tags: ["work"],
+      });
+      const subtasks = service.addSubtasks(parent.id, [
+        { raw_text: "Step 1", title: "Step 1" },
+        { raw_text: "Step 2", title: "Step 2" },
+      ]);
+      expect(subtasks).toHaveLength(2);
+      expect(subtasks[0].parent_id).toBe(parent.id);
+      expect(subtasks[1].parent_id).toBe(parent.id);
+      expect(subtasks[0].type).toBe("task");
+      expect(subtasks[0].status).toBe("pending");
+    });
+
+    it("getSubtasks returns children of a parent", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent task",
+        type: "task",
+        title: "Parent task",
+      });
+      service.addSubtasks(parent.id, [
+        { raw_text: "Child A", title: "Child A" },
+        { raw_text: "Child B", title: "Child B" },
+      ]);
+      const children = service.getSubtasks(parent.id);
+      expect(children).toHaveLength(2);
+      expect(children[0].title).toBe("Child A");
+      expect(children[1].title).toBe("Child B");
+    });
+
+    it("getSubtasks throws for non-existent parent", () => {
+      expect(() => service.getSubtasks("nonexistent")).toThrow("Parent entry not found");
+    });
+
+    it("addSubtasks throws for non-existent parent", () => {
+      expect(() => service.addSubtasks("nonexistent", [{ raw_text: "sub" }])).toThrow(
+        "Parent entry not found",
+      );
+    });
+
+    it("addSubtasks throws when parent is already a subtask (no nesting)", () => {
+      const parent = service.createEntry({
+        raw_text: "Top level",
+        type: "task",
+        title: "Top level",
+      });
+      const [child] = service.addSubtasks(parent.id, [{ raw_text: "Child", title: "Child" }]);
+      expect(() => service.addSubtasks(child.id, [{ raw_text: "Grandchild" }])).toThrow(
+        "Cannot add subtasks to a subtask",
+      );
+    });
+
+    it("addSubtasks throws for empty subtasks array", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent",
+        type: "task",
+        title: "Parent",
+      });
+      expect(() => service.addSubtasks(parent.id, [])).toThrow("must not be empty");
+    });
+
+    it("subtasks default title to raw_text when not provided", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent",
+        type: "task",
+        title: "Parent",
+      });
+      const [sub] = service.addSubtasks(parent.id, [{ raw_text: "Do something specific" }]);
+      expect(sub.title).toBe("Do something specific");
+    });
+
+    it("subtasks inherit tags and urgency from input", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent",
+        type: "task",
+        title: "Parent",
+      });
+      const [sub] = service.addSubtasks(parent.id, [
+        {
+          raw_text: "Urgent sub",
+          title: "Urgent sub",
+          tags: ["priority"],
+          urgent: true,
+          due_date: "2026-04-01",
+        },
+      ]);
+      expect(sub.urgent).toBe(true);
+      expect(sub.tags).toEqual(["priority"]);
+      expect(sub.due_date).toBe("2026-04-01");
+    });
+
+    it("subtasks can be set as delegatable", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent",
+        type: "task",
+        title: "Parent",
+      });
+      const [sub] = service.addSubtasks(parent.id, [
+        { raw_text: "Research X", title: "Research X", delegatable: true },
+      ]);
+      expect(sub.delegatable).toBe(true);
+    });
+
+    it("listEntries with parent_id filter returns only subtasks", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent",
+        type: "task",
+        title: "Parent",
+      });
+      service.addSubtasks(parent.id, [
+        { raw_text: "Sub 1", title: "Sub 1" },
+        { raw_text: "Sub 2", title: "Sub 2" },
+      ]);
+      // Also create a standalone task
+      service.createEntry({
+        raw_text: "Standalone",
+        type: "task",
+        title: "Standalone",
+      });
+
+      const subtasksOnly = service.listEntries({ parent_id: parent.id });
+      expect(subtasksOnly).toHaveLength(2);
+
+      const topLevelOnly = service.listEntries({ parent_id: null, type: "task" });
+      // parent + standalone = 2
+      expect(topLevelOnly.some((e) => e.parent_id !== null)).toBe(false);
+    });
+
+    it("completing a subtask does not affect parent", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent",
+        type: "task",
+        title: "Parent",
+      });
+      const [sub] = service.addSubtasks(parent.id, [{ raw_text: "Sub", title: "Sub" }]);
+      service.updateEntry({ id: sub.id, status: "done" });
+
+      const updatedParent = service.getEntry(parent.id);
+      expect(updatedParent?.status).toBe("pending");
+
+      const updatedSub = service.getEntry(sub.id);
+      expect(updatedSub?.status).toBe("done");
+    });
+
+    it("deleting parent does not delete subtasks (soft delete)", () => {
+      const parent = service.createEntry({
+        raw_text: "Parent",
+        type: "task",
+        title: "Parent",
+      });
+      service.addSubtasks(parent.id, [{ raw_text: "Sub", title: "Sub" }]);
+
+      service.deleteEntry(parent.id);
+      // Subtasks still exist
+      const subs = repo.getSubtasks(parent.id);
+      expect(subs).toHaveLength(1);
+    });
+  });
 });

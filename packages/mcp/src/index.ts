@@ -38,7 +38,12 @@ server.tool(
   "Add a new entry to The Ledger. Provide just raw_text for quick capture (will need processing later), or include type + title to add a pre-classified entry that skips the processing queue. For tasks that require human action (physical tasks, phone calls, in-person meetings), set delegatable=false. For tasks an LLM can handle autonomously, set delegatable=true.",
   {
     raw_text: z.string().describe("The raw text of the thought, idea, task, etc."),
-    type: z.enum(ENTRY_TYPES).optional().describe("Pre-classify: task, note, wish, or trash"),
+    type: z
+      .enum(ENTRY_TYPES)
+      .optional()
+      .describe(
+        "Pre-classify: task (action items, feature requests, things to do), note (information, questions, references), wish (physical items the user wants to buy/own — NOT feature requests or things to do), or trash",
+      ),
     title: z.string().optional().describe("Short title (required if type is provided)"),
     tags: z.array(z.string()).optional().describe("Tags for categorization"),
     urgent: z.boolean().optional().describe("Whether this is urgent"),
@@ -221,7 +226,11 @@ server.tool(
 
 const processedEntrySchema = z.object({
   id: z.string().describe("Entry ID"),
-  type: z.enum(ENTRY_TYPES).describe("Classified type: task, note, wish, or trash"),
+  type: z
+    .enum(ENTRY_TYPES)
+    .describe(
+      "Classified type: task (action items, feature requests, things to do), note (information, questions), wish (physical items to buy/own — NOT feature requests), or trash",
+    ),
   title: z.string().describe("Short title summarizing the entry"),
   tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
   urgent: z.boolean().default(false).describe("Whether this is urgent"),
@@ -374,7 +383,12 @@ server.tool(
   "Update an existing entry's fields. Use this for partial updates like tags, urgency, due dates, type, status, delegatable flag, etc. Note: setting result automatically resets result_seen to false. For completing delegated tasks, prefer complete_task instead.",
   {
     id: z.string().describe("Entry ID to update"),
-    type: z.enum(ENTRY_TYPES).optional().describe("Change type: task, note, wish, or trash"),
+    type: z
+      .enum(ENTRY_TYPES)
+      .optional()
+      .describe(
+        "Change type: task (action items, feature requests), note (info, questions), wish (physical items to buy — NOT feature requests), or trash",
+      ),
     title: z.string().optional().describe("Update title"),
     status: z.enum(TASK_STATUSES).optional().describe("Change status: pending or done"),
     tags: z.array(z.string()).optional().describe("Replace tags"),
@@ -692,6 +706,156 @@ server.tool(
             ),
           },
         ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "add_subtasks",
+  "Break down a parent task into smaller subtasks. Each subtask is created as a task entry linked to the parent. Useful for ADHD-friendly task decomposition — split overwhelming tasks into concrete, actionable steps. Nesting is limited to one level (no sub-subtasks).",
+  {
+    parent_id: z.string().describe("ID of the parent entry to add subtasks to"),
+    subtasks: z
+      .array(
+        z.object({
+          raw_text: z.string().describe("Description of the subtask"),
+          title: z.string().optional().describe("Short title (defaults to raw_text truncated)"),
+          tags: z.array(z.string()).optional().describe("Tags for the subtask"),
+          urgent: z.boolean().optional().describe("Whether this subtask is urgent"),
+          due_date: z.string().nullable().optional().describe("ISO date deadline for the subtask"),
+          delegatable: z
+            .boolean()
+            .optional()
+            .describe("Whether this subtask can be delegated to an LLM"),
+        }),
+      )
+      .min(1)
+      .max(50)
+      .describe("Array of subtasks to create"),
+  },
+  async ({ parent_id, subtasks }) => {
+    try {
+      const created = service.addSubtasks(parent_id, subtasks);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              { parent_id, subtasks_created: created.length, subtasks: created },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "get_subtasks",
+  "Get all subtasks of a parent entry. Returns subtasks ordered by creation time (oldest first).",
+  {
+    parent_id: z.string().describe("ID of the parent entry"),
+  },
+  async ({ parent_id }) => {
+    try {
+      const subtasks = service.getSubtasks(parent_id);
+      const doneCount = subtasks.filter((s) => s.status === "done").length;
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                parent_id,
+                total: subtasks.length,
+                done: doneCount,
+                pending: subtasks.length - doneCount,
+                subtasks,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "get_today_briefing_data",
+  "Get today's AI briefing data: overdue tasks, tasks due today, urgent pending tasks, and tasks completed yesterday. Designed for a morning briefing to present 3-5 actionable items for the day.",
+  {
+    today: z
+      .string()
+      .optional()
+      .describe("ISO date (YYYY-MM-DD) for today. Defaults to current date."),
+  },
+  async ({ today }) => {
+    try {
+      const data = service.getTodayBriefingData(today);
+      const summary = {
+        generated_at: new Date().toISOString(),
+        today: today ?? new Date().toISOString().slice(0, 10),
+        counts: {
+          overdue: data.overdue.length,
+          due_today: data.dueToday.length,
+          urgent: data.urgent.length,
+          completed_yesterday: data.completedYesterday.length,
+        },
+        overdue: data.overdue,
+        due_today: data.dueToday,
+        urgent: data.urgent,
+        completed_yesterday: data.completedYesterday,
+      };
+      return {
+        content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
+  "get_weekly_report_data",
+  "Get weekly report data for AI-powered review generation. Returns completed tasks, newly added entries, stale pending tasks (older than 7 days), tag breakdown of completions, and overall stats. Use this to generate a weekly summary or retrospective.",
+  {
+    as_of_date: z
+      .string()
+      .optional()
+      .describe(
+        "ISO date-time string for the end of the report period. Defaults to now. The report covers the 7 days before this date.",
+      ),
+  },
+  async ({ as_of_date }) => {
+    try {
+      const data = service.getWeeklyReportData(as_of_date);
+      const summary = {
+        generated_at: new Date().toISOString(),
+        period: data.period,
+        counts: {
+          completed: data.completedThisWeek.length,
+          added: data.addedThisWeek.length,
+          stale_pending: data.stillPending.length,
+        },
+        completedThisWeek: data.completedThisWeek,
+        addedThisWeek: data.addedThisWeek,
+        stillPending: data.stillPending,
+        tagBreakdown: data.tagBreakdown,
+        stats: data.stats,
+      };
+      return {
+        content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
       };
     } catch (err) {
       return errorResponse(err);

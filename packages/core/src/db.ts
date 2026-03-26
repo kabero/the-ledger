@@ -134,6 +134,9 @@ function runMigrations(db: Database.Database): void {
   if (!hasCol("archived_at")) {
     db.exec("ALTER TABLE entries ADD COLUMN archived_at TEXT"); // soft-delete timestamp
   }
+  if (!hasCol("parent_id")) {
+    db.exec("ALTER TABLE entries ADD COLUMN parent_id TEXT REFERENCES entries(id)");
+  }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {
     db.exec(
@@ -151,5 +154,6 @@ function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_entries_completed_at ON entries(completed_at);
     CREATE INDEX IF NOT EXISTS idx_entries_source ON entries(source);
     CREATE INDEX IF NOT EXISTS idx_entry_tags_tag ON entry_tags(tag);
+    CREATE INDEX IF NOT EXISTS idx_entries_parent_id ON entries(parent_id);
   `);
 }

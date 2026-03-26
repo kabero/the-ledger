@@ -29,6 +29,6 @@
     }
   },
   "files": {
-    "includes": ["packages/**", "!**/node_modules", "!**/dist", "!**/.turbo"]
+    "includes": ["packages/**", "!**/node_modules", "!**/dist", "!**/.turbo", "!.claude/worktrees"]
   }
 }

@@ -1,5 +1,6 @@
 import type { EntryService } from "@theledger/core";
 import {
+  addSubtasksInputSchema,
   createScheduledTaskInputSchema,
   listEntriesFilterSchema,
   submitProcessedInputSchema,
@@ -176,6 +177,14 @@ export const appRouter = t.router({
 
   exportEntries: t.procedure.input(listEntriesFilterSchema.optional()).query(({ input, ctx }) => {
     return ctx.service.exportEntries(input ?? {});
+  }),
+
+  getSubtasks: t.procedure.input(z.object({ parent_id: z.string() })).query(({ input, ctx }) => {
+    return ctx.service.getSubtasks(input.parent_id);
+  }),
+
+  addSubtasks: t.procedure.input(addSubtasksInputSchema).mutation(({ input, ctx }) => {
+    return ctx.service.addSubtasks(input.parent_id, input.subtasks);
   }),
 
   // スケジュールおつかい

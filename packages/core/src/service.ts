@@ -13,6 +13,7 @@ import {
   MAX_IMAGE_SIZE,
   type ScheduledTask,
   type SubmitProcessedInput,
+  type SubtaskInput,
   type UpdateEntryInput,
   type UpdateScheduledTaskInput,
 } from "./types.js";
@@ -391,8 +392,173 @@ export class EntryService {
     return this.repository.list({ ...filter, limit: filter.limit ?? 10000 });
   }
 
+  /**
+   * Get subtasks (children) of a given parent entry.
+   */
+  getSubtasks(parentId: string): Entry[] {
+    // Verify parent exists
+    const parent = this.repository.getById(parentId);
+    if (!parent) {
+      throw new Error(`Parent entry not found: ${parentId}`);
+    }
+    return this.repository.getSubtasks(parentId);
+  }
+
+  /**
+   * Add subtasks to an existing parent entry.
+   * Each subtask is created as a task with parent_id set.
+   * Returns the created subtask entries.
+   */
+  addSubtasks(parentId: string, subtasks: SubtaskInput[]): Entry[] {
+    const parent = this.repository.getById(parentId);
+    if (!parent) {
+      throw new Error(`Parent entry not found: ${parentId}`);
+    }
+    if (parent.parent_id !== null) {
+      throw new Error("Cannot add subtasks to a subtask (no nesting beyond one level)");
+    }
+    if (subtasks.length === 0) {
+      throw new Error("subtasks array must not be empty");
+    }
+    if (subtasks.length > 50) {
+      throw new Error(`Too many subtasks: ${subtasks.length} (max 50)`);
+    }
+
+    return this.repository.runInTransaction(() => {
+      const created: Entry[] = [];
+      for (const sub of subtasks) {
+        const entry = this.createEntry({
+          raw_text: sub.raw_text,
+          type: "task",
+          title: sub.title ?? sub.raw_text.slice(0, 200),
+          tags: sub.tags,
+          urgent: sub.urgent,
+          due_date: sub.due_date,
+          delegatable: sub.delegatable,
+          parent_id: parentId,
+        });
+        created.push(entry);
+      }
+      return created;
+    });
+  }
+
   getStats() {
     return this.repository.getStats();
+  }
+
+  /**
+   * Get weekly report data for AI-powered review generation.
+   * Returns completed tasks, newly added entries, stale pending tasks,
+   * tag breakdown, and overall stats for the past week.
+   */
+  getWeeklyReportData(asOfDate?: string) {
+    const now = asOfDate ? new Date(asOfDate) : new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const sinceISO = weekAgo.toISOString();
+    const untilISO = now.toISOString();
+
+    // Tasks completed this week (by completed_at)
+    const completedThisWeek = this.repository
+      .list({
+        status: "done",
+        sort: "completed_at",
+        limit: 200,
+      })
+      .filter((e) => e.completed_at && e.completed_at >= sinceISO && e.completed_at < untilISO);
+
+    // Entries added this week (by created_at)
+    const addedThisWeek = this.repository.list({
+      since: sinceISO,
+      until: untilISO,
+      limit: 200,
+    });
+
+    // Pending tasks older than 7 days (stale)
+    const stillPending = this.repository
+      .list({
+        type: "task",
+        status: "pending",
+        limit: 200,
+      })
+      .filter((e) => e.created_at < sinceISO);
+
+    // Tag breakdown of completed tasks this week
+    const tagBreakdown = this.repository.getCompletedTagBreakdown(sinceISO, untilISO);
+
+    // Overall stats
+    const stats = this.repository.getStats();
+
+    return {
+      period: {
+        since: sinceISO,
+        until: untilISO,
+      },
+      completedThisWeek,
+      addedThisWeek,
+      stillPending,
+      tagBreakdown,
+      stats,
+    };
+  }
+
+  /**
+   * Get today's briefing data: overdue tasks, tasks due today,
+   * urgent pending tasks, and tasks completed yesterday.
+   * Designed for morning AI briefing to present 3-5 actionable items.
+   */
+  getTodayBriefingData(today?: string): {
+    overdue: Entry[];
+    dueToday: Entry[];
+    urgent: Entry[];
+    completedYesterday: Entry[];
+  } {
+    const todayStr = today ?? new Date().toISOString().slice(0, 10);
+    const yesterdayDate = new Date(`${todayStr}T00:00:00Z`);
+    yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+    const yesterdayStr = yesterdayDate.toISOString().slice(0, 10);
+
+    // Overdue: pending tasks with due_date before today
+    const overdue = this.getOverdueTasks(todayStr);
+
+    // Due today: pending tasks with due_date = today
+    const dueToday = this.listEntries({
+      type: "task",
+      status: "pending",
+      since: todayStr,
+      until: `${todayStr}T23:59:59`,
+    }).filter((e) => e.due_date?.startsWith(todayStr));
+
+    // Urgent: pending tasks marked urgent (exclude already captured in overdue/dueToday)
+    const overdueAndDueTodayIds = new Set([
+      ...overdue.map((e) => e.id),
+      ...dueToday.map((e) => e.id),
+    ]);
+    const allUrgent = this.listEntries({
+      type: "task",
+      status: "pending",
+    }).filter((e) => e.urgent && !overdueAndDueTodayIds.has(e.id));
+
+    // Completed yesterday: tasks completed since yesterday
+    const completedYesterday = this.listEntries({
+      type: "task",
+      status: "done",
+      sort: "completed_at",
+    }).filter(
+      (e) =>
+        e.completed_at !== null &&
+        e.completed_at >= yesterdayStr &&
+        e.completed_at < `${todayStr}T00:00:00`,
+    );
+
+    return {
+      overdue,
+      dueToday,
+      urgent: allUrgent,
+      completedYesterday,
+    };
   }
 
   runDueScheduledTasks(): Entry[] {

@@ -23,6 +23,14 @@ const server = new McpServer({
   version: "0.0.1",
 });
 
+function errorResponse(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return {
+    content: [{ type: "text" as const, text: `Error: ${message}` }],
+    isError: true,
+  };
+}
+
 // --- Tools ---
 
 server.tool(
@@ -68,38 +76,42 @@ server.tool(
     image,
     image_ext,
   }) => {
-    let entry: Entry;
-    if (image && image_ext) {
-      const imageData = Buffer.from(image, "base64");
-      entry = service.createEntryWithImage(imageData, image_ext, {
-        raw_text,
-        type,
-        title,
-        tags,
-        urgent,
-        due_date,
-        delegatable,
-        source,
-        result,
-        result_url,
-      });
-    } else {
-      entry = service.createEntry({
-        raw_text,
-        type,
-        title,
-        tags,
-        urgent,
-        due_date,
-        delegatable,
-        source,
-        result,
-        result_url,
-      });
+    try {
+      let entry: Entry;
+      if (image && image_ext) {
+        const imageData = Buffer.from(image, "base64");
+        entry = service.createEntryWithImage(imageData, image_ext, {
+          raw_text,
+          type,
+          title,
+          tags,
+          urgent,
+          due_date,
+          delegatable,
+          source,
+          result,
+          result_url,
+        });
+      } else {
+        entry = service.createEntry({
+          raw_text,
+          type,
+          title,
+          tags,
+          urgent,
+          due_date,
+          delegatable,
+          source,
+          result,
+          result_url,
+        });
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
     }
-    return {
-      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
-    };
   },
 );
 
@@ -110,23 +122,27 @@ server.tool(
     limit: z.number().int().positive().max(50).default(20).describe("Max entries to return"),
   },
   async ({ limit }) => {
-    const entries = service.getUnprocessed(limit);
-    const content: Array<
-      { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
-    > = [{ type: "text", text: JSON.stringify(entries, null, 2) }];
-    for (const entry of entries) {
-      if (entry.image_path && fs.existsSync(entry.image_path)) {
-        const ext = path.extname(entry.image_path).slice(1).toLowerCase();
-        const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
-        const data = fs.readFileSync(entry.image_path).toString("base64");
-        content.push({
-          type: "image",
-          data,
-          mimeType,
-        });
+    try {
+      const entries = service.getUnprocessed(limit);
+      const content: Array<
+        { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
+      > = [{ type: "text", text: JSON.stringify(entries, null, 2) }];
+      for (const entry of entries) {
+        if (entry.image_path && fs.existsSync(entry.image_path)) {
+          const ext = path.extname(entry.image_path).slice(1).toLowerCase();
+          const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
+          const data = fs.readFileSync(entry.image_path).toString("base64");
+          content.push({
+            type: "image",
+            data,
+            mimeType,
+          });
+        }
       }
+      return { content };
+    } catch (err) {
+      return errorResponse(err);
     }
-    return { content };
   },
 );
 
@@ -150,43 +166,47 @@ server.tool(
   "Get existing tags with usage counts, plus presets if vocabulary is small. Call this before classifying entries to maintain consistent tagging. Tags should be lowercase, max 20 chars.",
   {},
   async () => {
-    const existing = service.getTagVocabulary();
-    const existingTags = new Set(existing.map((t) => t.tag));
-    const presets =
-      existing.length < MIN_VOCABULARY_SIZE
-        ? TAG_PRESETS.filter((t) => !existingTags.has(t)).map((tag) => ({ tag, count: 0 }))
-        : [];
+    try {
+      const existing = service.getTagVocabulary();
+      const existingTags = new Set(existing.map((t) => t.tag));
+      const presets =
+        existing.length < MIN_VOCABULARY_SIZE
+          ? TAG_PRESETS.filter((t) => !existingTags.has(t)).map((tag) => ({ tag, count: 0 }))
+          : [];
 
-    // Detect dominant language from existing tags
-    const jaCount = existing.filter((t) => /[\u3000-\u9fff\uff00-\uffef]/.test(t.tag)).length;
-    const enCount = existing.filter((t) => /^[a-z0-9-]+$/.test(t.tag)).length;
-    const dominantLang = jaCount > enCount ? "ja" : enCount > jaCount ? "en" : "mixed";
+      // Detect dominant language from existing tags
+      const jaCount = existing.filter((t) => /[\u3000-\u9fff\uff00-\uffef]/.test(t.tag)).length;
+      const enCount = existing.filter((t) => /^[a-z0-9-]+$/.test(t.tag)).length;
+      const dominantLang = jaCount > enCount ? "ja" : enCount > jaCount ? "en" : "mixed";
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              existing,
-              presets,
-              rules: {
-                max_length: MAX_TAG_LENGTH,
-                dominant_language: dominantLang,
-                style:
-                  dominantLang === "ja"
-                    ? "日本語タグ優先、既存タグを再利用、最大20文字"
-                    : dominantLang === "en"
-                      ? "lowercase english, no spaces (use hyphens), reuse existing tags"
-                      : "match language of existing tags in same category, max 20 chars",
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                existing,
+                presets,
+                rules: {
+                  max_length: MAX_TAG_LENGTH,
+                  dominant_language: dominantLang,
+                  style:
+                    dominantLang === "ja"
+                      ? "日本語タグ優先、既存タグを再利用、最大20文字"
+                      : dominantLang === "en"
+                        ? "lowercase english, no spaces (use hyphens), reuse existing tags"
+                        : "match language of existing tags in same category, max 20 chars",
+                },
               },
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
   },
 );
 
@@ -210,10 +230,14 @@ server.tool(
     entries: z.array(processedEntrySchema).describe("Array of processed entries to submit"),
   },
   async ({ entries }) => {
-    const results = entries.map((e) => service.submitProcessed(e));
-    return {
-      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
-    };
+    try {
+      const results = entries.map((e) => service.submitProcessed(e));
+      return {
+        content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
   },
 );
 
@@ -224,22 +248,26 @@ server.tool(
     limit: z.number().int().positive().max(50).default(10).describe("Max tasks to return"),
   },
   async ({ limit }) => {
-    const entries = service.listEntries({
-      type: "task",
-      status: "pending",
-      delegatable: true,
-      limit,
-      offset: 0,
-    });
-    return {
-      content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
-    };
+    try {
+      const entries = service.listEntries({
+        type: "task",
+        status: "pending",
+        delegatable: true,
+        limit,
+        offset: 0,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
   },
 );
 
 server.tool(
   "search_entries",
-  "Search and filter entries. Use for finding related context, building summaries, or reviewing past work.",
+  "Search and filter entries. Use for finding related context, building summaries, or reviewing past work. By default only searches processed entries; set include_unprocessed=true to also search unprocessed entries.",
   {
     query: z.string().optional().describe("Full-text search query"),
     type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
@@ -253,24 +281,33 @@ server.tool(
       ),
     since: z.string().optional().describe("ISO date — only entries created on or after this date"),
     until: z.string().optional().describe("ISO date — only entries created before this date"),
+    include_unprocessed: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("Include unprocessed entries in search results (default: false)"),
     limit: z.number().int().positive().max(100).default(20).describe("Max results"),
   },
-  async ({ query, type, status, tag, source, since, until, limit }) => {
-    const entries = service.listEntries({
-      query,
-      type,
-      status,
-      tag,
-      source,
-      since,
-      until,
-      processed: true,
-      limit,
-      offset: 0,
-    });
-    return {
-      content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
-    };
+  async ({ query, type, status, tag, source, since, until, include_unprocessed, limit }) => {
+    try {
+      const entries = service.listEntries({
+        query,
+        type,
+        status,
+        tag,
+        source,
+        since,
+        until,
+        processed: include_unprocessed ? undefined : true,
+        limit,
+        offset: 0,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
   },
 );
 
@@ -290,10 +327,20 @@ server.tool(
       .describe("URL to external result (e.g. GitHub PR, deployed page, document)"),
   },
   async ({ id, result, result_url }) => {
-    const entry = service.updateEntry({ id, status: "done", result, result_url });
-    return {
-      content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
-    };
+    try {
+      const entry = service.updateEntry({ id, status: "done", result, result_url });
+      if (!entry) {
+        return {
+          content: [{ type: "text", text: `Entry not found: ${id}` }],
+          isError: true,
+        };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
   },
 );
 

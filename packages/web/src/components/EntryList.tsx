@@ -28,6 +28,10 @@ export function EntryList({ tab }: EntryListProps) {
   const entries = trpc.listEntries.useQuery(filter, { refetchInterval: POLL.entries });
   const utils = trpc.useUtils();
 
+  // Stable ref for tab so renderEntry doesn't re-create on tab switch
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+
   // ローカルのステータス上書き（チェック直後の見た目用、次回refetchでクリア）
   const [localStatus, setLocalStatus] = useState<
     Record<string, { status: string; completed_at: string | null }>
@@ -189,7 +193,7 @@ export function EntryList({ tab }: EntryListProps) {
               const newStatus = entry.status === "done" ? "pending" : "done";
               const prevStatus = entry.status;
               const prevCompletedAt = entry.completed_at;
-              if (tab === "llm" && newStatus === "pending") {
+              if (tabRef.current === "llm" && newStatus === "pending") {
                 setConfirmAction({
                   message: "おつかいの成果があるけど、未完了に戻しますか？",
                   onOk: () => {
@@ -289,7 +293,7 @@ export function EntryList({ tab }: EntryListProps) {
             )}
           </div>
           <div className="entry-tags">
-            {entry.type && tab === "all" && (
+            {entry.type && tabRef.current === "all" && (
               <span className={`entry-type-badge entry-type-${entry.type}`}>{entry.type}</span>
             )}
             {entry.due_date &&
@@ -318,16 +322,19 @@ export function EntryList({ tab }: EntryListProps) {
                   </span>
                 );
               })()}
-            {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
-              <span className="completed-at">
-                {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            )}
+            {entry.completed_at &&
+              (tabRef.current === "done" ||
+                tabRef.current === "llm" ||
+                tabRef.current === "task") && (
+                <span className="completed-at">
+                  {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              )}
           </div>
         </div>
         <button
@@ -349,7 +356,7 @@ export function EntryList({ tab }: EntryListProps) {
         </button>
       </div>
     ),
-    [tab, updateEntry, deleteEntry, showUndoToast],
+    [updateEntry, deleteEntry, showUndoToast],
   );
 
   const pending = useMemo(

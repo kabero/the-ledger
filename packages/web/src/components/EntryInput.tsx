@@ -171,6 +171,17 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
         >
           IMG
         </button>
+        {(text.trim() || imageFile) && (
+          <button
+            type="button"
+            className="btn-send"
+            onClick={handleSubmit}
+            disabled={isBusy}
+            title="送信 (Enter)"
+          >
+            {"\u21B5"}
+          </button>
+        )}
       </div>
       {imagePreview && (
         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>

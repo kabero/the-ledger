@@ -854,3 +854,39 @@ html {
   color: var(--dim, #666);
   line-height: 1.8;
 }
+
+/* ============================================================
+   TASK: Send button for input box
+   Visible Enter/send button to clarify submission method
+   ============================================================ */
+.btn-send {
+  background: transparent;
+  border: 2px solid var(--accent, #ff0);
+  border-radius: 4px;
+  color: var(--accent, #ff0);
+  font-family: var(--font);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  animation: fadeSlideIn 0.15s ease-out;
+}
+
+.btn-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .btn-send:not(:disabled):hover {
+    background: var(--accent, #ff0);
+    color: var(--bg, #000);
+  }
+}
+
+.btn-send:not(:disabled):active {
+  transform: scale(0.9);
+}

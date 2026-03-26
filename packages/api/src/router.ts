@@ -1,7 +1,6 @@
 import type { EntryService } from "@theledger/core";
 import {
   createScheduledTaskInputSchema,
-  entryTypeSchema,
   listEntriesFilterSchema,
   submitProcessedInputSchema,
   taskStatusSchema,

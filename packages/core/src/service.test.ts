@@ -1259,4 +1259,475 @@ describe("EntryService", () => {
       expect(service.countEntries({ type: "task", since: "2099-01-01" })).toBe(0);
     });
   });
+
+  // ─── result_url CRUD ────────────────────────────────────
+
+  describe("result_url CRUD", () => {
+    it("creates entry with result_url", () => {
+      const entry = service.createEntry({
+        raw_text: "deploy site",
+        type: "task",
+        title: "Deploy site",
+        tags: ["deploy"],
+        result_url: "https://example.com/deploy",
+      });
+      expect(entry.result_url).toBe("https://example.com/deploy");
+    });
+
+    it("creates entry without result_url defaults to null", () => {
+      const entry = service.createEntry({
+        raw_text: "no url task",
+        type: "task",
+        title: "No URL",
+        tags: [],
+      });
+      expect(entry.result_url).toBeNull();
+    });
+
+    it("updates result_url independently", () => {
+      const entry = service.createEntry({
+        raw_text: "task",
+        type: "task",
+        title: "Task",
+        tags: [],
+      });
+      const updated = service.updateEntry({
+        id: entry.id,
+        result_url: "https://github.com/pr/1",
+      });
+      expect(updated?.result_url).toBe("https://github.com/pr/1");
+    });
+
+    it("result_url persists after status change", () => {
+      const entry = service.createEntry({
+        raw_text: "task",
+        type: "task",
+        title: "Task",
+        tags: [],
+        result_url: "https://example.com",
+      });
+      const done = service.updateEntry({ id: entry.id, status: "done" });
+      expect(done?.result_url).toBe("https://example.com");
+      expect(done?.status).toBe("done");
+
+      const reopened = service.updateEntry({ id: entry.id, status: "pending" });
+      expect(reopened?.result_url).toBe("https://example.com");
+    });
+
+    it("result_url can be set alongside result", () => {
+      const entry = service.createEntry({
+        raw_text: "task",
+        type: "task",
+        title: "Task",
+        tags: [],
+      });
+      const updated = service.updateEntry({
+        id: entry.id,
+        result: "# Done\nDeployed successfully",
+        result_url: "https://prod.example.com",
+        status: "done",
+      });
+      expect(updated?.result).toBe("# Done\nDeployed successfully");
+      expect(updated?.result_url).toBe("https://prod.example.com");
+      expect(updated?.status).toBe("done");
+    });
+
+    it("result_url can be overwritten", () => {
+      const entry = service.createEntry({
+        raw_text: "task",
+        type: "task",
+        title: "Task",
+        tags: [],
+        result_url: "https://old.com",
+      });
+      const updated = service.updateEntry({
+        id: entry.id,
+        result_url: "https://new.com",
+      });
+      expect(updated?.result_url).toBe("https://new.com");
+    });
+  });
+
+  // ─── decision_options validation ─────────────────────────
+
+  describe("decision_options validation", () => {
+    it("creates entry with decision_options", () => {
+      const entry = service.createEntry({
+        raw_text: "Which framework?",
+        type: "task",
+        title: "Choose framework",
+        tags: ["decisions"],
+        decision_options: ["React", "Vue", "Svelte"],
+      });
+      expect(entry.decision_options).toEqual(["React", "Vue", "Svelte"]);
+      expect(entry.decision_selected).toBeNull();
+    });
+
+    it("rejects out-of-bounds decision_selected (positive)", () => {
+      const entry = service.createEntry({
+        raw_text: "Pick one",
+        type: "task",
+        title: "Pick",
+        tags: [],
+        decision_options: ["A", "B"],
+      });
+      expect(() => service.updateEntry({ id: entry.id, decision_selected: 5 })).toThrow();
+    });
+
+    it("rejects negative decision_selected", () => {
+      const entry = service.createEntry({
+        raw_text: "Pick one",
+        type: "task",
+        title: "Pick",
+        tags: [],
+        decision_options: ["A", "B"],
+      });
+      expect(() => service.updateEntry({ id: entry.id, decision_selected: -1 })).toThrow();
+    });
+
+    it("allows null decision_selected to reset", () => {
+      const entry = service.createEntry({
+        raw_text: "Pick one",
+        type: "task",
+        title: "Pick",
+        tags: [],
+        decision_options: ["A", "B"],
+      });
+      service.updateEntry({ id: entry.id, decision_selected: 0 });
+      const reset = service.updateEntry({ id: entry.id, decision_selected: null });
+      expect(reset?.decision_selected).toBeNull();
+    });
+
+    it("stores decision_comment", () => {
+      const entry = service.createEntry({
+        raw_text: "Pick one",
+        type: "task",
+        title: "Pick",
+        tags: [],
+        decision_options: ["A", "B"],
+      });
+      const updated = service.updateEntry({
+        id: entry.id,
+        decision_selected: 1,
+        decision_comment: "B is better because...",
+      });
+      expect(updated?.decision_selected).toBe(1);
+      expect(updated?.decision_comment).toBe("B is better because...");
+    });
+
+    it("rejects decision_selected when no options exist", () => {
+      const entry = service.createEntry({
+        raw_text: "No options",
+        type: "task",
+        title: "No opts",
+        tags: [],
+      });
+      expect(() => service.updateEntry({ id: entry.id, decision_selected: 0 })).toThrow();
+    });
+  });
+
+  // ─── since/until date filtering ──────────────────────────
+
+  describe("since/until date filtering", () => {
+    it("filters entries created since a date", () => {
+      service.createEntry({ raw_text: "old entry", type: "note", title: "Old", tags: [] });
+      const results = service.listEntries({ since: "2000-01-01" });
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it("returns nothing for future since date", () => {
+      service.createEntry({ raw_text: "entry", type: "note", title: "E", tags: [] });
+      const results = service.listEntries({ since: "2099-01-01" });
+      expect(results.length).toBe(0);
+    });
+
+    it("returns nothing when until is in the past", () => {
+      service.createEntry({ raw_text: "entry", type: "note", title: "E", tags: [] });
+      const results = service.listEntries({ until: "2000-01-01" });
+      expect(results.length).toBe(0);
+    });
+
+    it("returns entries when until is far future", () => {
+      service.createEntry({ raw_text: "entry", type: "note", title: "E", tags: [] });
+      const results = service.listEntries({ until: "2099-01-01" });
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it("returns nothing when since equals until", () => {
+      service.createEntry({ raw_text: "entry", type: "note", title: "E", tags: [] });
+      // same instant means zero-width window
+      const results = service.listEntries({ since: "2099-01-01", until: "2099-01-01" });
+      expect(results.length).toBe(0);
+    });
+
+    it("count respects since/until filters", () => {
+      service.createEntry({ raw_text: "e1", type: "note", title: "E1", tags: [] });
+      service.createEntry({ raw_text: "e2", type: "note", title: "E2", tags: [] });
+      expect(service.countEntries({ since: "2000-01-01" })).toBe(2);
+      expect(service.countEntries({ since: "2099-01-01" })).toBe(0);
+      expect(service.countEntries({ until: "2000-01-01" })).toBe(0);
+    });
+  });
+
+  // ─── getRecentActivity ──────────────────────────────────
+
+  describe("getRecentActivity", () => {
+    it("returns only processed entries", () => {
+      // Create a raw unprocessed entry
+      service.createEntry({ raw_text: "raw entry" });
+      // Create a processed entry
+      service.createEntry({ raw_text: "processed", type: "note", title: "Note", tags: [] });
+
+      const activity = service.getRecentActivity(10);
+      expect(activity.length).toBe(1);
+      expect(activity[0].title).toBe("Note");
+    });
+
+    it("respects limit", () => {
+      for (let i = 0; i < 5; i++) {
+        service.createEntry({ raw_text: `entry ${i}`, type: "note", title: `Note ${i}`, tags: [] });
+      }
+      const activity = service.getRecentActivity(3);
+      expect(activity.length).toBe(3);
+    });
+
+    it("returns empty array when no processed entries", () => {
+      service.createEntry({ raw_text: "raw1" });
+      service.createEntry({ raw_text: "raw2" });
+      const activity = service.getRecentActivity(10);
+      expect(activity.length).toBe(0);
+    });
+  });
+
+  // ─── getOverdueTasks detailed ───────────────────────────
+
+  describe("getOverdueTasks detailed", () => {
+    it("returns tasks with past due_date", () => {
+      service.createEntry({
+        raw_text: "overdue task",
+        type: "task",
+        title: "Overdue",
+        tags: [],
+        due_date: "2020-01-01",
+      });
+      const overdue = service.getOverdueTasks("2025-01-01");
+      expect(overdue.length).toBe(1);
+      expect(overdue[0].title).toBe("Overdue");
+    });
+
+    it("excludes tasks with future due_date", () => {
+      service.createEntry({
+        raw_text: "future task",
+        type: "task",
+        title: "Future",
+        tags: [],
+        due_date: "2099-12-31",
+      });
+      const overdue = service.getOverdueTasks("2025-01-01");
+      expect(overdue.length).toBe(0);
+    });
+
+    it("excludes tasks without due_date", () => {
+      service.createEntry({
+        raw_text: "no due date",
+        type: "task",
+        title: "No due",
+        tags: [],
+      });
+      const overdue = service.getOverdueTasks("2025-01-01");
+      expect(overdue.length).toBe(0);
+    });
+
+    it("excludes done tasks", () => {
+      const entry = service.createEntry({
+        raw_text: "done overdue",
+        type: "task",
+        title: "Done overdue",
+        tags: [],
+        due_date: "2020-01-01",
+      });
+      service.updateEntry({ id: entry.id, status: "done" });
+      const overdue = service.getOverdueTasks("2025-01-01");
+      expect(overdue.length).toBe(0);
+    });
+
+    it("uses custom beforeDate", () => {
+      service.createEntry({
+        raw_text: "task1",
+        type: "task",
+        title: "T1",
+        tags: [],
+        due_date: "2024-06-15",
+      });
+      // Not overdue if beforeDate is before due_date
+      expect(service.getOverdueTasks("2024-01-01").length).toBe(0);
+      // Overdue if beforeDate is after due_date
+      expect(service.getOverdueTasks("2024-07-01").length).toBe(1);
+    });
+  });
+
+  // ─── submitProcessed status handling ────────────────────
+
+  describe("submitProcessed status handling", () => {
+    it("sets status to pending for tasks", () => {
+      const raw = service.createEntry({ raw_text: "raw task" });
+      const processed = service.submitProcessed({
+        id: raw.id,
+        type: "task",
+        title: "Task",
+        tags: ["work"],
+        urgent: false,
+        due_date: null,
+        delegatable: false,
+      });
+      expect(processed.status).toBe("pending");
+      expect(processed.processed).toBe(true);
+    });
+
+    it("sets status to pending for delegatable non-tasks", () => {
+      const raw = service.createEntry({ raw_text: "raw wish" });
+      const processed = service.submitProcessed({
+        id: raw.id,
+        type: "wish",
+        title: "Wish",
+        tags: [],
+        urgent: false,
+        due_date: null,
+        delegatable: true,
+      });
+      expect(processed.status).toBe("pending");
+    });
+
+    it("replaces tags on reprocessing", () => {
+      const entry = service.createEntry({
+        raw_text: "tag test",
+        type: "note",
+        title: "Note",
+        tags: ["old-tag"],
+      });
+      const reprocessed = service.submitProcessed({
+        id: entry.id,
+        type: "note",
+        title: "Note updated",
+        tags: ["new-tag-1", "new-tag-2"],
+        urgent: false,
+        due_date: null,
+        delegatable: false,
+      });
+      expect(reprocessed.tags.sort()).toEqual(["new-tag-1", "new-tag-2"]);
+      // Old tag should be gone
+      expect(reprocessed.tags).not.toContain("old-tag");
+    });
+  });
+
+  // ─── getTagVocabulary ───────────────────────────────────
+
+  describe("getTagVocabulary", () => {
+    it("returns empty array when no tags", () => {
+      const vocab = service.getTagVocabulary();
+      expect(vocab).toEqual([]);
+    });
+
+    it("returns tags with correct counts", () => {
+      service.createEntry({ raw_text: "e1", type: "note", title: "N1", tags: ["work", "urgent"] });
+      service.createEntry({
+        raw_text: "e2",
+        type: "note",
+        title: "N2",
+        tags: ["work", "personal"],
+      });
+      service.createEntry({ raw_text: "e3", type: "note", title: "N3", tags: ["work"] });
+
+      const vocab = service.getTagVocabulary();
+      const workTag = vocab.find((v) => v.tag === "work");
+      const urgentTag = vocab.find((v) => v.tag === "urgent");
+      const personalTag = vocab.find((v) => v.tag === "personal");
+
+      expect(workTag?.count).toBe(3);
+      expect(urgentTag?.count).toBe(1);
+      expect(personalTag?.count).toBe(1);
+    });
+
+    it("is ordered by count descending", () => {
+      service.createEntry({ raw_text: "e1", type: "note", title: "N1", tags: ["rare"] });
+      service.createEntry({ raw_text: "e2", type: "note", title: "N2", tags: ["common"] });
+      service.createEntry({ raw_text: "e3", type: "note", title: "N3", tags: ["common"] });
+
+      const vocab = service.getTagVocabulary();
+      expect(vocab[0].tag).toBe("common");
+      expect(vocab[1].tag).toBe("rare");
+    });
+  });
+
+  // ─── listEntries sort parameter ─────────────────────────
+
+  describe("listEntries sort parameter", () => {
+    it("sorts by created_at descending by default", () => {
+      service.createEntry({ raw_text: "first", type: "note", title: "First", tags: [] });
+      service.createEntry({ raw_text: "second", type: "note", title: "Second", tags: [] });
+      const entries = service.listEntries({});
+      // Most recent first
+      expect(entries[0].title).toBe("Second");
+      expect(entries[1].title).toBe("First");
+    });
+
+    it("sorts by completed_at when specified", () => {
+      const e1 = service.createEntry({ raw_text: "t1", type: "task", title: "T1", tags: [] });
+      const e2 = service.createEntry({ raw_text: "t2", type: "task", title: "T2", tags: [] });
+      // Complete T1 first, then T2
+      service.updateEntry({ id: e1.id, status: "done" });
+      service.updateEntry({ id: e2.id, status: "done" });
+
+      const entries = service.listEntries({ sort: "completed_at" });
+      // Most recently completed first
+      expect(entries[0].title).toBe("T2");
+    });
+  });
+
+  // ─── runDueScheduledTasks ───────────────────────────────
+
+  describe("runDueScheduledTasks", () => {
+    it("creates entries for due tasks", () => {
+      const now = new Date();
+      scheduledRepo.create({
+        raw_text: "daily standup",
+        frequency: "daily",
+        hour: now.getHours(),
+      });
+
+      const created = service.runDueScheduledTasks();
+      expect(created.length).toBe(1);
+      expect(created[0].raw_text).toBe("daily standup");
+    });
+
+    it("marks task as run so it won't trigger again", () => {
+      const now = new Date();
+      const task = scheduledRepo.create({
+        raw_text: "once per day",
+        frequency: "daily",
+        hour: now.getHours(),
+      });
+
+      service.runDueScheduledTasks();
+      const updatedTask = scheduledRepo.getById(task.id);
+      expect(updatedTask?.last_run_at).not.toBeNull();
+
+      // Second run should not create new entries
+      const secondRun = service.runDueScheduledTasks();
+      expect(secondRun.length).toBe(0);
+    });
+
+    it("returns empty when no tasks are due", () => {
+      const now = new Date();
+      const differentHour = (now.getHours() + 12) % 24;
+      scheduledRepo.create({
+        raw_text: "not due",
+        frequency: "daily",
+        hour: differentHour,
+      });
+
+      const created = service.runDueScheduledTasks();
+      expect(created.length).toBe(0);
+    });
+  });
 });

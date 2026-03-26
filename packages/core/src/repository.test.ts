@@ -1122,4 +1122,335 @@ describe("EntryRepository", () => {
       expect(repo.list().length).toBe(0);
     });
   });
+
+  // ─── FTS sync on delete and update ──────────────────────
+
+  describe("FTS sync", () => {
+    it("entry is no longer found via FTS after deletion", () => {
+      const entry = repo.create({
+        raw_text: "unique-findme-term",
+        type: "note",
+        title: "Unique FTS Test",
+        tags: [],
+      });
+      // Should be found before deletion
+      const before = repo.list({ query: "unique-findme-term" });
+      expect(before.length).toBe(1);
+
+      repo.delete(entry.id);
+
+      // Should NOT be found after deletion
+      const after = repo.list({ query: "unique-findme-term" });
+      expect(after.length).toBe(0);
+    });
+
+    it("FTS updates when title is updated", () => {
+      const entry = repo.create({
+        raw_text: "original text",
+        type: "note",
+        title: "OriginalTitle",
+        tags: [],
+      });
+
+      // Search by original title
+      const beforeUpdate = repo.list({ query: "OriginalTitle" });
+      expect(beforeUpdate.length).toBe(1);
+
+      // Update the title
+      repo.update({ id: entry.id, title: "UpdatedTitle" });
+
+      // Search by new title should find it
+      const afterUpdate = repo.list({ query: "UpdatedTitle" });
+      expect(afterUpdate.length).toBe(1);
+    });
+
+    it("FTS still finds by raw_text after title update", () => {
+      const entry = repo.create({
+        raw_text: "persistent-raw-text-xyz",
+        type: "note",
+        title: "Old Title",
+        tags: [],
+      });
+
+      repo.update({ id: entry.id, title: "New Title" });
+
+      // raw_text should still be searchable
+      const results = repo.list({ query: "persistent-raw-text-xyz" });
+      expect(results.length).toBe(1);
+      expect(results[0].id).toBe(entry.id);
+    });
+  });
+
+  // ─── result and result_url in repository ────────────────
+
+  describe("result and result_url", () => {
+    it("stores result and result_url on create", () => {
+      const entry = repo.create({
+        raw_text: "research task",
+        type: "task",
+        title: "Research",
+        tags: [],
+        result: "# Findings\nSome results here",
+        result_url: "https://example.com/results",
+      });
+      expect(entry.result).toBe("# Findings\nSome results here");
+      expect(entry.result_url).toBe("https://example.com/results");
+    });
+
+    it("setting result resets result_seen to false", () => {
+      const entry = repo.create({
+        raw_text: "task",
+        type: "task",
+        title: "Task",
+        tags: [],
+        result: "initial result",
+      });
+      // Mark as seen
+      repo.update({ id: entry.id, result_seen: true });
+      const seen = repo.getById(entry.id);
+      expect(seen?.result_seen).toBe(true);
+
+      // Update result should reset result_seen
+      repo.update({ id: entry.id, result: "updated result" });
+      const afterUpdate = repo.getById(entry.id);
+      expect(afterUpdate?.result_seen).toBe(false);
+      expect(afterUpdate?.result).toBe("updated result");
+    });
+
+    it("getUnseenResultCount counts correctly", () => {
+      repo.create({ raw_text: "t1", type: "task", title: "T1", tags: [], result: "r1" });
+      repo.create({ raw_text: "t2", type: "task", title: "T2", tags: [], result: "r2" });
+      repo.create({ raw_text: "t3", type: "task", title: "T3", tags: [] }); // no result
+
+      expect(repo.getUnseenResultCount()).toBe(2);
+
+      repo.markAllResultsSeen();
+      expect(repo.getUnseenResultCount()).toBe(0);
+    });
+  });
+
+  // ─── decision_options in repository ─────────────────────
+
+  describe("decision_options", () => {
+    it("stores decision_options as JSON", () => {
+      const entry = repo.create({
+        raw_text: "decide",
+        type: "task",
+        title: "Decide",
+        tags: [],
+        decision_options: ["Option A", "Option B", "Option C"],
+      });
+      expect(entry.decision_options).toEqual(["Option A", "Option B", "Option C"]);
+    });
+
+    it("decision_selected validates bounds in update", () => {
+      const entry = repo.create({
+        raw_text: "decide",
+        type: "task",
+        title: "Decide",
+        tags: [],
+        decision_options: ["A", "B"],
+      });
+      // Valid selection
+      const updated = repo.update({ id: entry.id, decision_selected: 1 });
+      expect(updated?.decision_selected).toBe(1);
+
+      // Out of bounds
+      expect(() => repo.update({ id: entry.id, decision_selected: 5 })).toThrow();
+    });
+
+    it("getPendingDecisionCount counts correctly", () => {
+      repo.create({
+        raw_text: "d1",
+        type: "task",
+        title: "D1",
+        tags: [],
+        decision_options: ["A", "B"],
+      });
+      repo.create({
+        raw_text: "d2",
+        type: "task",
+        title: "D2",
+        tags: [],
+        decision_options: ["X", "Y"],
+      });
+
+      expect(repo.getPendingDecisionCount()).toBe(2);
+
+      // Resolve one
+      repo.update({ id: repo.list()[0].id, decision_selected: 0 });
+      expect(repo.getPendingDecisionCount()).toBe(1);
+    });
+  });
+
+  // ─── overdue tasks in repository ────────────────────────
+
+  describe("getOverdueTasks", () => {
+    it("returns pending tasks with past due_date", () => {
+      repo.create({
+        raw_text: "overdue",
+        type: "task",
+        title: "Overdue",
+        tags: [],
+        due_date: "2020-06-15",
+      });
+      const overdue = repo.getOverdueTasks("2025-01-01");
+      expect(overdue.length).toBe(1);
+    });
+
+    it("excludes done tasks even if overdue", () => {
+      const entry = repo.create({
+        raw_text: "done overdue",
+        type: "task",
+        title: "Done",
+        tags: [],
+        due_date: "2020-06-15",
+      });
+      repo.update({ id: entry.id, status: "done" });
+      const overdue = repo.getOverdueTasks("2025-01-01");
+      expect(overdue.length).toBe(0);
+    });
+
+    it("orders by due_date ascending", () => {
+      repo.create({
+        raw_text: "later",
+        type: "task",
+        title: "Later",
+        tags: [],
+        due_date: "2022-01-01",
+      });
+      repo.create({
+        raw_text: "earlier",
+        type: "task",
+        title: "Earlier",
+        tags: [],
+        due_date: "2020-01-01",
+      });
+      const overdue = repo.getOverdueTasks("2025-01-01");
+      expect(overdue.length).toBe(2);
+      expect(overdue[0].title).toBe("Earlier");
+      expect(overdue[1].title).toBe("Later");
+    });
+  });
+
+  // ─── getRecentActivity in repository ────────────────────
+
+  describe("getRecentActivity", () => {
+    it("excludes unprocessed entries", () => {
+      repo.create({ raw_text: "unprocessed" });
+      repo.create({ raw_text: "processed", type: "note", title: "Note", tags: [] });
+      const activity = repo.getRecentActivity(10);
+      expect(activity.length).toBe(1);
+      expect(activity[0].title).toBe("Note");
+    });
+
+    it("returns entries with type only", () => {
+      repo.create({ raw_text: "with type", type: "task", title: "Task", tags: [] });
+      const activity = repo.getRecentActivity(10);
+      expect(activity.every((e) => e.type !== null)).toBe(true);
+    });
+  });
+
+  // ─── archiveCompleted ──────────────────────────────────
+
+  describe("archiveCompleted", () => {
+    it("deletes old completed entries", () => {
+      const entry = repo.create({
+        raw_text: "old done",
+        type: "task",
+        title: "Old Done",
+        tags: [],
+      });
+      repo.update({ id: entry.id, status: "done" });
+      // Manually set completed_at to 100 days ago
+      db.prepare("UPDATE entries SET completed_at = datetime('now', '-100 days') WHERE id = ?").run(
+        entry.id,
+      );
+
+      const deleted = repo.archiveCompleted(30);
+      expect(deleted).toBe(1);
+      expect(repo.getById(entry.id)).toBeNull();
+    });
+
+    it("does not delete recent completions", () => {
+      const entry = repo.create({
+        raw_text: "recent done",
+        type: "task",
+        title: "Recent Done",
+        tags: [],
+      });
+      repo.update({ id: entry.id, status: "done" });
+
+      const deleted = repo.archiveCompleted(30);
+      expect(deleted).toBe(0);
+      expect(repo.getById(entry.id)).not.toBeNull();
+    });
+  });
+
+  // ─── getTagVocabulary in repository ─────────────────────
+
+  describe("getTagVocabulary", () => {
+    it("returns empty for no tags", () => {
+      expect(repo.getTagVocabulary()).toEqual([]);
+    });
+
+    it("counts tags across entries", () => {
+      repo.create({ raw_text: "e1", type: "note", title: "N1", tags: ["alpha", "beta"] });
+      repo.create({ raw_text: "e2", type: "note", title: "N2", tags: ["alpha"] });
+
+      const vocab = repo.getTagVocabulary();
+      const alpha = vocab.find((v) => v.tag === "alpha");
+      const beta = vocab.find((v) => v.tag === "beta");
+      expect(alpha?.count).toBe(2);
+      expect(beta?.count).toBe(1);
+    });
+  });
+
+  // ─── getTypeSummary ─────────────────────────────────────
+
+  describe("getTypeSummary", () => {
+    it("returns counts grouped by type", () => {
+      repo.create({ raw_text: "t1", type: "task", title: "T1", tags: [] });
+      repo.create({ raw_text: "t2", type: "task", title: "T2", tags: [] });
+      repo.create({ raw_text: "n1", type: "note", title: "N1", tags: [] });
+      repo.create({ raw_text: "w1", type: "wish", title: "W1", tags: [] });
+
+      const summary = repo.getTypeSummary();
+      const taskSummary = summary.find((s) => s.type === "task");
+      const noteSummary = summary.find((s) => s.type === "note");
+      const wishSummary = summary.find((s) => s.type === "wish");
+      expect(taskSummary?.count).toBe(2);
+      expect(noteSummary?.count).toBe(1);
+      expect(wishSummary?.count).toBe(1);
+    });
+
+    it("excludes untyped entries", () => {
+      repo.create({ raw_text: "raw" }); // unprocessed, no type
+      repo.create({ raw_text: "typed", type: "note", title: "N", tags: [] });
+
+      const summary = repo.getTypeSummary();
+      expect(summary.length).toBe(1);
+      expect(summary[0].type).toBe("note");
+    });
+  });
+
+  // ─── purgeTrash ─────────────────────────────────────────
+
+  describe("purgeTrash", () => {
+    it("deletes all trash entries", () => {
+      repo.create({ raw_text: "tr1", type: "trash", title: "Trash 1", tags: [] });
+      repo.create({ raw_text: "tr2", type: "trash", title: "Trash 2", tags: [] });
+      repo.create({ raw_text: "keep", type: "note", title: "Keep", tags: [] });
+
+      const deleted = repo.purgeTrash();
+      expect(deleted).toBe(2);
+      expect(repo.list().length).toBe(1);
+      expect(repo.list()[0].type).toBe("note");
+    });
+
+    it("returns 0 when no trash", () => {
+      repo.create({ raw_text: "note", type: "note", title: "Note", tags: [] });
+      expect(repo.purgeTrash()).toBe(0);
+    });
+  });
 });

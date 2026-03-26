@@ -90,10 +90,18 @@ export function AiFeed({ onClose }: AiFeedProps) {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [allAi]);
 
-  const [selectedEntry, setSelectedEntry] = useState<EntryItem | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
   const [showAllHumanTasks, setShowAllHumanTasks] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+
+  // Resolve selected entry from latest data so it stays in sync with polling
+  const selectedEntry = useMemo(() => {
+    if (!selectedId) return null;
+    return (
+      allAi.find((e) => e.id === selectedId) ?? allItems.find((e) => e.id === selectedId) ?? null
+    );
+  }, [selectedId, allAi, allItems]);
 
   const mutateRef = useRef(updateEntry.mutate);
   mutateRef.current = updateEntry.mutate;
@@ -109,11 +117,11 @@ export function AiFeed({ onClose }: AiFeedProps) {
     return (
       <DetailView
         entry={selectedEntry}
-        onBack={() => setSelectedEntry(null)}
+        onBack={() => setSelectedId(null)}
         onClose={onClose}
         onRetry={(id) => {
           updateEntry.mutate({ id, status: "pending" });
-          setSelectedEntry(null);
+          setSelectedId(null);
         }}
       />
     );
@@ -247,7 +255,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   key={e.id}
                   entry={e}
                   className={e.urgent ? "urgent" : ""}
-                  onClick={() => setSelectedEntry(e)}
+                  onClick={() => setSelectedId(e.id)}
                 />
               ))}
             </div>
@@ -266,7 +274,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   key={e.id}
                   entry={e}
                   className={`done ${e.result && !e.result_seen ? "has-new" : ""}`}
-                  onClick={() => setSelectedEntry(e)}
+                  onClick={() => setSelectedId(e.id)}
                   showNew={!!(e.result && !e.result_seen)}
                   timeField="completed_at"
                 />
@@ -292,7 +300,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
             </div>
             <div className="ai-mini-cards">
               {recentSourced.map((e) => (
-                <MiniCard key={e.id} entry={e} onClick={() => setSelectedEntry(e)} />
+                <MiniCard key={e.id} entry={e} onClick={() => setSelectedId(e.id)} />
               ))}
             </div>
           </div>

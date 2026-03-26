@@ -1296,6 +1296,7 @@ body {
 
   .entry-list-box {
     padding: 12px;
+    padding-bottom: 80px;
   }
 
   .header {

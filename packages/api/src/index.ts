@@ -178,4 +178,22 @@ serve({ fetch: app.fetch, hostname: "0.0.0.0", port }, () => {
   console.log(`The Ledger API running on http://0.0.0.0:${port}`);
 });
 
+// Run due scheduled tasks every 60 seconds
+setInterval(() => {
+  try {
+    service.runDueScheduledTasks();
+  } catch (err) {
+    console.error("[scheduler] Error running due tasks:", err);
+  }
+}, 60_000).unref();
+
+// Also run once on startup (after a short delay to let the server settle)
+setTimeout(() => {
+  try {
+    service.runDueScheduledTasks();
+  } catch (err) {
+    console.error("[scheduler] Error running due tasks on startup:", err);
+  }
+}, 5_000).unref();
+
 export { type AppRouter, appRouter } from "./router.js";

@@ -1,4 +1,8 @@
+import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { serve } from "@hono/node-server";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { trpcServer } from "@hono/trpc-server";
 import {
   ALLOWED_IMAGE_EXTENSIONS,
@@ -45,7 +49,7 @@ const requireApiKey: MiddlewareHandler = async (c, next) => {
 
 // --- Simple in-memory rate limiter ---
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX) || 30; // requests per window
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX) || 120; // requests per window
 const RATE_LIMIT_MAP_MAX = 10_000; // max unique IPs tracked before eviction
 // Set TRUST_PROXY=1 when behind a reverse proxy (nginx, cloudflare, etc.)
 const TRUST_PROXY = process.env.TRUST_PROXY === "1";
@@ -53,12 +57,12 @@ const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 const rateLimit: MiddlewareHandler = async (c, next) => {
-  // Only trust x-forwarded-for / x-real-ip when behind a trusted proxy
+  // Determine client identifier for rate limiting
   const ip = TRUST_PROXY
     ? c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
       c.req.header("x-real-ip") ||
       "unknown"
-    : "unknown";
+    : getConnInfo(c).remote.address || "unknown";
   const now = Date.now();
   let entry = rateLimitMap.get(ip);
   if (!entry || now >= entry.resetAt) {
@@ -129,6 +133,40 @@ app.use(
 );
 
 app.get("/health", (c) => c.json({ ok: true }));
+
+// --- Static image serving ---
+const IMAGES_DIR = join(homedir(), ".theledger", "images");
+
+const MIME_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  heic: "image/heic",
+};
+
+app.get("/images/:filename", requireApiKey, async (c) => {
+  const filename = c.req.param("filename");
+  // Prevent path traversal
+  if (filename.includes("/") || filename.includes("\\") || filename.includes("..")) {
+    return c.json({ error: "Invalid filename" }, 400);
+  }
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const contentType = MIME_TYPES[ext];
+  if (!contentType) {
+    return c.json({ error: "Unsupported image format" }, 400);
+  }
+  try {
+    const data = await readFile(join(IMAGES_DIR, filename));
+    return c.body(data, 200, {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=86400",
+    });
+  } catch {
+    return c.json({ error: "Image not found" }, 404);
+  }
+});
 
 function validateAndCreateEntryFromImage(
   svc: EntryService,

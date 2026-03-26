@@ -19,7 +19,7 @@
 .input-loading {
   margin-top: 4px;
   font-size: 12px;
-  color: #aaa;
+  color: var(--border, #aaa);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -391,4 +391,251 @@
   border-radius: 3px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+/* ============================================================
+   TASK: Tab switch fade-in animation
+   Smooth content transition when switching between tabs
+   ============================================================ */
+.entry-list-box {
+  animation: tab-fade-in 0.2s ease-out;
+}
+
+@keyframes tab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================
+   TASK: Polish FAB button and bottom sheet backdrop
+   Subtle pulse on FAB, backdrop-filter blur on overlay
+   ============================================================ */
+@media (max-width: 480px) {
+  .fab-add {
+    animation: fab-breathe 3s ease-in-out infinite;
+  }
+
+  @keyframes fab-breathe {
+    0%,
+    100% {
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.6),
+        0 0 0 0 rgba(255, 255, 0, 0);
+    }
+    50% {
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.6),
+        0 0 0 6px rgba(255, 255, 0, 0.08);
+    }
+  }
+}
+
+.bottom-sheet-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ============================================================
+   TASK: Enhanced active tab visual indicator
+   Glow effect under the active tab
+   ============================================================ */
+.tab.active {
+  box-shadow: 0 -2px 8px rgba(255, 255, 0, 0.12);
+  text-shadow: 0 0 8px rgba(255, 255, 0, 0.3);
+}
+
+/* ============================================================
+   TASK: Polish entry hover interaction
+   Refined left border reveal + background shift
+   ============================================================ */
+@media (hover: hover) {
+  .entry {
+    transition:
+      opacity 0.3s ease,
+      background 0.2s ease,
+      border-left-color 0.2s ease,
+      transform 0.1s ease;
+  }
+
+  .entry:hover {
+    border-left-color: var(--accent);
+    background: rgba(255, 255, 0, 0.02);
+  }
+
+  .entry.done:hover {
+    border-left-color: var(--done);
+    background: rgba(0, 255, 0, 0.02);
+  }
+
+  .entry.urgent:hover {
+    border-left-color: var(--danger);
+  }
+}
+
+/* ============================================================
+   TASK: Retro CRT header title effect
+   Subtle scanline overlay on the header title
+   ============================================================ */
+.header-title {
+  position: relative;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.15);
+}
+
+.header-title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ============================================================
+   TASK: Bounce animation for task checkbox
+   Satisfying bounce when checking off tasks
+   ============================================================ */
+.entry.done .checkbox {
+  animation: check-bounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes check-bounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.75);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  80% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ============================================================
+   TASK: AI button loading shimmer
+   Shimmer on AI button when it has new results
+   ============================================================ */
+.header-ai-btn.has-new {
+  background-image: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255, 255, 0, 0.08) 37%,
+    transparent 50%
+  );
+  background-size: 200% 100%;
+  animation:
+    ai-shimmer 2s ease-in-out infinite,
+    pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ai-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================================
+   TASK: Typewriter animation for empty state
+   Subtle cursor blink on the empty state hint text
+   ============================================================ */
+.empty-state-arrow::after {
+  content: "_";
+  animation: cursor-blink 1s step-end infinite;
+  color: var(--accent);
+  margin-left: 2px;
+}
+
+@keyframes cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   TASK: Enhanced modal open/close animation
+   Scale + blur backdrop for modals
+   ============================================================ */
+.result-overlay {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.result-modal {
+  animation: modal-enhanced-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-enhanced-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.confirm-modal {
+  animation: modal-enhanced-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   TASK: Glow effects for badges and urgent items
+   Subtle glow on NEW badge and urgent entry indicators
+   ============================================================ */
+.badge-new {
+  text-shadow: 0 0 6px rgba(255, 255, 0, 0.6);
+  box-shadow: 0 0 6px rgba(255, 255, 0, 0.25);
+  animation: badge-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes badge-glow {
+  from {
+    box-shadow: 0 0 4px rgba(255, 255, 0, 0.2);
+  }
+  to {
+    box-shadow: 0 0 8px rgba(255, 255, 0, 0.4);
+  }
+}
+
+.entry.urgent {
+  background: linear-gradient(90deg, rgba(255, 0, 0, 0.04) 0%, transparent 30%);
+}
+
+.entry.urgent .btn-priority.active {
+  text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+}
+
+.tab-overdue-count {
+  box-shadow: 0 0 4px rgba(255, 0, 0, 0.3);
+}
+
+.tab-new-count {
+  text-shadow: 0 0 4px rgba(255, 255, 0, 0.5);
+  box-shadow: 0 0 4px rgba(255, 255, 0, 0.3);
 }

@@ -840,4 +840,423 @@ describe("EntryService", () => {
       expect(items[1].raw_text).toBe("second");
     });
   });
+
+  // ─── getEntryOrThrow ─────────────────────────────────────
+
+  describe("getEntryOrThrow", () => {
+    it("returns entry when it exists", () => {
+      const entry = service.createEntry({ raw_text: "exists" });
+      const found = service.getEntryOrThrow(entry.id);
+      expect(found.id).toBe(entry.id);
+    });
+
+    it("throws when entry does not exist", () => {
+      expect(() => service.getEntryOrThrow("nonexistent-id")).toThrow(
+        "Entry not found: nonexistent-id",
+      );
+    });
+  });
+
+  // ─── Input validation ────────────────────────────────────
+
+  describe("createEntry input validation", () => {
+    it("rejects empty raw_text", () => {
+      expect(() => service.createEntry({ raw_text: "" })).toThrow("raw_text must not be empty");
+    });
+
+    it("rejects whitespace-only raw_text", () => {
+      expect(() => service.createEntry({ raw_text: "   " })).toThrow("raw_text must not be empty");
+    });
+
+    it("rejects title over 200 chars", () => {
+      expect(() =>
+        service.createEntry({
+          raw_text: "test",
+          type: "note",
+          title: "a".repeat(201),
+        }),
+      ).toThrow(/title too long/);
+    });
+
+    it("accepts title at exactly 200 chars", () => {
+      const entry = service.createEntry({
+        raw_text: "test",
+        type: "note",
+        title: "a".repeat(200),
+      });
+      expect(entry.title).toHaveLength(200);
+    });
+
+    it("rejects invalid due_date format", () => {
+      expect(() =>
+        service.createEntry({
+          raw_text: "test",
+          type: "task",
+          title: "Test",
+          due_date: "not-a-date",
+        }),
+      ).toThrow(/Invalid due_date format/);
+    });
+
+    it("accepts valid ISO due_date", () => {
+      const entry = service.createEntry({
+        raw_text: "test",
+        type: "task",
+        title: "Test",
+        due_date: "2026-12-31",
+      });
+      expect(entry.due_date).toBe("2026-12-31");
+    });
+
+    it("accepts null due_date", () => {
+      const entry = service.createEntry({
+        raw_text: "test",
+        type: "task",
+        title: "Test",
+        due_date: null,
+      });
+      expect(entry.due_date).toBeNull();
+    });
+  });
+
+  // ─── Convenience count methods ────────────────────────────
+
+  describe("getDelegatableTaskCount", () => {
+    it("returns count of pending delegatable tasks", () => {
+      service.createEntry({ raw_text: "d1", type: "task", title: "D1", delegatable: true });
+      service.createEntry({ raw_text: "d2", type: "task", title: "D2", delegatable: true });
+      service.createEntry({ raw_text: "n1", type: "task", title: "N1", delegatable: false });
+      service.createEntry({ raw_text: "n2", type: "note", title: "N2", delegatable: true });
+      expect(service.getDelegatableTaskCount()).toBe(2);
+    });
+
+    it("returns 0 when no delegatable tasks", () => {
+      expect(service.getDelegatableTaskCount()).toBe(0);
+    });
+
+    it("excludes done delegatable tasks", () => {
+      const e = service.createEntry({
+        raw_text: "d1",
+        type: "task",
+        title: "D1",
+        delegatable: true,
+      });
+      service.updateEntry({ id: e.id, status: "done" });
+      expect(service.getDelegatableTaskCount()).toBe(0);
+    });
+  });
+
+  describe("getUnseenResultCount", () => {
+    it("returns count of unseen results", () => {
+      const e1 = service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      const e2 = service.createEntry({ raw_text: "b", type: "task", title: "B" });
+      service.updateEntry({ id: e1.id, result: "Done A" });
+      service.updateEntry({ id: e2.id, result: "Done B" });
+      expect(service.getUnseenResultCount()).toBe(2);
+    });
+
+    it("returns 0 when all results seen", () => {
+      const e1 = service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      service.updateEntry({ id: e1.id, result: "Done" });
+      service.updateEntry({ id: e1.id, result_seen: true });
+      expect(service.getUnseenResultCount()).toBe(0);
+    });
+
+    it("returns 0 when no results", () => {
+      service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      expect(service.getUnseenResultCount()).toBe(0);
+    });
+  });
+
+  describe("getPendingDecisionCount", () => {
+    it("counts entries with unresolved decisions", () => {
+      service.createEntry({
+        raw_text: "decide 1",
+        type: "task",
+        title: "Decision 1",
+        decision_options: ["A", "B"],
+      });
+      service.createEntry({
+        raw_text: "decide 2",
+        type: "task",
+        title: "Decision 2",
+        decision_options: ["X", "Y"],
+      });
+      expect(service.getPendingDecisionCount()).toBe(2);
+    });
+
+    it("excludes resolved decisions", () => {
+      const e = service.createEntry({
+        raw_text: "decide",
+        type: "task",
+        title: "Decision",
+        decision_options: ["A", "B"],
+      });
+      service.updateEntry({ id: e.id, decision_selected: 0 });
+      expect(service.getPendingDecisionCount()).toBe(0);
+    });
+
+    it("excludes entries with empty options", () => {
+      service.createEntry({
+        raw_text: "empty",
+        type: "task",
+        title: "Empty",
+        decision_options: [],
+      });
+      expect(service.getPendingDecisionCount()).toBe(0);
+    });
+
+    it("returns 0 when no decisions exist", () => {
+      service.createEntry({ raw_text: "normal", type: "task", title: "Normal" });
+      expect(service.getPendingDecisionCount()).toBe(0);
+    });
+  });
+
+  // ─── Batch getEntriesByIds ──────────────────────────────────
+
+  describe("getEntriesByIds", () => {
+    it("returns entries matching the given IDs", () => {
+      const e1 = service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      const e2 = service.createEntry({ raw_text: "b", type: "task", title: "B" });
+      service.createEntry({ raw_text: "c", type: "task", title: "C" });
+
+      const results = service.getEntriesByIds([e1.id, e2.id]);
+      expect(results.length).toBe(2);
+      const ids = results.map((e) => e.id).sort();
+      expect(ids).toEqual([e1.id, e2.id].sort());
+    });
+
+    it("returns empty array for empty input", () => {
+      expect(service.getEntriesByIds([])).toEqual([]);
+    });
+
+    it("skips non-existent IDs", () => {
+      const e1 = service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      const results = service.getEntriesByIds([e1.id, "nonexistent"]);
+      expect(results.length).toBe(1);
+    });
+  });
+
+  // ─── Scheduled task count ──────────────────────────────────
+
+  describe("getScheduledTaskCount", () => {
+    it("returns count of enabled scheduled tasks", () => {
+      service.createScheduledTask({ raw_text: "a", frequency: "daily" });
+      service.createScheduledTask({ raw_text: "b", frequency: "weekly", day_of_week: 1 });
+      expect(service.getScheduledTaskCount()).toBe(2);
+    });
+
+    it("excludes disabled tasks", () => {
+      const t = service.createScheduledTask({ raw_text: "a", frequency: "daily" });
+      service.updateScheduledTask({ id: t.id, enabled: false });
+      expect(service.getScheduledTaskCount()).toBe(0);
+    });
+
+    it("returns 0 when no tasks", () => {
+      expect(service.getScheduledTaskCount()).toBe(0);
+    });
+  });
+
+  // ─── Scheduled task input validation ───────────────────────
+
+  describe("scheduled task input validation", () => {
+    it("rejects invalid hour", () => {
+      expect(() =>
+        service.createScheduledTask({ raw_text: "x", frequency: "daily", hour: 25 }),
+      ).toThrow(/Invalid hour/);
+    });
+
+    it("rejects negative hour", () => {
+      expect(() =>
+        service.createScheduledTask({ raw_text: "x", frequency: "daily", hour: -1 }),
+      ).toThrow(/Invalid hour/);
+    });
+
+    it("rejects invalid day_of_week", () => {
+      expect(() =>
+        service.createScheduledTask({
+          raw_text: "x",
+          frequency: "weekly",
+          day_of_week: 7,
+        }),
+      ).toThrow(/Invalid day_of_week/);
+    });
+
+    it("rejects invalid day_of_month", () => {
+      expect(() =>
+        service.createScheduledTask({
+          raw_text: "x",
+          frequency: "monthly",
+          day_of_month: 0,
+        }),
+      ).toThrow(/Invalid day_of_month/);
+    });
+
+    it("rejects day_of_month > 31", () => {
+      expect(() =>
+        service.createScheduledTask({
+          raw_text: "x",
+          frequency: "monthly",
+          day_of_month: 32,
+        }),
+      ).toThrow(/Invalid day_of_month/);
+    });
+
+    it("accepts valid inputs", () => {
+      const task = service.createScheduledTask({
+        raw_text: "valid",
+        frequency: "weekly",
+        day_of_week: 0,
+        hour: 23,
+      });
+      expect(task.day_of_week).toBe(0);
+      expect(task.hour).toBe(23);
+    });
+  });
+
+  // ─── FTS special character handling ────────────────────────
+
+  describe("FTS special character handling", () => {
+    it("handles asterisk in query", () => {
+      service.createEntry({ raw_text: "test asterisk", type: "note", title: "Test" });
+      const results = service.listEntries({ query: "test*" });
+      expect(Array.isArray(results)).toBe(true);
+    });
+
+    it("handles quotes in query", () => {
+      service.createEntry({ raw_text: "quoted text", type: "note", title: "Q" });
+      const results = service.listEntries({ query: '"quoted"' });
+      expect(Array.isArray(results)).toBe(true);
+    });
+
+    it("handles parentheses in query", () => {
+      service.createEntry({ raw_text: "paren text", type: "note", title: "P" });
+      const results = service.listEntries({ query: "(paren)" });
+      expect(Array.isArray(results)).toBe(true);
+    });
+
+    it("handles OR AND NOT keywords in query", () => {
+      service.createEntry({ raw_text: "boolean logic", type: "note", title: "B" });
+      const results = service.listEntries({ query: "OR AND NOT" });
+      expect(Array.isArray(results)).toBe(true);
+    });
+
+    it("handles empty query gracefully", () => {
+      service.createEntry({ raw_text: "something", type: "note", title: "S" });
+      // Empty query should not crash (returns FTS with empty match)
+      const results = service.listEntries({ query: "" });
+      expect(Array.isArray(results)).toBe(true);
+    });
+  });
+
+  // ─── updateEntry additional scenarios ─────────────────────
+
+  describe("updateEntry additional scenarios", () => {
+    it("updates result_url independently", () => {
+      const entry = service.createEntry({ raw_text: "x", type: "task", title: "X" });
+      const updated = service.updateEntry({
+        id: entry.id,
+        result_url: "https://github.com/pr/123",
+      });
+      expect(updated?.result_url).toBe("https://github.com/pr/123");
+    });
+
+    it("updates result_url to different value", () => {
+      const entry = service.createEntry({
+        raw_text: "x",
+        type: "task",
+        title: "X",
+        result_url: "https://old.com",
+      });
+      const updated = service.updateEntry({
+        id: entry.id,
+        result_url: "https://new.com",
+      });
+      expect(updated?.result_url).toBe("https://new.com");
+    });
+  });
+
+  // ─── bulkUpdateStatus edge cases ─────────────────────────
+
+  describe("bulkUpdateStatus edge cases", () => {
+    it("returns 0 for non-existent IDs", () => {
+      const count = service.bulkUpdateStatus(["fake-id-1", "fake-id-2"], "done");
+      expect(count).toBe(0);
+    });
+
+    it("handles mix of existing and non-existing IDs", () => {
+      const e = service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      const count = service.bulkUpdateStatus([e.id, "fake-id"], "done");
+      expect(count).toBe(1);
+      expect(service.getEntry(e.id)?.status).toBe("done");
+    });
+  });
+
+  // ─── countEntries with combined filters ────────────────────
+
+  describe("countEntries combined filters", () => {
+    function seedForCombined() {
+      service.createEntry({
+        raw_text: "t1",
+        type: "task",
+        title: "Task 1",
+        tags: ["work"],
+        source: "slack",
+      });
+      service.createEntry({
+        raw_text: "t2",
+        type: "task",
+        title: "Task 2",
+        tags: ["home"],
+        source: "email",
+        delegatable: true,
+      });
+      service.createEntry({
+        raw_text: "n1",
+        type: "note",
+        title: "Note 1",
+        tags: ["work"],
+        source: "slack",
+      });
+      const e4 = service.createEntry({
+        raw_text: "t3",
+        type: "task",
+        title: "Task 3",
+        tags: ["work"],
+        source: "slack",
+      });
+      service.updateEntry({ id: e4.id, status: "done" });
+    }
+
+    it("counts with type + tag combined", () => {
+      seedForCombined();
+      expect(service.countEntries({ type: "task", tag: "work" })).toBe(2);
+    });
+
+    it("counts with type + status + tag", () => {
+      seedForCombined();
+      expect(service.countEntries({ type: "task", status: "pending", tag: "work" })).toBe(1);
+    });
+
+    it("counts with type + source", () => {
+      seedForCombined();
+      expect(service.countEntries({ type: "task", source: "slack" })).toBe(2);
+    });
+
+    it("counts with source=any + type", () => {
+      seedForCombined();
+      expect(service.countEntries({ source: "any", type: "task" })).toBe(3);
+    });
+
+    it("counts with delegatable + type", () => {
+      seedForCombined();
+      expect(service.countEntries({ delegatable: true, type: "task" })).toBe(1);
+    });
+
+    it("counts with since filter", () => {
+      seedForCombined();
+      expect(service.countEntries({ type: "task", since: "2000-01-01" })).toBe(3);
+      expect(service.countEntries({ type: "task", since: "2099-01-01" })).toBe(0);
+    });
+  });
 });

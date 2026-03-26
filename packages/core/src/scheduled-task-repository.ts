@@ -125,6 +125,13 @@ export class ScheduledTaskRepository {
     return rows.map((row) => this.rowToEntity(row));
   }
 
+  count(): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) as cnt FROM scheduled_tasks WHERE enabled = 1")
+      .get() as { cnt: number };
+    return row.cnt;
+  }
+
   markRun(id: string): void {
     this.db
       .prepare(`UPDATE scheduled_tasks SET last_run_at = datetime('now') WHERE id = ?`)

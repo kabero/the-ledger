@@ -61,6 +61,19 @@ export class EntryService {
   ) {}
 
   createEntry(input: CreateEntryInput): Entry {
+    if (!input.raw_text || input.raw_text.trim().length === 0) {
+      throw new Error("raw_text must not be empty");
+    }
+    if (input.title !== undefined && input.title.length > 200) {
+      throw new Error(`title too long: ${input.title.length} chars (max 200)`);
+    }
+    if (input.due_date !== undefined && input.due_date !== null) {
+      if (!/^\d{4}-\d{2}-\d{2}/.test(input.due_date)) {
+        throw new Error(
+          `Invalid due_date format: "${input.due_date}". Expected ISO date (YYYY-MM-DD).`,
+        );
+      }
+    }
     if (input.tags) {
       input = { ...input, tags: normalizeTags(input.tags) };
     }
@@ -69,6 +82,14 @@ export class EntryService {
 
   getEntry(id: string): Entry | null {
     return this.repository.getById(id);
+  }
+
+  getEntryOrThrow(id: string): Entry {
+    const entry = this.repository.getById(id);
+    if (!entry) {
+      throw new Error(`Entry not found: ${id}`);
+    }
+    return entry;
   }
 
   listEntries(filter: ListEntriesFilter = {}): Entry[] {
@@ -213,6 +234,19 @@ export class EntryService {
   }
 
   createScheduledTask(input: CreateScheduledTaskInput): ScheduledTask {
+    if (input.hour !== undefined && (input.hour < 0 || input.hour > 23)) {
+      throw new Error(`Invalid hour: ${input.hour}. Must be 0-23.`);
+    }
+    if (input.frequency === "weekly" && input.day_of_week != null) {
+      if (input.day_of_week < 0 || input.day_of_week > 6) {
+        throw new Error(`Invalid day_of_week: ${input.day_of_week}. Must be 0 (Sun) - 6 (Sat).`);
+      }
+    }
+    if (input.frequency === "monthly" && input.day_of_month != null) {
+      if (input.day_of_month < 1 || input.day_of_month > 31) {
+        throw new Error(`Invalid day_of_month: ${input.day_of_month}. Must be 1-31.`);
+      }
+    }
     return this.ensureScheduledTaskRepo().create(input);
   }
 
@@ -230,6 +264,30 @@ export class EntryService {
 
   deleteScheduledTask(id: string): boolean {
     return this.ensureScheduledTaskRepo().delete(id);
+  }
+
+  getDelegatableTaskCount(): number {
+    return this.repository.count({
+      type: "task",
+      status: "pending",
+      delegatable: true,
+    });
+  }
+
+  getUnseenResultCount(): number {
+    return this.repository.getUnseenResultCount();
+  }
+
+  getPendingDecisionCount(): number {
+    return this.repository.getPendingDecisionCount();
+  }
+
+  getEntriesByIds(ids: string[]): Entry[] {
+    return this.repository.getByIds(ids);
+  }
+
+  getScheduledTaskCount(): number {
+    return this.ensureScheduledTaskRepo().count();
   }
 
   getTagVocabulary(): { tag: string; count: number }[] {

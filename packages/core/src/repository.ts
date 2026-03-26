@@ -418,6 +418,37 @@ export class EntryRepository {
       .all() as { type: string; count: number }[];
   }
 
+  getUnseenResultCount(): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) as cnt FROM entries WHERE result IS NOT NULL AND result_seen = 0")
+      .get() as { cnt: number };
+    return row.cnt;
+  }
+
+  getPendingDecisionCount(): number {
+    const row = this.db
+      .prepare(
+        "SELECT COUNT(*) as cnt FROM entries WHERE decision_options IS NOT NULL AND decision_options != '[]' AND decision_selected IS NULL AND (status IS NULL OR status = 'pending')",
+      )
+      .get() as { cnt: number };
+    return row.cnt;
+  }
+
+  getByIds(ids: string[]): Entry[] {
+    if (ids.length === 0) return [];
+    const CHUNK_SIZE = 100;
+    const allRows: EntryRow[] = [];
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+      const chunk = ids.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => "?").join(", ");
+      const rows = this.db
+        .prepare(`SELECT * FROM entries WHERE id IN (${placeholders})`)
+        .all(...chunk) as EntryRow[];
+      allRows.push(...rows);
+    }
+    return this.rowsToEntries(allRows);
+  }
+
   getTagVocabulary(): { tag: string; count: number }[] {
     return this.db
       .prepare("SELECT tag, COUNT(*) as count FROM entry_tags GROUP BY tag ORDER BY count DESC")

@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { trpc } from "../trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
+type EntryRow = ReturnType<typeof trpc.listEntries.useQuery>["data"] extends (infer T)[] | undefined
+  ? T & { status: string | null; completed_at: string | null }
+  : never;
 
 interface EntryListProps {
   tab: Tab;
@@ -99,6 +102,157 @@ export function EntryList({ tab }: EntryListProps) {
     });
   }, [entries.data, localStatus, tab]);
 
+  const renderEntry = useCallback(
+    (entry: EntryRow) => (
+      <div
+        key={entry.id}
+        className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}
+      >
+        {entry.type === "task" && (
+          <button
+            type="button"
+            className="checkbox"
+            onClick={() => {
+              const newStatus = entry.status === "done" ? "pending" : "done";
+              if (tab === "llm" && newStatus === "pending") {
+                setConfirmAction({
+                  message: "おつかいの成果があるけど、未完了に戻しますか？",
+                  onOk: () => {
+                    setLocalStatus((prev) => ({
+                      ...prev,
+                      [entry.id]: { status: "pending", completed_at: null },
+                    }));
+                    updateEntry.mutate({ id: entry.id, status: "pending" });
+                    setConfirmAction(null);
+                  },
+                });
+                return;
+              }
+              setLocalStatus((prev) => ({
+                ...prev,
+                [entry.id]: {
+                  status: newStatus,
+                  completed_at:
+                    newStatus === "done"
+                      ? new Date().toISOString().replace("T", " ").slice(0, 19)
+                      : null,
+                },
+              }));
+              updateEntry.mutate({ id: entry.id, status: newStatus });
+            }}
+          >
+            {entry.status === "done" ? "\u2713" : ""}
+          </button>
+        )}
+        <div className="entry-title">
+          <div>
+            {entry.result ? (
+              <button
+                type="button"
+                className="btn-result-title"
+                onClick={() => {
+                  setModalEntry({
+                    title: entry.title ?? entry.raw_text,
+                    result: entry.result as string,
+                  });
+                  if (!entry.result_seen) {
+                    updateEntry.mutate({ id: entry.id, result_seen: true });
+                  }
+                }}
+              >
+                {!entry.result_seen && <span className="badge-new">NEW</span>}
+                {entry.title ?? entry.raw_text}
+              </button>
+            ) : (
+              (entry.title ?? entry.raw_text)
+            )}
+            {entry.result_url && (
+              <a
+                href={entry.result_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="entry-result-url"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {"\u2197"} URL
+              </a>
+            )}
+          </div>
+          <div className="entry-tags">
+            {entry.type && tab === "all" && (
+              <span className="priority" style={{ marginLeft: 4 }}>
+                [{entry.type}]
+              </span>
+            )}
+            {entry.due_date &&
+              entry.status !== "done" &&
+              (() => {
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
+                const due = new Date(`${entry.due_date}T00:00:00`);
+                const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                const cls = diff < 0 ? "overdue" : diff <= 3 ? "soon" : "";
+                const dateStr = due.toLocaleDateString("ja-JP", {
+                  month: "short",
+                  day: "numeric",
+                });
+                const remain =
+                  diff < 0
+                    ? `${-diff}日超過`
+                    : diff === 0
+                      ? "今日"
+                      : diff === 1
+                        ? "明日"
+                        : `あと${diff}日`;
+                return (
+                  <span className={`due-date ${cls}`}>
+                    {dateStr}（{remain}）
+                  </span>
+                );
+              })()}
+            {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
+              <span className="completed-at">
+                {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="btn-del"
+          aria-label="削除"
+          onClick={() => {
+            setConfirmAction({
+              message: `「${entry.title ?? entry.raw_text}」を削除しますか？`,
+              okLabel: "削除",
+              onOk: () => {
+                deleteEntry.mutate({ id: entry.id });
+                setConfirmAction(null);
+              },
+            });
+          }}
+        >
+          x
+        </button>
+      </div>
+    ),
+    [tab, updateEntry, deleteEntry],
+  );
+
+  const pending = useMemo(
+    () => (tab === "task" ? items.filter((e) => e.status !== "done") : items),
+    [items, tab],
+  );
+  const done = useMemo(
+    () => (tab === "task" ? items.filter((e) => e.status === "done") : []),
+    [items, tab],
+  );
+
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
   }
@@ -121,158 +275,8 @@ export function EntryList({ tab }: EntryListProps) {
         />
       )}
       <div>
-        {(() => {
-          const renderEntry = (entry: (typeof items)[number]) => (
-            <div
-              key={entry.id}
-              className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}
-            >
-              {entry.type === "task" && (
-                <button
-                  type="button"
-                  className="checkbox"
-                  onClick={() => {
-                    const newStatus = entry.status === "done" ? "pending" : "done";
-                    if (tab === "llm" && newStatus === "pending") {
-                      setConfirmAction({
-                        message: "おつかいの成果があるけど、未完了に戻しますか？",
-                        onOk: () => {
-                          setLocalStatus((prev) => ({
-                            ...prev,
-                            [entry.id]: { status: "pending", completed_at: null },
-                          }));
-                          updateEntry.mutate({ id: entry.id, status: "pending" });
-                          setConfirmAction(null);
-                        },
-                      });
-                      return;
-                    }
-                    setLocalStatus((prev) => ({
-                      ...prev,
-                      [entry.id]: {
-                        status: newStatus,
-                        completed_at:
-                          newStatus === "done"
-                            ? new Date().toISOString().replace("T", " ").slice(0, 19)
-                            : null,
-                      },
-                    }));
-                    updateEntry.mutate({ id: entry.id, status: newStatus });
-                  }}
-                >
-                  {entry.status === "done" ? "\u2713" : ""}
-                </button>
-              )}
-              <div className="entry-title">
-                <div>
-                  {entry.result ? (
-                    <button
-                      type="button"
-                      className="btn-result-title"
-                      onClick={() => {
-                        setModalEntry({
-                          title: entry.title ?? entry.raw_text,
-                          result: entry.result as string,
-                        });
-                        if (!entry.result_seen) {
-                          updateEntry.mutate({ id: entry.id, result_seen: true });
-                        }
-                      }}
-                    >
-                      {!entry.result_seen && <span className="badge-new">NEW</span>}
-                      {entry.title ?? entry.raw_text}
-                    </button>
-                  ) : (
-                    (entry.title ?? entry.raw_text)
-                  )}
-                  {entry.result_url && (
-                    <a
-                      href={entry.result_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="entry-result-url"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {"\u2197"} URL
-                    </a>
-                  )}
-                </div>
-                <div className="entry-tags">
-                  {entry.type && tab === "all" && (
-                    <span className="priority" style={{ marginLeft: 4 }}>
-                      [{entry.type}]
-                    </span>
-                  )}
-                  {entry.due_date &&
-                    entry.status !== "done" &&
-                    (() => {
-                      const now = new Date();
-                      now.setHours(0, 0, 0, 0);
-                      const due = new Date(`${entry.due_date}T00:00:00`);
-                      const diff = Math.ceil(
-                        (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-                      );
-                      const cls = diff < 0 ? "overdue" : diff <= 3 ? "soon" : "";
-                      const dateStr = due.toLocaleDateString("ja-JP", {
-                        month: "short",
-                        day: "numeric",
-                      });
-                      const remain =
-                        diff < 0
-                          ? `${-diff}日超過`
-                          : diff === 0
-                            ? "今日"
-                            : diff === 1
-                              ? "明日"
-                              : `あと${diff}日`;
-                      return (
-                        <span className={`due-date ${cls}`}>
-                          {dateStr}（{remain}）
-                        </span>
-                      );
-                    })()}
-                  {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
-                    <span className="completed-at">
-                      {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="btn-del"
-                aria-label="削除"
-                onClick={() => {
-                  setConfirmAction({
-                    message: `「${entry.title ?? entry.raw_text}」を削除しますか？`,
-                    okLabel: "削除",
-                    onOk: () => {
-                      deleteEntry.mutate({ id: entry.id });
-                      setConfirmAction(null);
-                    },
-                  });
-                }}
-              >
-                x
-              </button>
-            </div>
-          );
-
-          const pending = tab === "task" ? items.filter((e) => e.status !== "done") : items;
-          const done = tab === "task" ? items.filter((e) => e.status === "done") : [];
-
-          return (
-            <>
-              {pending.map(renderEntry)}
-              {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
-            </>
-          );
-        })()}
+        {pending.map(renderEntry)}
+        {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
       </div>
     </>
   );
@@ -282,10 +286,8 @@ function DoneSection({
   items,
   renderEntry,
 }: {
-  // biome-ignore lint/suspicious/noExplicitAny: generic wrapper
-  items: any[];
-  // biome-ignore lint/suspicious/noExplicitAny: generic wrapper
-  renderEntry: (entry: any) => React.ReactNode;
+  items: EntryRow[];
+  renderEntry: (entry: EntryRow) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   return (

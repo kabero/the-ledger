@@ -381,19 +381,23 @@ export class EntryRepository {
   private rowsToEntries(rows: EntryRow[]): Entry[] {
     if (rows.length === 0) return [];
 
+    // Fetch tags in chunks to avoid SQLite SQLITE_MAX_VARIABLE_NUMBER limit
+    const CHUNK_SIZE = 100;
     const ids = rows.map((r) => r.id);
-    const placeholders = ids.map(() => "?").join(", ");
-    const tagRows = this.db
-      .prepare(`SELECT entry_id, tag FROM entry_tags WHERE entry_id IN (${placeholders})`)
-      .all(...ids) as { entry_id: string; tag: string }[];
-
     const tagMap = new Map<string, string[]>();
-    for (const t of tagRows) {
-      const arr = tagMap.get(t.entry_id);
-      if (arr) {
-        arr.push(t.tag);
-      } else {
-        tagMap.set(t.entry_id, [t.tag]);
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+      const chunk = ids.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => "?").join(", ");
+      const tagRows = this.db
+        .prepare(`SELECT entry_id, tag FROM entry_tags WHERE entry_id IN (${placeholders})`)
+        .all(...chunk) as { entry_id: string; tag: string }[];
+      for (const t of tagRows) {
+        const arr = tagMap.get(t.entry_id);
+        if (arr) {
+          arr.push(t.tag);
+        } else {
+          tagMap.set(t.entry_id, [t.tag]);
+        }
       }
     }
 

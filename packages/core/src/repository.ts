@@ -268,6 +268,15 @@ export class EntryRepository {
     })();
   }
 
+  markAllResultsSeen(): number {
+    const result = this.db
+      .prepare(
+        "UPDATE entries SET result_seen = 1, updated_at = datetime('now') WHERE result IS NOT NULL AND result_seen = 0",
+      )
+      .run();
+    return result.changes;
+  }
+
   delete(id: string): boolean {
     const result = this.db.prepare(`DELETE FROM entries WHERE id = ?`).run(id);
     return result.changes > 0;

@@ -70,6 +70,10 @@ export class EntryService {
     return this.repository.update(input);
   }
 
+  markAllResultsSeen(): number {
+    return this.repository.markAllResultsSeen();
+  }
+
   deleteEntry(id: string): boolean {
     // Clean up image file before deleting DB record
     const entry = this.repository.getById(id);

@@ -106,6 +106,10 @@ export const appRouter = t.router({
       return ctx.service.updateEntry(input);
     }),
 
+  markAllResultsSeen: t.procedure.mutation(({ ctx }) => {
+    return { count: ctx.service.markAllResultsSeen() };
+  }),
+
   deleteEntry: t.procedure.input(z.object({ id: z.string() })).mutation(({ input, ctx }) => {
     return ctx.service.deleteEntry(input.id);
   }),

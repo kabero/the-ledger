@@ -1684,6 +1684,24 @@ body {
   letter-spacing: 0.5px;
 }
 
+.ai-mark-all-seen {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border-muted);
+  border-radius: 4px;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ai-mark-all-seen:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .ai-dot {
   width: 8px;
   height: 8px;
@@ -2052,6 +2070,11 @@ body {
   color: var(--link-bright);
   font-size: 0.7rem;
   cursor: pointer;
+  text-decoration: none;
+}
+
+.ai-badge.link:hover {
+  background: rgba(59, 130, 246, 0.4);
 }
 
 @keyframes pulse {

@@ -484,6 +484,147 @@ describe("EntryRepository", () => {
       const entry = repo.create({ raw_text: "no decision" });
       expect(entry.decision_options).toBeNull();
     });
+
+    it("creates decision entry as a pending task", () => {
+      const entry = repo.create({
+        raw_text: "Which framework?",
+        type: "task",
+        title: "Choose framework",
+        decision_options: ["React", "Vue", "Svelte"],
+        delegatable: false,
+      });
+      expect(entry.status).toBe("pending");
+      expect(entry.decision_options).toEqual(["React", "Vue", "Svelte"]);
+      expect(entry.decision_selected).toBeNull();
+      expect(entry.delegatable).toBe(false);
+    });
+
+    it("selecting a decision and marking done completes the flow", () => {
+      const entry = repo.create({
+        raw_text: "Which DB?",
+        type: "task",
+        title: "Choose DB",
+        decision_options: ["Postgres", "SQLite"],
+      });
+
+      // Simulate human selecting option 0 with a comment, then marking done
+      const updated = repo.update({
+        id: entry.id,
+        decision_selected: 0,
+        decision_comment: "Simpler for embedded use",
+        status: "done",
+      });
+
+      expect(updated?.decision_selected).toBe(0);
+      expect(updated?.decision_comment).toBe("Simpler for embedded use");
+      expect(updated?.status).toBe("done");
+      expect(updated?.completed_at).not.toBeNull();
+    });
+
+    it("decision_selected can be cleared back to null", () => {
+      const entry = repo.create({
+        raw_text: "Pick one",
+        type: "task",
+        title: "Pick",
+        decision_options: ["A", "B"],
+      });
+      repo.update({ id: entry.id, decision_selected: 1 });
+      const cleared = repo.update({ id: entry.id, decision_selected: null });
+      expect(cleared?.decision_selected).toBeNull();
+    });
+
+    it("decision entry is found via list filter", () => {
+      repo.create({
+        raw_text: "Decision 1",
+        type: "task",
+        title: "D1",
+        decision_options: ["X", "Y"],
+        delegatable: false,
+      });
+      repo.create({
+        raw_text: "Normal task",
+        type: "task",
+        title: "T1",
+      });
+
+      // Both are tasks, but only one has decision_options
+      const allTasks = repo.list({ type: "task" });
+      expect(allTasks.length).toBe(2);
+      const withDecisions = allTasks.filter(
+        (e) => e.decision_options && e.decision_options.length > 0,
+      );
+      expect(withDecisions.length).toBe(1);
+      expect(withDecisions[0].title).toBe("D1");
+    });
+
+    it("handles empty decision_options array", () => {
+      const entry = repo.create({
+        raw_text: "Empty options",
+        type: "task",
+        title: "Empty",
+        decision_options: [],
+      });
+      // Empty array serializes to "[]" which parses back to empty array
+      expect(entry.decision_options).toEqual([]);
+    });
+
+    it("preserves decision fields through submitProcessed", () => {
+      // Create raw entry with decision options
+      const raw = repo.create({
+        raw_text: "Which approach?",
+        type: "task",
+        title: "Approach",
+        decision_options: ["Fast", "Thorough"],
+      });
+
+      // Re-process should not lose decision fields
+      const reprocessed = repo.submitProcessed({
+        id: raw.id,
+        type: "task",
+        title: "Approach (updated)",
+        tags: ["architecture"],
+        urgent: false,
+        due_date: null,
+        delegatable: false,
+      });
+
+      expect(reprocessed.decision_options).toEqual(["Fast", "Thorough"]);
+    });
+  });
+
+  // ─── markAllResultsSeen ─────────────────────────────────────
+
+  describe("markAllResultsSeen", () => {
+    it("marks all unseen results as seen", () => {
+      const e1 = repo.create({ raw_text: "a", type: "task", title: "A" });
+      const e2 = repo.create({ raw_text: "b", type: "task", title: "B" });
+      repo.update({ id: e1.id, result: "done A" });
+      repo.update({ id: e2.id, result: "done B" });
+
+      // Both should be unseen
+      expect(repo.getById(e1.id)?.result_seen).toBe(false);
+      expect(repo.getById(e2.id)?.result_seen).toBe(false);
+
+      const count = repo.markAllResultsSeen();
+      expect(count).toBe(2);
+
+      expect(repo.getById(e1.id)?.result_seen).toBe(true);
+      expect(repo.getById(e2.id)?.result_seen).toBe(true);
+    });
+
+    it("does not affect entries without results", () => {
+      repo.create({ raw_text: "no result", type: "task", title: "NR" });
+      const count = repo.markAllResultsSeen();
+      expect(count).toBe(0);
+    });
+
+    it("does not re-mark already seen results", () => {
+      const e = repo.create({ raw_text: "x", type: "task", title: "X" });
+      repo.update({ id: e.id, result: "done", result_seen: true });
+
+      const count = repo.markAllResultsSeen();
+      expect(count).toBe(0);
+    });
   });
 
   // ─── runInTransaction ─────────────────────────────────────

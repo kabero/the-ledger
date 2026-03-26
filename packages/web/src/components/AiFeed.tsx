@@ -36,6 +36,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
   };
   const updateEntry = trpc.updateEntry.useMutation({ onSuccess: invalidateAll });
   const deleteEntry = trpc.deleteEntry.useMutation({ onSuccess: invalidateAll });
+  const markAllSeen = trpc.markAllResultsSeen.useMutation({ onSuccess: invalidateAll });
 
   const allItems = delegatable.data ?? [];
   const allSourced = sourced.data ?? [];
@@ -346,6 +347,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
           <div className="ai-section">
             <div className="ai-section-title">
               <span className="ai-dot done" /> 最近の完了
+              {newResults > 0 && (
+                <button
+                  type="button"
+                  className="ai-mark-all-seen"
+                  onClick={() => markAllSeen.mutate()}
+                >
+                  すべて既読
+                </button>
+              )}
             </div>
             <div className="ai-mini-cards">
               {(showAllCompleted ? completed : completed.slice(0, 6)).map((e) => (

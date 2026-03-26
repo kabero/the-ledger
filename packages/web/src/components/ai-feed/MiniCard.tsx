@@ -42,9 +42,16 @@ export const MiniCard = memo(function MiniCard({
         <div className="ai-mini-meta">
           {entry.source && <span className="ai-badge source">{entry.source}</span>}
           {entry.result_url && (
-            <span className="ai-badge link" title={entry.result_url}>
+            <a
+              href={entry.result_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ai-badge link"
+              title={entry.result_url}
+              onClick={(e) => e.stopPropagation()}
+            >
               {"\u2197"}
-            </span>
+            </a>
           )}
           {time && <span className="ai-mini-time">{formatTime(time)}</span>}
         </div>

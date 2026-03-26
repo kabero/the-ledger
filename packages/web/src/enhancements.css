@@ -108,6 +108,14 @@
   opacity: 1;
 }
 
+/* Settings header */
+.settings-header-title {
+  font-size: 14px;
+  color: var(--accent, #ff0);
+  letter-spacing: 1px;
+  font-family: var(--font);
+}
+
 /* Keyboard shortcut hint */
 .shortcut-hint {
   font-size: 10px;

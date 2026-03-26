@@ -271,6 +271,9 @@ export function App() {
                 {tab.key === "llm" && newAiResultCount > 0 && (
                   <span className="tab-new-count">{newAiResultCount}</span>
                 )}
+                {tab.key === "task" && overdueCount > 0 && (
+                  <span className="tab-overdue-count">{overdueCount}</span>
+                )}
               </button>
             ))}
           </div>

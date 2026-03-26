@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { trpc } from "../trpc";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
@@ -62,6 +62,11 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
   }, []);
 
   const isBusy = uploading || addEntry.isPending;
+  const isMac = useMemo(
+    () => typeof navigator !== "undefined" && /Mac/.test(navigator.platform),
+    [],
+  );
+  const placeholder = isMac ? "頭の中にあること...  (Cmd+K)" : "頭の中にあること...  (Ctrl+K)";
 
   const handleSubmit = useCallback(async () => {
     if (isBusy) return;
@@ -136,7 +141,7 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
         <textarea
           ref={textareaRef}
           className="input-box"
-          placeholder="頭の中にあること..."
+          placeholder={placeholder}
           value={text}
           onChange={handleInput}
           onKeyDown={handleKeyDown}

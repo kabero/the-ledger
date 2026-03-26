@@ -289,10 +289,18 @@ export function Settings({ onClose }: SettingsProps) {
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
       <div className="result-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="result-modal-close" aria-label="閉じる" onClick={onClose}>
-          x
-        </button>
-        <div className="result-modal-title">フォント設定</div>
+        <div className="result-modal-header">
+          <span className="settings-header-title">設定</span>
+          <button
+            type="button"
+            className="result-modal-close"
+            aria-label="閉じる"
+            onClick={onClose}
+          >
+            x
+          </button>
+        </div>
+        <div className="result-modal-title">フォント</div>
         <div className="settings-font-list">
           {FONTS.map((font) => (
             <button

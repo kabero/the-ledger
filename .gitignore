@@ -4,3 +4,6 @@ dist
 *.db
 *.sqlite
 .env
+test-results/
+playwright-report/
+blob-report/

@@ -1515,21 +1515,22 @@ body {
 
 .ai-hover-modal {
   display: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
+  position: fixed;
+  left: 5vw;
+  right: 5vw;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 200;
-  max-height: 320px;
+  max-height: 70vh;
   overflow-y: auto;
   background: #111;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 12px;
-  font-size: 12px;
-  line-height: 1.6;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 20px;
+  font-size: 13px;
+  line-height: 1.7;
   color: var(--fg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
 

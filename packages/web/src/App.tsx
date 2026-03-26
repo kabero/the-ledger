@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
 import { applyFont, applyTheme, Settings } from "./components/Settings";
 import { SourcedList } from "./components/SourcedList";
+import { useOverdueDetection } from "./hooks/useOverdueDetection";
+import { useSwipe } from "./hooks/useSwipe";
 import { POLL } from "./poll";
 import { trpc } from "./trpc";
 import { MAIN_TABS, type Tab } from "./types";
@@ -57,10 +59,6 @@ export function App() {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [showSourcedModal, showSettings, showMobileInput, showGallery, showAiFeed]);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchEndX = useRef(0);
-  const touchEndY = useRef(0);
 
   // Disable polling when AiFeed is open (it has its own queries)
   const unprocessed = trpc.getUnprocessed.useQuery(
@@ -86,33 +84,7 @@ export function App() {
   });
 
   // Overdue task detection
-  const pendingTasks = trpc.listEntries.useQuery(
-    { type: "task", status: "pending", limit: 100 },
-    { refetchInterval: showAiFeed ? false : POLL.entries },
-  );
-  const [overdueDismissed, setOverdueDismissed] = useState(() => {
-    const key = "overdue-dismissed";
-    const stored = localStorage.getItem(key);
-    if (!stored) return false;
-    // Persist dismiss only for the current calendar day
-    const today = new Date().toISOString().slice(0, 10);
-    return stored === today;
-  });
-  const handleOverdueDismiss = useCallback(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem("overdue-dismissed", today);
-    setOverdueDismissed(true);
-  }, []);
-  const overdueCount = useMemo(() => {
-    if (!pendingTasks.data) return 0;
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return pendingTasks.data.filter((e) => {
-      if (!e.due_date) return false;
-      const due = new Date(`${e.due_date}T00:00:00`);
-      return due.getTime() < now.getTime();
-    }).length;
-  }, [pendingTasks.data]);
+  const { overdueCount, overdueDismissed, handleOverdueDismiss } = useOverdueDetection(showAiFeed);
 
   // External sourced entries for sidebar
   const sourcedEntries = trpc.listEntries.useQuery(
@@ -140,24 +112,18 @@ export function App() {
 
   const activeIndex = MAIN_TABS.findIndex((t) => t.key === activeTab);
 
-  const handleSwipe = useCallback(() => {
-    if (touchEndX.current === -1) return;
-    const diffX = touchStartX.current - touchEndX.current;
-    const diffY = Math.abs(touchStartY.current - touchEndY.current);
-    const threshold = 80;
-    // Ignore if vertical movement exceeds horizontal (scrolling, not swiping)
-    if (diffY > Math.abs(diffX)) return;
-    if (Math.abs(diffX) < threshold) return;
-    const diff = diffX;
-
-    // Only swipe between main tabs
-    if (activeIndex === -1) return;
-    if (diff > 0 && activeIndex < MAIN_TABS.length - 1) {
-      setActiveTab(MAIN_TABS[activeIndex + 1].key);
-    } else if (diff < 0 && activeIndex > 0) {
-      setActiveTab(MAIN_TABS[activeIndex - 1].key);
-    }
-  }, [activeIndex]);
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: useCallback(() => {
+      if (activeIndex >= 0 && activeIndex < MAIN_TABS.length - 1) {
+        setActiveTab(MAIN_TABS[activeIndex + 1].key);
+      }
+    }, [activeIndex]),
+    onSwipeRight: useCallback(() => {
+      if (activeIndex > 0) {
+        setActiveTab(MAIN_TABS[activeIndex - 1].key);
+      }
+    }, [activeIndex]),
+  });
 
   if (showGallery) {
     return <Gallery onClose={() => setShowGallery(false)} />;
@@ -311,16 +277,9 @@ export function App() {
           )}
           <div
             className="entry-list-box"
-            onTouchStart={(e) => {
-              touchStartX.current = e.touches[0].clientX;
-              touchStartY.current = e.touches[0].clientY;
-              touchEndX.current = -1;
-            }}
-            onTouchMove={(e) => {
-              touchEndX.current = e.touches[0].clientX;
-              touchEndY.current = e.touches[0].clientY;
-            }}
-            onTouchEnd={handleSwipe}
+            onTouchStart={swipeHandlers.onTouchStart}
+            onTouchMove={swipeHandlers.onTouchMove}
+            onTouchEnd={swipeHandlers.onTouchEnd}
           >
             <EntryList tab={activeTab} />
           </div>

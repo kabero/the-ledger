@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Markdown from "react-markdown";
+import { useClipboard } from "../../hooks/useClipboard";
 import { remarkPlugins, safeUrlTransform } from "../../markdown";
 import { trpc } from "../../trpc";
 import type { EntryItem } from "./types";
@@ -17,30 +18,7 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
   const updateEntry = trpc.updateEntry.useMutation({
     onSuccess: () => utils.listEntries.invalidate(),
   });
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyResult = async () => {
-    if (!entry.result) return;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(entry.result);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = entry.result;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // ignore
-    }
-  };
+  const [copied, copy] = useClipboard();
 
   const resultMarkdown = useMemo(
     () =>
@@ -110,7 +88,7 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
             <button
               type="button"
               className={`ai-action-btn ${copied ? "copied" : ""}`}
-              onClick={handleCopyResult}
+              onClick={() => entry.result && copy(entry.result)}
             >
               {copied ? "\u2713 copied" : "copy"}
             </button>

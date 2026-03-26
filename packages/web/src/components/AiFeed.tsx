@@ -3,8 +3,10 @@ import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import { DetailView } from "./ai-feed/DetailView";
 import { MiniCard } from "./ai-feed/MiniCard";
+import { PromptCopy } from "./ai-feed/PromptCopy";
 import type { EntryItem } from "./ai-feed/types";
 import { formatElapsed, formatTime } from "./ai-feed/utils";
+import { ConfirmModal } from "./ConfirmModal";
 import { EntryInput } from "./EntryInput";
 
 interface AiFeedProps {
@@ -165,39 +167,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
   return (
     <div className="ai-feed">
       {confirmDelete && (
-        <div
-          className="result-overlay"
-          role="dialog"
-          onClick={() => setConfirmDelete(null)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setConfirmDelete(null);
+        <ConfirmModal
+          message={`「${confirmDelete.label}」を削除しますか？`}
+          okLabel="削除"
+          onOk={() => {
+            deleteEntry.mutate({ id: confirmDelete.id });
+            setConfirmDelete(null);
           }}
-        >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="confirm-message">「{confirmDelete.label}」を削除しますか？</div>
-            <div className="confirm-buttons">
-              <button
-                type="button"
-                className="confirm-btn confirm-btn-cancel"
-                onClick={() => setConfirmDelete(null)}
-              >
-                やめる
-              </button>
-              <button
-                type="button"
-                className="confirm-btn confirm-btn-ok"
-                onClick={() => {
-                  deleteEntry.mutate({ id: confirmDelete.id });
-                  setConfirmDelete(null);
-                }}
-              >
-                削除
-              </button>
-            </div>
-          </div>
-        </div>
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
       <div className="ai-feed-header">
         <span className="ai-feed-title">AI Dashboard</span>
@@ -496,6 +474,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
             )}
           </div>
         )}
+
+        {/* Development prompts for Agent teams */}
+        <PromptCopy />
 
         {allAi.length === 0 && unprocessedItems.length === 0 && humanPending.length === 0 && (
           <div className="unprocessed-text">アクティビティはまだありません</div>

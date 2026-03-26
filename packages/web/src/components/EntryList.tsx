@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Markdown from "react-markdown";
-import { remarkPlugins, safeUrlTransform } from "../markdown";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import type { Tab } from "../types";
+import { ConfirmModal } from "./ConfirmModal";
+import { ResultModal } from "./ResultModal";
 
 type EntryRow = ReturnType<typeof trpc.listEntries.useQuery>["data"] extends (infer T)[] | undefined
   ? T & { status: string | null; completed_at: string | null }
@@ -460,114 +460,6 @@ function DoneSection({
         {open ? "\u25BC" : "\u25B6"} 完了済み ({items.length})
       </button>
       {open && items.map((entry) => renderEntry(entry))}
-    </div>
-  );
-}
-
-function ResultModal({
-  title,
-  result,
-  onClose,
-}: {
-  title: string;
-  result: string;
-  onClose: () => void;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(result);
-      } else {
-        // Fallback for older browsers
-        const textarea = document.createElement("textarea");
-        textarea.value = result;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Show error feedback if both methods fail
-      console.error("Failed to copy to clipboard");
-    }
-  };
-
-  return (
-    <div
-      className="result-overlay"
-      role="dialog"
-      aria-label={title}
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
-    >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-      <div className="result-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="result-modal-header">
-          <button
-            type="button"
-            className={`result-modal-copy ${copied ? "copied" : ""}`}
-            onClick={handleCopy}
-          >
-            {copied ? "\u2713 copied" : "copy"}
-          </button>
-          <button type="button" className="result-modal-close" onClick={onClose}>
-            x
-          </button>
-        </div>
-        <div className="result-modal-title">{title}</div>
-        <div className="result-modal-body">
-          <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-            {result.replace(/\\n/g, "\n")}
-          </Markdown>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ConfirmModal({
-  message,
-  onOk,
-  onCancel,
-  okLabel = "戻す",
-}: {
-  message: string;
-  onOk: () => void;
-  onCancel: () => void;
-  okLabel?: string;
-}) {
-  return (
-    <div
-      className="result-overlay"
-      role="dialog"
-      onClick={onCancel}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onCancel();
-      }}
-    >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-      <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="confirm-message">{message}</div>
-        <div className="confirm-buttons">
-          <button type="button" className="confirm-btn confirm-btn-cancel" onClick={onCancel}>
-            やめる
-          </button>
-          <button type="button" className="confirm-btn confirm-btn-ok" onClick={onOk}>
-            {okLabel}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   MAX_IMAGE_SIZE,
   ScheduledTaskRepository,
 } from "@theledger/core";
+import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "./router.js";
@@ -21,7 +22,62 @@ const service = new EntryService(repository, scheduledTaskRepository);
 
 const app = new Hono();
 
-app.use("/*", cors());
+// --- CORS: restrict origin when CORS_ORIGIN is set ---
+const corsOrigin = process.env.CORS_ORIGIN; // e.g. "http://localhost:5173"
+app.use("/*", cors(corsOrigin ? { origin: corsOrigin.split(","), credentials: true } : undefined));
+
+// --- API key authentication middleware ---
+const API_KEY = process.env.API_KEY;
+
+const requireApiKey: MiddlewareHandler = async (c, next) => {
+  // If API_KEY env is not set, skip auth (local dev)
+  if (!API_KEY) {
+    await next();
+    return;
+  }
+  const provided =
+    c.req.header("x-api-key") || c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
+  if (provided !== API_KEY) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  await next();
+};
+
+// --- Simple in-memory rate limiter ---
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX) || 30; // requests per window
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+const rateLimit: MiddlewareHandler = async (c, next) => {
+  const ip =
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    c.req.header("x-real-ip") ||
+    "unknown";
+  const now = Date.now();
+  let entry = rateLimitMap.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    entry = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    rateLimitMap.set(ip, entry);
+  }
+  entry.count++;
+  c.header("X-RateLimit-Limit", String(RATE_LIMIT_MAX));
+  c.header("X-RateLimit-Remaining", String(Math.max(0, RATE_LIMIT_MAX - entry.count)));
+  if (entry.count > RATE_LIMIT_MAX) {
+    return c.json({ error: "Too many requests" }, 429);
+  }
+  await next();
+};
+
+// Periodically clean up expired rate-limit entries (every 5 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateLimitMap) {
+    if (now >= val.resetAt) {
+      rateLimitMap.delete(key);
+    }
+  }
+}, 300_000).unref();
 
 app.use(
   "/trpc/*",
@@ -51,7 +107,7 @@ function validateAndCreateEntryFromImage(
   return svc.createEntryWithImage(imageData, normalizedExt, { raw_text: rawText });
 }
 
-app.post("/upload", async (c) => {
+app.post("/upload", requireApiKey, rateLimit, async (c) => {
   try {
     const body = await c.req.parseBody();
     const rawText = (body.raw_text as string) || "";
@@ -73,7 +129,7 @@ app.post("/upload", async (c) => {
 });
 
 // Simple JSON endpoint for iOS Shortcuts (base64 image)
-app.post("/api/quick-add", async (c) => {
+app.post("/api/quick-add", requireApiKey, rateLimit, async (c) => {
   try {
     const body = (await c.req.json()) as { raw_text?: string; image?: string; image_ext?: string };
     const rawText = body.raw_text || "";

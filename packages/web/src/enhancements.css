@@ -1414,6 +1414,344 @@ html {
 }
 
 /* ============================================================
+   TASK: Floating action button ripple effect
+   Subtle expanding ring on FAB tap for tactile feedback
+   ============================================================ */
+.fab-add {
+  position: relative;
+  overflow: hidden;
+}
+
+.fab-add::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(255, 255, 0, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0);
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
+  pointer-events: none;
+}
+
+.fab-add:active::after {
+  opacity: 1;
+  transform: scale(2);
+  transition: none;
+}
+
+/* ============================================================
+   TASK: Undo toast entrance from bottom with spring
+   More satisfying spring-bounce entrance for undo toast
+   ============================================================ */
+.undo-toast {
+  animation: undo-spring-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes undo-spring-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(24px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* ============================================================
+   TASK: Due date badge visual hierarchy
+   Overdue dates pulse, soon dates glow subtly
+   ============================================================ */
+.due-date.overdue {
+  animation: due-overdue-pulse 2s ease-in-out infinite;
+}
+
+@keyframes due-overdue-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.due-date.soon {
+  text-shadow: 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* ============================================================
+   TASK: Gallery tab active indicator underline
+   Accent underline for active gallery tab
+   ============================================================ */
+.gallery-tab.active {
+  position: relative;
+}
+
+.gallery-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--accent, #ff0);
+  border-radius: 1px;
+}
+
+/* ============================================================
+   TASK: Confirm modal backdrop blur
+   Frosted glass backdrop for confirm modals
+   ============================================================ */
+.result-overlay:has(.confirm-modal) {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="light"] .result-overlay:has(.confirm-modal) {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================
+   TASK: Input box textarea grow animation
+   Smooth height transition when typing multi-line input
+   ============================================================ */
+.input-box {
+  transition: height 0.15s ease;
+}
+
+/* ============================================================
+   TASK: Sidebar card type accent colors
+   Different left-border colors for different card types
+   ============================================================ */
+@media (hover: hover) {
+  .sidebar-card:has(.ai-badge.done):hover {
+    border-left-color: var(--done, #0f0);
+  }
+
+  .sidebar-card:has(.ai-badge.implementing):hover {
+    border-left-color: var(--warning, #f80);
+  }
+}
+
+/* ============================================================
+   TASK: Better visual for image indicator
+   Subtle pill-shaped badge for image attachments
+   ============================================================ */
+.img-indicator {
+  background: var(--border-subtle, #222);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   TASK: AI decision card urgency gradient
+   Left-to-right subtle gradient on decision cards
+   ============================================================ */
+.ai-decision-card {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--danger) 6%, var(--bg-card)) 0%,
+    var(--bg-card) 40%
+  );
+}
+
+/* ============================================================
+   TASK: Header button group visual cohesion
+   Subtle rounded container behind header-sub links
+   ============================================================ */
+.header-sub {
+  background: var(--bg-card, #0a0a0a);
+  border: 1px solid var(--border-subtle, #222);
+  border-radius: 16px;
+  padding: 2px 10px;
+}
+
+[data-theme="light"] .header-sub {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+}
+
+/* ============================================================
+   TASK: Schedule form field focus ring
+   Accent glow on schedule input focus
+   ============================================================ */
+.schedule-input:focus {
+  border-color: var(--accent, #ff0);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.schedule-number-input:focus {
+  border-color: var(--accent, #ff0);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.schedule-select:focus {
+  border-color: var(--accent, #ff0);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* ============================================================
+   TASK: AI badge shimmer for implementing status
+   Active shimmer on "implementing" badges to show activity
+   ============================================================ */
+.ai-badge.implementing {
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-badge.implementing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: badge-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes badge-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================================
+   TASK: Subtle noise texture on bg-elevated surfaces
+   Retro grain texture for elevated cards
+   ============================================================ */
+.ai-feed,
+.gallery {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
+}
+
+[data-theme="light"] .ai-feed,
+[data-theme="light"] .gallery {
+  background-image: none;
+}
+
+/* ============================================================
+   TASK: Sticky header shadow on scroll
+   Bottom shadow that appears when header is stuck
+   ============================================================ */
+.sticky-top {
+  transition: box-shadow 0.2s;
+}
+
+.sticky-top::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--border-subtle, #222) 20%,
+    var(--border-subtle, #222) 80%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+/* ============================================================
+   TASK: Mobile bottom sheet drag indicator
+   Pill-shaped drag handle at top of bottom sheets
+   ============================================================ */
+.sourced-modal::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 4px;
+  background: var(--border-muted, #333);
+  border-radius: 2px;
+  margin: 0 auto 12px;
+}
+
+/* ============================================================
+   TASK: Improved typography for result modal body
+   Better paragraph spacing and heading styles in result content
+   ============================================================ */
+.result-modal-body h1,
+.result-modal-body h2,
+.result-modal-body h3 {
+  color: var(--accent, #ff0);
+  margin-top: 12px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.result-modal-body h1 {
+  font-size: 16px;
+  border-bottom: 1px solid var(--border-subtle, #222);
+  padding-bottom: 4px;
+}
+
+.result-modal-body h2 {
+  font-size: 14px;
+}
+
+.result-modal-body h3 {
+  font-size: 13px;
+}
+
+.result-modal-body blockquote {
+  border-left: 3px solid var(--accent, #ff0);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--dim, #666);
+  font-style: italic;
+}
+
+.result-modal-body hr {
+  border: none;
+  border-top: 1px solid var(--border-subtle, #222);
+  margin: 12px 0;
+}
+
+/* ============================================================
+   TASK: AI pipeline stage number font-variant
+   Tabular numbers for pipeline counters to prevent layout shift
+   ============================================================ */
+.ai-pipe-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-kpi-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   TASK: Keyboard shortcut hint hover tooltip
+   Better visibility of shortcut hints on hover
+   ============================================================ */
+@media (hover: hover) {
+  .shortcut-hint {
+    transition: all 0.15s;
+  }
+
+  .shortcut-hint:hover {
+    background: var(--bg-elevated, #111);
+    border-color: var(--accent, #ff0);
+    color: var(--accent, #ff0);
+  }
+}
+
+/* ============================================================
    Light theme: Fix AI mini card gradient
    ============================================================ */
 [data-theme="light"] .ai-mini {

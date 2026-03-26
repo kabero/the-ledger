@@ -52,9 +52,11 @@ export const appRouter = t.router({
           source: z.string().optional(),
           since: z.string().optional(),
           until: z.string().optional(),
+          includeArchived: z.boolean().optional(),
           limit: z.number().int().positive().max(100).optional(),
           offset: z.number().int().nonnegative().optional(),
           sort: z.enum(["created_at", "updated_at", "completed_at"]).optional(),
+          cursor: z.string().optional(),
         })
         .optional(),
     )
@@ -75,6 +77,7 @@ export const appRouter = t.router({
           source: z.string().optional(),
           since: z.string().optional(),
           until: z.string().optional(),
+          includeArchived: z.boolean().optional(),
         })
         .optional(),
     )

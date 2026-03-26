@@ -317,10 +317,15 @@ describe("EntryService", () => {
       expect(entry.urgent).toBe(true);
     });
 
-    it("deletes an entry", () => {
+    it("soft-deletes an entry", () => {
       const entry = service.createEntry({ raw_text: "to delete" });
       expect(service.deleteEntry(entry.id)).toBe(true);
-      expect(service.getEntry(entry.id)).toBeNull();
+      const after = service.getEntry(entry.id);
+      expect(after).not.toBeNull();
+      expect(after?.archived_at).not.toBeNull();
+      // Excluded from list by default
+      const list = service.listEntries();
+      expect(list.find((e) => e.id === entry.id)).toBeUndefined();
     });
 
     it("returns false when deleting non-existent entry", () => {
@@ -666,14 +671,14 @@ describe("EntryService", () => {
       expect(service.getEntry(e2.id)?.status).toBe("done");
     });
 
-    it("bulkDelete removes multiple entries", () => {
+    it("bulkDelete soft-deletes multiple entries", () => {
       const e1 = service.createEntry({ raw_text: "a" });
       const e2 = service.createEntry({ raw_text: "b" });
 
       const count = service.bulkDelete([e1.id, e2.id]);
       expect(count).toBe(2);
-      expect(service.getEntry(e1.id)).toBeNull();
-      expect(service.getEntry(e2.id)).toBeNull();
+      expect(service.getEntry(e1.id)?.archived_at).not.toBeNull();
+      expect(service.getEntry(e2.id)?.archived_at).not.toBeNull();
     });
 
     it("bulkUpdateStatus with empty array returns 0", () => {

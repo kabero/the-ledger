@@ -411,18 +411,34 @@ describe("EntryRepository", () => {
 
   // ─── delete ───────────────────────────────────────────────
 
-  describe("delete", () => {
-    it("deletes an existing entry", () => {
+  describe("delete (soft-delete)", () => {
+    it("soft-deletes an existing entry (sets archived_at)", () => {
       const entry = repo.create({ raw_text: "to delete" });
       expect(repo.delete(entry.id)).toBe(true);
-      expect(repo.getById(entry.id)).toBeNull();
+      const after = repo.getById(entry.id);
+      expect(after).not.toBeNull();
+      expect(after?.archived_at).not.toBeNull();
+    });
+
+    it("soft-deleted entries are excluded from list()", () => {
+      const entry = repo.create({ raw_text: "to delete" });
+      repo.delete(entry.id);
+      const entries = repo.list();
+      expect(entries.find((e) => e.id === entry.id)).toBeUndefined();
+    });
+
+    it("soft-deleted entries are included with includeArchived", () => {
+      const entry = repo.create({ raw_text: "to archive" });
+      repo.delete(entry.id);
+      const entries = repo.list({ includeArchived: true });
+      expect(entries.find((e) => e.id === entry.id)).not.toBeUndefined();
     });
 
     it("returns false for non-existent entry", () => {
       expect(repo.delete("no-such-id")).toBe(false);
     });
 
-    it("cascades tag deletion", () => {
+    it("preserves tags on soft-delete", () => {
       const entry = repo.create({
         raw_text: "x",
         type: "task",
@@ -431,7 +447,35 @@ describe("EntryRepository", () => {
       });
       repo.delete(entry.id);
       const tagRows = db.prepare("SELECT * FROM entry_tags WHERE entry_id = ?").all(entry.id);
+      expect(tagRows.length).toBe(2);
+    });
+
+    it("hardDelete removes entry completely", () => {
+      const entry = repo.create({ raw_text: "permanent delete" });
+      expect(repo.hardDelete(entry.id)).toBe(true);
+      expect(repo.getById(entry.id)).toBeNull();
+    });
+
+    it("hardDelete cascades tag deletion", () => {
+      const entry = repo.create({
+        raw_text: "x",
+        type: "task",
+        title: "T",
+        tags: ["a", "b"],
+      });
+      repo.hardDelete(entry.id);
+      const tagRows = db.prepare("SELECT * FROM entry_tags WHERE entry_id = ?").all(entry.id);
       expect(tagRows.length).toBe(0);
+    });
+
+    it("restore brings back soft-deleted entry", () => {
+      const entry = repo.create({ raw_text: "restore me" });
+      repo.delete(entry.id);
+      expect(repo.restore(entry.id)).toBe(true);
+      const restored = repo.getById(entry.id);
+      expect(restored?.archived_at).toBeNull();
+      const entries = repo.list();
+      expect(entries.find((e) => e.id === entry.id)).not.toBeUndefined();
     });
   });
 
@@ -474,17 +518,26 @@ describe("EntryRepository", () => {
 
   // ─── bulkDelete ────────────────────────────────────────────
 
-  describe("bulkDelete", () => {
-    it("deletes multiple entries", () => {
+  describe("bulkDelete (soft-delete)", () => {
+    it("soft-deletes multiple entries", () => {
       const e1 = repo.create({ raw_text: "a" });
       const e2 = repo.create({ raw_text: "b" });
       const e3 = repo.create({ raw_text: "c" });
 
       const count = repo.bulkDelete([e1.id, e2.id]);
       expect(count).toBe(2);
-      expect(repo.getById(e1.id)).toBeNull();
-      expect(repo.getById(e2.id)).toBeNull();
-      expect(repo.getById(e3.id)).not.toBeNull();
+      expect(repo.getById(e1.id)?.archived_at).not.toBeNull();
+      expect(repo.getById(e2.id)?.archived_at).not.toBeNull();
+      expect(repo.getById(e3.id)?.archived_at).toBeNull();
+    });
+
+    it("soft-deleted entries excluded from list()", () => {
+      const e1 = repo.create({ raw_text: "a" });
+      const e2 = repo.create({ raw_text: "b" });
+      repo.bulkDelete([e1.id, e2.id]);
+      const entries = repo.list();
+      expect(entries.find((e) => e.id === e1.id)).toBeUndefined();
+      expect(entries.find((e) => e.id === e2.id)).toBeUndefined();
     });
 
     it("returns 0 for empty ids array", () => {
@@ -494,13 +547,6 @@ describe("EntryRepository", () => {
     it("ignores non-existent ids", () => {
       const count = repo.bulkDelete(["nonexistent"]);
       expect(count).toBe(0);
-    });
-
-    it("cascades tag deletion", () => {
-      const e = repo.create({ raw_text: "x", type: "task", title: "T", tags: ["a", "b"] });
-      repo.bulkDelete([e.id]);
-      const tags = db.prepare("SELECT * FROM entry_tags WHERE entry_id = ?").all(e.id);
-      expect(tags.length).toBe(0);
     });
   });
 

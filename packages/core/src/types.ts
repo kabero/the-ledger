@@ -40,6 +40,7 @@ export interface Entry extends RawEntry {
   decision_options: string[] | null;
   decision_selected: number | null;
   decision_comment: string | null;
+  archived_at: string | null;
 }
 
 export interface CreateEntryInput {
@@ -94,9 +95,11 @@ export interface ListEntriesFilter {
   source?: string; // filter by source (slack, auto-summary, etc.) — "any" matches all non-null
   since?: string; // ISO date — filter entries created on or after this date
   until?: string; // ISO date — filter entries created before this date
+  includeArchived?: boolean; // include soft-deleted entries (default: false)
   limit?: number;
   offset?: number;
   sort?: "created_at" | "updated_at" | "completed_at";
+  cursor?: string; // cursor for cursor-based pagination (created_at|id)
 }
 
 export type ScheduleFrequency = "daily" | "weekly" | "monthly";

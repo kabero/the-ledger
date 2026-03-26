@@ -4,7 +4,7 @@ import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
-import { applyFont, Settings } from "./components/Settings";
+import { applyFont, applyTheme, Settings } from "./components/Settings";
 import { remarkPlugins, safeUrlTransform } from "./markdown";
 import { POLL } from "./poll";
 import { trpc } from "./trpc";
@@ -28,6 +28,7 @@ export function App() {
 
   useEffect(() => {
     applyFont();
+    applyTheme();
   }, []);
 
   // Global keyboard shortcuts

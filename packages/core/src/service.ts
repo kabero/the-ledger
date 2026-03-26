@@ -172,7 +172,15 @@ export class EntryService {
   }
 
   deleteEntry(id: string): boolean {
-    // Clean up image file before deleting DB record
+    return this.repository.delete(id);
+  }
+
+  restoreEntry(id: string): boolean {
+    return this.repository.restore(id);
+  }
+
+  hardDeleteEntry(id: string): boolean {
+    // Clean up image file before hard-deleting DB record
     const entry = this.repository.getById(id);
     if (entry?.image_path) {
       try {
@@ -183,7 +191,7 @@ export class EntryService {
         // Ignore file deletion errors — DB record should still be deleted
       }
     }
-    return this.repository.delete(id);
+    return this.repository.hardDelete(id);
   }
 
   saveImage(data: Buffer, entryId: string, ext: string): string {

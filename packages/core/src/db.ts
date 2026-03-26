@@ -131,6 +131,9 @@ function runMigrations(db: Database.Database): void {
   if (!hasCol("decision_comment")) {
     db.exec("ALTER TABLE entries ADD COLUMN decision_comment TEXT"); // free-form human comment
   }
+  if (!hasCol("archived_at")) {
+    db.exec("ALTER TABLE entries ADD COLUMN archived_at TEXT"); // soft-delete timestamp
+  }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {
     db.exec(

@@ -12,9 +12,23 @@ const FONTS = [
 ];
 
 const STORAGE_KEY = "theledger-font";
+const THEME_STORAGE_KEY = "theledger-theme";
 
 function getStoredFont(): string {
   return localStorage.getItem(STORAGE_KEY) ?? "DotGothic16";
+}
+
+function getStoredTheme(): "dark" | "light" {
+  return (localStorage.getItem(THEME_STORAGE_KEY) as "dark" | "light") ?? "dark";
+}
+
+export function applyTheme(theme?: "dark" | "light"): void {
+  const t = theme ?? getStoredTheme();
+  if (t === "light") {
+    document.documentElement.setAttribute("data-theme", "light");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
 }
 
 export function applyFont(fontKey?: string): void {
@@ -246,6 +260,7 @@ interface SettingsProps {
 
 export function Settings({ onClose }: SettingsProps) {
   const [selected, setSelected] = useState(getStoredFont);
+  const [theme, setTheme] = useState(getStoredTheme);
 
   useEffect(() => {
     // プレビュー用に全フォントをプリロード
@@ -276,6 +291,13 @@ export function Settings({ onClose }: SettingsProps) {
     applyFont(key);
   };
 
+  const handleThemeToggle = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem(THEME_STORAGE_KEY, next);
+    applyTheme(next);
+  };
+
   return (
     <div
       className="result-overlay"
@@ -300,6 +322,28 @@ export function Settings({ onClose }: SettingsProps) {
             x
           </button>
         </div>
+        <div className="result-modal-title">テーマ</div>
+        <div className="settings-theme-toggle">
+          <button
+            type="button"
+            className={`settings-theme-btn ${theme === "dark" ? "active" : ""}`}
+            onClick={() => {
+              if (theme !== "dark") handleThemeToggle();
+            }}
+          >
+            Dark
+          </button>
+          <button
+            type="button"
+            className={`settings-theme-btn ${theme === "light" ? "active" : ""}`}
+            onClick={() => {
+              if (theme !== "light") handleThemeToggle();
+            }}
+          >
+            Light
+          </button>
+        </div>
+
         <div className="result-modal-title">フォント</div>
         <div className="settings-font-list">
           {FONTS.map((font) => (

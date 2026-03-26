@@ -17,4 +17,5 @@ export type EntryItem = {
   decision_options: string[] | null;
   decision_selected: number | null;
   decision_comment: string | null;
+  archived_at: string | null;
 };

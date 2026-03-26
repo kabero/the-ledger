@@ -890,3 +890,36 @@ html {
 .btn-send:not(:disabled):active {
   transform: scale(0.9);
 }
+
+/* ============================================================
+   Theme toggle in settings
+   ============================================================ */
+.settings-theme-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.settings-theme-btn {
+  flex: 1;
+  background: none;
+  border: 2px solid var(--border-muted, #333);
+  color: var(--dim, #666);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.settings-theme-btn.active {
+  color: var(--accent, #ff0);
+  border-color: var(--accent, #ff0);
+  background: var(--bg-accent-tint, #2a2a00);
+}
+
+.settings-theme-btn:hover:not(.active) {
+  border-color: var(--border-hover, #444);
+  color: var(--fg, #fff);
+}

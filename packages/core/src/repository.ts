@@ -29,6 +29,7 @@ interface EntryRow {
   decision_options: string | null;
   decision_selected: number | null;
   decision_comment: string | null;
+  archived_at: string | null;
 }
 
 function parseDecisionOptions(raw: string | null): string[] | null {
@@ -94,6 +95,11 @@ export class EntryRepository {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
+    // Exclude archived entries by default
+    if (!filter.includeArchived) {
+      conditions.push("e.archived_at IS NULL");
+    }
+
     if (filter.type !== undefined) {
       conditions.push("e.type = ?");
       params.push(filter.type);
@@ -144,9 +150,6 @@ export class EntryRepository {
       params.push(filter.until);
     }
 
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const limit = filter.limit ?? 100;
-    const offset = filter.offset ?? 0;
     const sortCol =
       filter.sort === "completed_at"
         ? "e.completed_at"
@@ -154,8 +157,31 @@ export class EntryRepository {
           ? "e.updated_at"
           : "e.created_at";
 
+    // Cursor-based pagination: decode cursor as "sortValue|rowid"
+    if (filter.cursor !== undefined) {
+      const sepIdx = filter.cursor.lastIndexOf("|");
+      if (sepIdx > 0) {
+        const cursorSort = filter.cursor.slice(0, sepIdx);
+        const cursorRowid = filter.cursor.slice(sepIdx + 1);
+        conditions.push(`(${sortCol} < ? OR (${sortCol} = ? AND e.rowid < ?))`);
+        params.push(cursorSort, cursorSort, Number(cursorRowid));
+      }
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const limit = filter.limit ?? 100;
+    // Use offset only when cursor is not provided (backward compat)
+    const offset = filter.cursor !== undefined ? 0 : (filter.offset ?? 0);
+
+    // Secondary sort: use rowid as tiebreaker for created_at (preserves insertion order),
+    // and created_at+rowid for other sorts
+    const secondarySort =
+      sortCol === "e.created_at" ? "e.rowid DESC" : "e.created_at DESC, e.rowid DESC";
+
     const rows = this.db
-      .prepare(`SELECT e.* FROM entries e ${where} ORDER BY ${sortCol} DESC LIMIT ? OFFSET ?`)
+      .prepare(
+        `SELECT e.* FROM entries e ${where} ORDER BY ${sortCol} DESC, ${secondarySort} LIMIT ? OFFSET ?`,
+      )
       .all(...params, limit, offset) as EntryRow[];
 
     return this.rowsToEntries(rows);
@@ -163,7 +189,9 @@ export class EntryRepository {
 
   getUnprocessed(limit: number = 20): Entry[] {
     const rows = this.db
-      .prepare(`SELECT * FROM entries WHERE processed = 0 ORDER BY created_at ASC LIMIT ?`)
+      .prepare(
+        `SELECT * FROM entries WHERE processed = 0 AND archived_at IS NULL ORDER BY created_at ASC LIMIT ?`,
+      )
       .all(limit) as EntryRow[];
     return this.rowsToEntries(rows);
   }
@@ -290,20 +318,42 @@ export class EntryRepository {
   markAllResultsSeen(): number {
     const result = this.db
       .prepare(
-        "UPDATE entries SET result_seen = 1, updated_at = datetime('now') WHERE result IS NOT NULL AND result_seen = 0",
+        "UPDATE entries SET result_seen = 1, updated_at = datetime('now') WHERE result IS NOT NULL AND result_seen = 0 AND archived_at IS NULL",
       )
       .run();
     return result.changes;
   }
 
   delete(id: string): boolean {
-    const result = this.db.prepare(`DELETE FROM entries WHERE id = ?`).run(id);
+    const result = this.db
+      .prepare(
+        "UPDATE entries SET archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND archived_at IS NULL",
+      )
+      .run(id);
+    return result.changes > 0;
+  }
+
+  hardDelete(id: string): boolean {
+    const result = this.db.prepare("DELETE FROM entries WHERE id = ?").run(id);
+    return result.changes > 0;
+  }
+
+  restore(id: string): boolean {
+    const result = this.db
+      .prepare(
+        "UPDATE entries SET archived_at = NULL, updated_at = datetime('now') WHERE id = ? AND archived_at IS NOT NULL",
+      )
+      .run(id);
     return result.changes > 0;
   }
 
   count(filter: ListEntriesFilter = {}): number {
     const conditions: string[] = [];
     const params: unknown[] = [];
+
+    if (!filter.includeArchived) {
+      conditions.push("e.archived_at IS NULL");
+    }
 
     if (filter.type !== undefined) {
       conditions.push("e.type = ?");
@@ -390,7 +440,9 @@ export class EntryRepository {
     if (ids.length === 0) return 0;
     return this.db.transaction(() => {
       let count = 0;
-      const stmt = this.db.prepare("DELETE FROM entries WHERE id = ?");
+      const stmt = this.db.prepare(
+        "UPDATE entries SET archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND archived_at IS NULL",
+      );
       for (const id of ids) {
         const result = stmt.run(id);
         count += result.changes;
@@ -411,6 +463,7 @@ export class EntryRepository {
            AND status = 'pending'
            AND due_date IS NOT NULL
            AND due_date < ?
+           AND archived_at IS NULL
          ORDER BY due_date ASC`,
       )
       .all(beforeDate) as EntryRow[];
@@ -423,14 +476,16 @@ export class EntryRepository {
   getTypeSummary(): { type: string; count: number }[] {
     return this.db
       .prepare(
-        `SELECT type, COUNT(*) as count FROM entries WHERE type IS NOT NULL GROUP BY type ORDER BY count DESC`,
+        `SELECT type, COUNT(*) as count FROM entries WHERE type IS NOT NULL AND archived_at IS NULL GROUP BY type ORDER BY count DESC`,
       )
       .all() as { type: string; count: number }[];
   }
 
   getUnseenResultCount(): number {
     const row = this.db
-      .prepare("SELECT COUNT(*) as cnt FROM entries WHERE result IS NOT NULL AND result_seen = 0")
+      .prepare(
+        "SELECT COUNT(*) as cnt FROM entries WHERE result IS NOT NULL AND result_seen = 0 AND archived_at IS NULL",
+      )
       .get() as { cnt: number };
     return row.cnt;
   }
@@ -438,7 +493,7 @@ export class EntryRepository {
   getPendingDecisionCount(): number {
     const row = this.db
       .prepare(
-        "SELECT COUNT(*) as cnt FROM entries WHERE decision_options IS NOT NULL AND decision_options != '[]' AND decision_selected IS NULL AND (status IS NULL OR status = 'pending')",
+        "SELECT COUNT(*) as cnt FROM entries WHERE decision_options IS NOT NULL AND decision_options != '[]' AND decision_selected IS NULL AND (status IS NULL OR status = 'pending') AND archived_at IS NULL",
       )
       .get() as { cnt: number };
     return row.cnt;
@@ -595,7 +650,9 @@ export class EntryRepository {
    */
   findDuplicate(rawText: string): Entry | null {
     const row = this.db
-      .prepare("SELECT * FROM entries WHERE raw_text = ? ORDER BY created_at DESC LIMIT 1")
+      .prepare(
+        "SELECT * FROM entries WHERE raw_text = ? AND archived_at IS NULL ORDER BY created_at DESC LIMIT 1",
+      )
       .get(rawText) as EntryRow | undefined;
     if (!row) return null;
     return this.rowToEntry(row);
@@ -617,7 +674,7 @@ export class EntryRepository {
     const rows = this.db
       .prepare(
         `SELECT * FROM entries
-         WHERE processed = 1 AND type IS NOT NULL
+         WHERE processed = 1 AND type IS NOT NULL AND archived_at IS NULL
          ORDER BY
            COALESCE(completed_at, updated_at, created_at) DESC
          LIMIT ?`,
@@ -699,6 +756,7 @@ export class EntryRepository {
       decision_options: parseDecisionOptions(row.decision_options),
       decision_selected: row.decision_selected ?? null,
       decision_comment: row.decision_comment ?? null,
+      archived_at: row.archived_at ?? null,
     }));
   }
 
@@ -728,6 +786,7 @@ export class EntryRepository {
       decision_options: parseDecisionOptions(row.decision_options),
       decision_selected: row.decision_selected ?? null,
       decision_comment: row.decision_comment ?? null,
+      archived_at: row.archived_at ?? null,
     };
   }
 }

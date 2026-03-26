@@ -179,6 +179,12 @@ export const appRouter = t.router({
     return ctx.service.getStats();
   }),
 
+  getRecentActivity: t.procedure
+    .input(z.object({ limit: z.number().int().positive().max(100).optional() }).optional())
+    .query(({ input, ctx }) => {
+      return ctx.service.getRecentActivity(input?.limit);
+    }),
+
   // スケジュールおつかい
   createScheduledTask: t.procedure
     .input(

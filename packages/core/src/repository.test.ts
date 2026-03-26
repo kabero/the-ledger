@@ -654,6 +654,41 @@ describe("EntryRepository", () => {
     });
   });
 
+  // ─── getRecentActivity ──────────────────────────────────────
+
+  describe("getRecentActivity", () => {
+    it("returns processed entries ordered by recent activity", () => {
+      repo.create({ raw_text: "a", type: "task", title: "A" });
+      repo.create({ raw_text: "b", type: "task", title: "B" });
+
+      const activity = repo.getRecentActivity(10);
+      expect(activity.length).toBe(2);
+      // Both processed entries should appear
+      const titles = activity.map((e) => e.title).sort();
+      expect(titles).toEqual(["A", "B"]);
+    });
+
+    it("excludes unprocessed entries", () => {
+      repo.create({ raw_text: "unprocessed" });
+      repo.create({ raw_text: "processed", type: "task", title: "P" });
+
+      const activity = repo.getRecentActivity(10);
+      expect(activity.length).toBe(1);
+      expect(activity[0].title).toBe("P");
+    });
+
+    it("respects limit", () => {
+      for (let i = 0; i < 5; i++) {
+        repo.create({ raw_text: `e${i}`, type: "task", title: `E${i}` });
+      }
+      expect(repo.getRecentActivity(3).length).toBe(3);
+    });
+
+    it("returns empty for empty database", () => {
+      expect(repo.getRecentActivity()).toEqual([]);
+    });
+  });
+
   // ─── rebuildFtsIndex ───────────────────────────────────────
 
   describe("rebuildFtsIndex", () => {

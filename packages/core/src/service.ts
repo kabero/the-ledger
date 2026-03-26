@@ -146,6 +146,10 @@ export class EntryService {
     this.repository.rebuildFtsIndex();
   }
 
+  getRecentActivity(limit: number = 20): Entry[] {
+    return this.repository.getRecentActivity(limit);
+  }
+
   deleteEntry(id: string): boolean {
     // Clean up image file before deleting DB record
     const entry = this.repository.getById(id);

@@ -566,6 +566,23 @@ export class EntryRepository {
   }
 
   /**
+   * Get a timeline of recent activity: newly created, completed, and decision entries.
+   * Returns entries sorted by their most relevant timestamp descending.
+   */
+  getRecentActivity(limit: number = 20): Entry[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM entries
+         WHERE processed = 1 AND type IS NOT NULL
+         ORDER BY
+           COALESCE(completed_at, updated_at, created_at) DESC
+         LIMIT ?`,
+      )
+      .all(limit) as EntryRow[];
+    return this.rowsToEntries(rows);
+  }
+
+  /**
    * Rebuild the FTS index from scratch. Useful after bulk operations
    * or if the index gets out of sync.
    */

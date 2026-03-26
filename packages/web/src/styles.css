@@ -381,6 +381,63 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Undo toast */
+.undo-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 10px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  animation: undo-slide-up 0.2s ease-out;
+  max-width: 90vw;
+}
+
+@keyframes undo-slide-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.undo-toast-msg {
+  font-size: 12px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.undo-toast-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.undo-toast-btn:active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
 .due-date {
   font-size: 10px;
   color: var(--dim);

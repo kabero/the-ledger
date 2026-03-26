@@ -66,6 +66,38 @@ export function EntryList({ tab }: EntryListProps) {
     okLabel?: string;
   } | null>(null);
 
+  // Undo toast state
+  const [undoToast, setUndoToast] = useState<{
+    message: string;
+    timerId: ReturnType<typeof setTimeout>;
+    undoFn: () => void;
+  } | null>(null);
+
+  const dismissUndo = useCallback(() => {
+    setUndoToast((prev) => {
+      if (prev) clearTimeout(prev.timerId);
+      return null;
+    });
+  }, []);
+
+  const showUndoToast = useCallback(
+    (message: string, executeFn: () => void, undoFn: () => void) => {
+      // Dismiss any existing toast first
+      setUndoToast((prev) => {
+        if (prev) {
+          clearTimeout(prev.timerId);
+        }
+        return null;
+      });
+      const timerId = setTimeout(() => {
+        executeFn();
+        setUndoToast(null);
+      }, 5000);
+      setUndoToast({ message, timerId, undoFn });
+    },
+    [],
+  );
+
   useEffect(() => {
     document.body.style.overflow = modalEntry || confirmAction ? "hidden" : "";
     return () => {
@@ -124,6 +156,8 @@ export function EntryList({ tab }: EntryListProps) {
             className="checkbox"
             onClick={() => {
               const newStatus = entry.status === "done" ? "pending" : "done";
+              const prevStatus = entry.status;
+              const prevCompletedAt = entry.completed_at;
               if (tab === "llm" && newStatus === "pending") {
                 setConfirmAction({
                   message: "おつかいの成果があるけど、未完了に戻しますか？",
@@ -138,17 +172,40 @@ export function EntryList({ tab }: EntryListProps) {
                 });
                 return;
               }
+              // Optimistic update
+              const newCompletedAt =
+                newStatus === "done"
+                  ? new Date().toISOString().replace("T", " ").slice(0, 19)
+                  : null;
               setLocalStatus((prev) => ({
                 ...prev,
                 [entry.id]: {
                   status: newStatus,
-                  completed_at:
-                    newStatus === "done"
-                      ? new Date().toISOString().replace("T", " ").slice(0, 19)
-                      : null,
+                  completed_at: newCompletedAt,
                 },
               }));
-              updateEntry.mutate({ id: entry.id, status: newStatus });
+              // Show undo toast with delayed server call
+              const label = entry.title ?? entry.raw_text;
+              const msg =
+                newStatus === "done"
+                  ? `「${label.length > 15 ? `${label.slice(0, 15)}...` : label}」を完了`
+                  : `「${label.length > 15 ? `${label.slice(0, 15)}...` : label}」を未完了に戻す`;
+              showUndoToast(
+                msg,
+                () => {
+                  updateEntry.mutate({ id: entry.id, status: newStatus });
+                },
+                () => {
+                  // Revert optimistic update
+                  setLocalStatus((prev) => ({
+                    ...prev,
+                    [entry.id]: {
+                      status: prevStatus ?? "pending",
+                      completed_at: prevCompletedAt ?? null,
+                    },
+                  }));
+                },
+              );
             }}
           >
             {entry.status === "done" ? "\u2713" : ""}
@@ -251,7 +308,7 @@ export function EntryList({ tab }: EntryListProps) {
         </button>
       </div>
     ),
-    [tab, updateEntry, deleteEntry],
+    [tab, updateEntry, deleteEntry, showUndoToast],
   );
 
   const pending = useMemo(
@@ -297,6 +354,21 @@ export function EntryList({ tab }: EntryListProps) {
         {pending.map(renderEntry)}
         {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
       </div>
+      {undoToast && (
+        <div className="undo-toast">
+          <span className="undo-toast-msg">{undoToast.message}</span>
+          <button
+            type="button"
+            className="undo-toast-btn"
+            onClick={() => {
+              undoToast.undoFn();
+              dismissUndo();
+            }}
+          >
+            元に戻す
+          </button>
+        </div>
+      )}
     </>
   );
 }

@@ -1735,4 +1735,82 @@ describe("EntryService", () => {
       expect(created.length).toBe(0);
     });
   });
+
+  // ─── Input validation (extended) ──────────────────────────
+
+  describe("createEntry extended validation", () => {
+    it("rejects raw_text over 50000 chars", () => {
+      expect(() => service.createEntry({ raw_text: "x".repeat(50_001) })).toThrow(
+        /raw_text too long/,
+      );
+    });
+
+    it("accepts raw_text at exactly 50000 chars", () => {
+      const entry = service.createEntry({ raw_text: "x".repeat(50_000) });
+      expect(entry.raw_text.length).toBe(50_000);
+    });
+
+    it("rejects more than 20 decision_options", () => {
+      const options = Array.from({ length: 21 }, (_, i) => `Option ${i}`);
+      expect(() =>
+        service.createEntry({
+          raw_text: "too many options",
+          type: "task",
+          title: "Options",
+          decision_options: options,
+        }),
+      ).toThrow(/Too many decision_options/);
+    });
+
+    it("accepts exactly 20 decision_options", () => {
+      const options = Array.from({ length: 20 }, (_, i) => `Option ${i}`);
+      const entry = service.createEntry({
+        raw_text: "many options",
+        type: "task",
+        title: "Options",
+        decision_options: options,
+      });
+      expect(entry.decision_options?.length).toBe(20);
+    });
+  });
+
+  // ─── listEntriesWithCursor ─────────────────────────────────
+
+  describe("listEntriesWithCursor", () => {
+    it("returns entries with nextCursor", () => {
+      for (let i = 0; i < 5; i++) {
+        service.createEntry({ raw_text: `e${i}`, type: "task", title: `E${i}` });
+      }
+
+      const page1 = service.listEntriesWithCursor({ limit: 2 });
+      expect(page1.entries.length).toBe(2);
+      expect(page1.nextCursor).not.toBeNull();
+
+      // biome-ignore lint/style/noNonNullAssertion: nextCursor asserted non-null above
+      const page2 = service.listEntriesWithCursor({ limit: 2, cursor: page1.nextCursor! });
+      expect(page2.entries.length).toBe(2);
+      // No overlap between pages
+      const page1Ids = new Set(page1.entries.map((e) => e.id));
+      for (const entry of page2.entries) {
+        expect(page1Ids.has(entry.id)).toBe(false);
+      }
+    });
+
+    it("returns null nextCursor on last page", () => {
+      service.createEntry({ raw_text: "only one", type: "task", title: "Solo" });
+
+      const result = service.listEntriesWithCursor({ limit: 10 });
+      expect(result.entries.length).toBe(1);
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it("works with type filter", () => {
+      service.createEntry({ raw_text: "t1", type: "task", title: "T1" });
+      service.createEntry({ raw_text: "n1", type: "note", title: "N1" });
+
+      const result = service.listEntriesWithCursor({ type: "task" });
+      expect(result.entries.length).toBe(1);
+      expect(result.entries[0].type).toBe("task");
+    });
+  });
 });

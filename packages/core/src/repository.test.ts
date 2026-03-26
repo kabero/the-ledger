@@ -1516,4 +1516,73 @@ describe("EntryRepository", () => {
       expect(repo.purgeTrash()).toBe(0);
     });
   });
+
+  // ─── listWithCursor ─────────────────────────────────────────
+
+  describe("listWithCursor", () => {
+    it("returns entries and null nextCursor when all fit in one page", () => {
+      repo.create({ raw_text: "a", type: "task", title: "A" });
+      repo.create({ raw_text: "b", type: "task", title: "B" });
+
+      const result = repo.listWithCursor({ limit: 10 });
+      expect(result.entries.length).toBe(2);
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it("returns nextCursor when more entries exist", () => {
+      for (let i = 0; i < 5; i++) {
+        repo.create({ raw_text: `entry-${i}`, type: "task", title: `Entry ${i}` });
+      }
+
+      const page1 = repo.listWithCursor({ limit: 2 });
+      expect(page1.entries.length).toBe(2);
+      expect(page1.nextCursor).not.toBeNull();
+    });
+
+    it("paginates through all entries using nextCursor", () => {
+      for (let i = 0; i < 5; i++) {
+        repo.create({ raw_text: `entry-${i}`, type: "task", title: `Entry ${i}` });
+      }
+
+      const allIds: string[] = [];
+
+      // Page 1
+      const page1 = repo.listWithCursor({ limit: 2 });
+      expect(page1.entries.length).toBe(2);
+      allIds.push(...page1.entries.map((e) => e.id));
+
+      // Page 2
+      // biome-ignore lint/style/noNonNullAssertion: nextCursor asserted non-null above
+      const page2 = repo.listWithCursor({ limit: 2, cursor: page1.nextCursor! });
+      expect(page2.entries.length).toBe(2);
+      allIds.push(...page2.entries.map((e) => e.id));
+
+      // Page 3 (last)
+      // biome-ignore lint/style/noNonNullAssertion: nextCursor asserted non-null above
+      const page3 = repo.listWithCursor({ limit: 2, cursor: page2.nextCursor! });
+      expect(page3.entries.length).toBe(1);
+      expect(page3.nextCursor).toBeNull();
+      allIds.push(...page3.entries.map((e) => e.id));
+
+      // All 5 unique entries collected
+      expect(new Set(allIds).size).toBe(5);
+    });
+
+    it("works with filters", () => {
+      repo.create({ raw_text: "t1", type: "task", title: "T1" });
+      repo.create({ raw_text: "t2", type: "task", title: "T2" });
+      repo.create({ raw_text: "n1", type: "note", title: "N1" });
+
+      const result = repo.listWithCursor({ type: "task", limit: 10 });
+      expect(result.entries.length).toBe(2);
+      expect(result.entries.every((e) => e.type === "task")).toBe(true);
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it("returns empty entries and null cursor for empty result", () => {
+      const result = repo.listWithCursor({ type: "task", limit: 10 });
+      expect(result.entries).toEqual([]);
+      expect(result.nextCursor).toBeNull();
+    });
+  });
 });

@@ -611,7 +611,11 @@ body {
 }
 
 .sidebar-card-summary p {
-  margin: 0;
+  margin: 0 0 4px;
+}
+
+.sidebar-card-summary p:last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 960px) {
@@ -1649,6 +1653,10 @@ body {
   display: block;
 }
 
+.ai-hover-modal p {
+  margin-bottom: 6px;
+}
+
 .ai-hover-modal h2,
 .ai-hover-modal h3,
 .ai-hover-modal h4 {
@@ -1817,6 +1825,10 @@ body {
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.7;
+}
+
+.ai-detail-result p {
+  margin-bottom: 6px;
 }
 
 .ai-detail-result h2,

@@ -2173,12 +2173,11 @@ body {
 }
 
 .ai-hover-modal {
-  display: none;
   position: fixed;
   left: 5vw;
   right: 5vw;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scale(0.97);
   z-index: var(--z-tooltip);
   max-height: 70vh;
   overflow-y: auto;
@@ -2191,10 +2190,18 @@ body {
   color: var(--fg);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
   pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s;
 }
 
 .ai-mini-wrap.has-tooltip:hover .ai-hover-modal {
-  display: block;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) scale(1);
 }
 
 .ai-hover-modal p {
@@ -2613,9 +2620,13 @@ body {
     font-size: 24px;
     cursor: pointer;
     z-index: var(--z-sticky);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.6),
+      0 0 0 0 rgba(255, 255, 0, 0);
     -webkit-tap-highlight-color: transparent;
-    transition: transform 0.15s;
+    transition:
+      transform 0.15s,
+      box-shadow 0.3s;
   }
 
   .fab-add:active {

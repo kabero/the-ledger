@@ -155,31 +155,33 @@ export class EntryRepository {
   }
 
   submitProcessed(input: SubmitProcessedInput): Entry {
-    this.db
-      .prepare(
-        `UPDATE entries SET processed = 1, type = ?, title = ?, urgent = ?, due_date = ?, delegatable = ?, updated_at = datetime('now') WHERE id = ?`,
-      )
-      .run(
-        input.type,
-        input.title,
-        input.urgent ? 1 : 0,
-        input.due_date,
-        input.delegatable ? 1 : 0,
-        input.id,
-      );
+    return this.db.transaction(() => {
+      this.db
+        .prepare(
+          `UPDATE entries SET processed = 1, type = ?, title = ?, urgent = ?, due_date = ?, delegatable = ?, updated_at = datetime('now') WHERE id = ?`,
+        )
+        .run(
+          input.type,
+          input.title,
+          input.urgent ? 1 : 0,
+          input.due_date,
+          input.delegatable ? 1 : 0,
+          input.id,
+        );
 
-    // Set status to "pending" only for tasks that don't already have a status
-    const current = this.db.prepare("SELECT status FROM entries WHERE id = ?").get(input.id) as
-      | { status: string | null }
-      | undefined;
-    if (input.type === "task" && (!current?.status || current.status !== "done")) {
-      this.db.prepare("UPDATE entries SET status = 'pending' WHERE id = ?").run(input.id);
-    }
+      // Set status to "pending" only for tasks that don't already have a status
+      const current = this.db.prepare("SELECT status FROM entries WHERE id = ?").get(input.id) as
+        | { status: string | null }
+        | undefined;
+      if (input.type === "task" && (!current?.status || current.status !== "done")) {
+        this.db.prepare("UPDATE entries SET status = 'pending' WHERE id = ?").run(input.id);
+      }
 
-    this.replaceTags(input.id, input.tags);
+      this.replaceTags(input.id, input.tags);
 
-    // biome-ignore lint/style/noNonNullAssertion: row just updated
-    return this.getById(input.id)!;
+      // biome-ignore lint/style/noNonNullAssertion: row just updated
+      return this.getById(input.id)!;
+    })();
   }
 
   update(input: UpdateEntryInput): Entry | null {

@@ -11,18 +11,19 @@ interface AiFeedProps {
 }
 
 export function AiFeed({ onClose }: AiFeedProps) {
+  // Stagger polling intervals to avoid simultaneous requests
   const delegatable = trpc.listEntries.useQuery(
     { delegatable: true, limit: 100 },
     { refetchInterval: 10_000 },
   );
   const sourced = trpc.listEntries.useQuery(
     { source: "any", limit: 100 },
-    { refetchInterval: 10_000 },
+    { refetchInterval: 15_000 },
   );
-  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 10_000 });
+  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 12_000 });
   const humanTasks = trpc.listEntries.useQuery(
     { type: "task", status: "pending", limit: 50 },
-    { refetchInterval: 10_000 },
+    { refetchInterval: 18_000 },
   );
   const utils = trpc.useUtils();
   const invalidateAll = () => {

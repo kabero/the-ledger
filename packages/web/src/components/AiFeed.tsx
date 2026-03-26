@@ -35,7 +35,13 @@ export function AiFeed({ onClose }: AiFeedProps) {
     { type: "task", status: "pending", limit: 50 },
     { refetchInterval: 10_000 },
   );
-  const updateEntry = trpc.updateEntry.useMutation();
+  const utils = trpc.useUtils();
+  const invalidateAll = () => {
+    utils.listEntries.invalidate();
+    utils.getUnprocessed.invalidate();
+  };
+  const updateEntry = trpc.updateEntry.useMutation({ onSuccess: invalidateAll });
+  const deleteEntry = trpc.deleteEntry.useMutation({ onSuccess: invalidateAll });
 
   const allItems = delegatable.data ?? [];
   const allSourced = sourced.data ?? [];
@@ -129,13 +135,27 @@ export function AiFeed({ onClose }: AiFeedProps) {
             </div>
           )}
           {selectedEntry.result ? (
-            <div className="ai-detail-result">
-              <div
-                className="result-markdown"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
-                dangerouslySetInnerHTML={{ __html: simpleMarkdown(selectedEntry.result) }}
-              />
-            </div>
+            <>
+              <div className="ai-detail-result">
+                <div
+                  className="result-markdown"
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
+                  dangerouslySetInnerHTML={{ __html: simpleMarkdown(selectedEntry.result) }}
+                />
+              </div>
+              {selectedEntry.status === "done" && selectedEntry.delegatable && (
+                <button
+                  type="button"
+                  className="ai-action-btn retry"
+                  onClick={() => {
+                    updateEntry.mutate({ id: selectedEntry.id, status: "pending" });
+                    setSelectedEntry(null);
+                  }}
+                >
+                  {"\u21BA"} もう一回やらせる
+                </button>
+              )}
+            </>
           ) : (
             <div className="ai-detail-empty">
               {selectedEntry.status === "done" ? "結果なし" : "作業待ち..."}
@@ -274,6 +294,14 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   <div className="ai-mini-title">{e.raw_text}</div>
                   <div className="ai-mini-meta">
                     <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                    <button
+                      type="button"
+                      className="ai-action trash"
+                      onClick={() => deleteEntry.mutate({ id: e.id })}
+                      title="削除"
+                    >
+                      {"\u2715"}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -295,6 +323,24 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     {e.due_date && <span className="ai-badge type">{e.due_date}</span>}
                     {e.urgent && <span className="ai-badge urgent">!</span>}
                     <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                  </div>
+                  <div className="ai-actions">
+                    <button
+                      type="button"
+                      className="ai-action done"
+                      onClick={() => updateEntry.mutate({ id: e.id, status: "done" })}
+                      title="完了"
+                    >
+                      {"\u2713"}
+                    </button>
+                    <button
+                      type="button"
+                      className="ai-action delegate"
+                      onClick={() => updateEntry.mutate({ id: e.id, delegatable: true })}
+                      title="AIに任せる"
+                    >
+                      AI
+                    </button>
                   </div>
                 </div>
               ))}

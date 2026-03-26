@@ -1413,6 +1413,73 @@ body {
   gap: 4px;
 }
 
+/* Action buttons */
+
+.ai-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.ai-action {
+  background: none;
+  border: 1px solid #333;
+  border-radius: 3px;
+  font-family: var(--font);
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ai-action.done {
+  color: var(--done);
+}
+
+.ai-action.done:hover {
+  background: #1a3a1a;
+  border-color: var(--done);
+}
+
+.ai-action.delegate {
+  color: var(--accent);
+}
+
+.ai-action.delegate:hover {
+  background: #2a2a00;
+  border-color: var(--accent);
+}
+
+.ai-action.trash {
+  color: var(--danger);
+  border: none;
+  padding: 0 4px;
+  font-size: 12px;
+}
+
+.ai-action.trash:hover {
+  color: #f66;
+}
+
+.ai-action-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ai-action-btn:hover {
+  background: #1a1a00;
+  border-color: var(--accent);
+}
+
 .ai-mini-wrap {
   position: relative;
 }

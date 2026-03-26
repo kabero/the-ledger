@@ -52,8 +52,8 @@ export function App() {
           e.preventDefault();
         }
       }
-      // Cmd+K or Ctrl+K: focus the search/input textarea
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      // Cmd+Shift+K or Ctrl+Shift+K: focus the search/input textarea
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "K") {
         e.preventDefault();
         const textarea = document.querySelector<HTMLTextAreaElement>(".input-box");
         if (textarea) {
@@ -115,15 +115,24 @@ export function App() {
     { source: "any", limit: 10 },
     { refetchInterval: showAiFeed ? false : POLL.sidebarSourced },
   );
-  const recentSourced = useMemo(
-    () =>
-      (sourcedEntries.data ?? [])
-        .sort(
-          (a, b) => new Date(`${b.created_at}Z`).getTime() - new Date(`${a.created_at}Z`).getTime(),
-        )
-        .slice(0, 8),
-    [sourcedEntries.data],
-  );
+  const { recentSourced, recentSummaries } = useMemo(() => {
+    const sorted = (sourcedEntries.data ?? []).sort(
+      (a, b) => new Date(`${b.created_at}Z`).getTime() - new Date(`${a.created_at}Z`).getTime(),
+    );
+    const summaries: typeof sorted = [];
+    const others: typeof sorted = [];
+    for (const e of sorted) {
+      if (e.source === "analyst" || e.source === "auto-summary") {
+        summaries.push(e);
+      } else {
+        others.push(e);
+      }
+    }
+    return {
+      recentSourced: others.slice(0, 8),
+      recentSummaries: summaries.slice(0, 8),
+    };
+  }, [sourcedEntries.data]);
 
   const activeIndex = MAIN_TABS.findIndex((t) => t.key === activeTab);
 
@@ -396,37 +405,74 @@ export function App() {
           </div>
         )}
       </div>
-      {recentSourced.length > 0 && (
+      {(recentSummaries.length > 0 || recentSourced.length > 0) && (
         <aside className="sidebar-sourced">
-          <div className="sidebar-title">外部入力</div>
-          {recentSourced.map((e) => (
-            <div key={e.id} className="sidebar-card">
-              <div className="sidebar-card-header">
-                {e.source && <span className="ai-badge source">{e.source}</span>}
-                <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
-              </div>
-              {e.result && (
-                <div className="sidebar-card-summary">
-                  <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                    {(e.result.length > 200 ? `${e.result.slice(0, 200)}...` : e.result).replace(
-                      /\\n/g,
-                      "\n",
-                    )}
-                  </Markdown>
+          {recentSummaries.length > 0 && (
+            <>
+              <div className="sidebar-title">サマリ</div>
+              {recentSummaries.map((e) => (
+                <div key={e.id} className="sidebar-card sidebar-card-summary-type">
+                  <div className="sidebar-card-header">
+                    {e.source && <span className="ai-badge source">{e.source}</span>}
+                    <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
+                  </div>
+                  {e.result && (
+                    <div className="sidebar-card-summary">
+                      <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                        {(e.result.length > 200
+                          ? `${e.result.slice(0, 200)}...`
+                          : e.result
+                        ).replace(/\\n/g, "\n")}
+                      </Markdown>
+                    </div>
+                  )}
+                  {!e.result && e.raw_text && (
+                    <div className="sidebar-card-summary">
+                      <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                        {(e.raw_text.length > 300
+                          ? `${e.raw_text.slice(0, 300)}...`
+                          : e.raw_text
+                        ).replace(/\\n/g, "\n")}
+                      </Markdown>
+                    </div>
+                  )}
                 </div>
-              )}
-              {e.result_url && (
-                <a
-                  href={e.result_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="entry-result-url"
-                >
-                  {"\u2197"} URL
-                </a>
-              )}
-            </div>
-          ))}
+              ))}
+            </>
+          )}
+          {recentSourced.length > 0 && (
+            <>
+              <div className="sidebar-title">外部入力</div>
+              {recentSourced.map((e) => (
+                <div key={e.id} className="sidebar-card">
+                  <div className="sidebar-card-header">
+                    {e.source && <span className="ai-badge source">{e.source}</span>}
+                    <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
+                  </div>
+                  {e.result && (
+                    <div className="sidebar-card-summary">
+                      <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                        {(e.result.length > 200
+                          ? `${e.result.slice(0, 200)}...`
+                          : e.result
+                        ).replace(/\\n/g, "\n")}
+                      </Markdown>
+                    </div>
+                  )}
+                  {e.result_url && (
+                    <a
+                      href={e.result_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="entry-result-url"
+                    >
+                      {"\u2197"} URL
+                    </a>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
         </aside>
       )}
     </div>

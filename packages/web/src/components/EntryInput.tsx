@@ -66,7 +66,9 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
     () => typeof navigator !== "undefined" && /Mac/.test(navigator.platform),
     [],
   );
-  const placeholder = isMac ? "頭の中にあること...  (Cmd+K)" : "頭の中にあること...  (Ctrl+K)";
+  const placeholder = isMac
+    ? "頭の中にあること...  (Cmd+Shift+K)"
+    : "頭の中にあること...  (Ctrl+Shift+K)";
 
   const handleSubmit = useCallback(async () => {
     if (isBusy) return;

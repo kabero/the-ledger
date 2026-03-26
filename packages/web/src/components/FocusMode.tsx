@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 
@@ -65,6 +65,21 @@ export function FocusMode({ onClose }: FocusModeProps) {
     setSkippedIds((prev) => new Set(prev).add(currentTask.id));
   };
 
+  // Keyboard shortcuts: Enter → complete, ArrowRight → skip
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleComplete();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleSkip();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  });
+
   const remainingCount = (entries.data ?? []).filter(
     (e) => e.status !== "done" && e.type !== "trash" && !e.delegatable,
   ).length;
@@ -90,9 +105,31 @@ export function FocusMode({ onClose }: FocusModeProps) {
           <>
             <div className="focus-mode-card">
               {currentTask.urgent && <span className="focus-mode-urgent">URGENT</span>}
-              {currentTask.due_date && (
-                <span className="focus-mode-due">{currentTask.due_date}</span>
-              )}
+              {currentTask.due_date &&
+                (() => {
+                  const now = new Date();
+                  now.setHours(0, 0, 0, 0);
+                  const due = new Date(`${currentTask.due_date}T00:00:00`);
+                  const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const dateStr = due.toLocaleDateString("ja-JP", {
+                    month: "short",
+                    day: "numeric",
+                  });
+                  const remain =
+                    diff < 0
+                      ? `${-diff}日超過`
+                      : diff === 0
+                        ? "今日"
+                        : diff === 1
+                          ? "明日"
+                          : `あと${diff}日`;
+                  const cls = diff < 0 ? "overdue" : diff <= 3 ? "soon" : "";
+                  return (
+                    <span className={`focus-mode-due ${cls}`}>
+                      {dateStr}（{remain}）
+                    </span>
+                  );
+                })()}
               <h1 className="focus-mode-title">{currentTask.title || currentTask.raw_text}</h1>
               {currentTask.title && currentTask.raw_text !== currentTask.title && (
                 <p className="focus-mode-detail">{currentTask.raw_text}</p>

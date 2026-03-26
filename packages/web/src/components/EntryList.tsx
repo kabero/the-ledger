@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Markdown from "react-markdown";
+import { remarkPlugins, safeUrlTransform } from "../markdown";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import type { Tab } from "../types";
@@ -681,7 +683,11 @@ export function EntryList({ tab }: EntryListProps) {
                 {selectedEntry.result && (
                   <div className="detail-panel-section">
                     <h3 className="detail-panel-section-title">結果</h3>
-                    <div className="detail-panel-text">{selectedEntry.result}</div>
+                    <div className="detail-panel-text">
+                      <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                        {selectedEntry.result}
+                      </Markdown>
+                    </div>
                   </div>
                 )}
               </div>

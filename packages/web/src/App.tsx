@@ -292,6 +292,20 @@ export function App() {
               ))}
             </div>
           )}
+          {(activeTab === "all" || activeTab === "done") && (
+            <div className="view-banner">
+              <span className="view-banner-label">
+                {activeTab === "all" ? "すべて" : "完了済み"}
+              </span>
+              <button
+                type="button"
+                className="view-banner-back"
+                onClick={() => setActiveTab("task")}
+              >
+                {"\u2190"} タスクに戻る
+              </button>
+            </div>
+          )}
           {activeTab === "llm" && hasNewAiResults && (
             <div className="tab-action-bar">
               <button

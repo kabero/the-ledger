@@ -24,6 +24,7 @@ interface EntryRow {
   result_seen: number;
   updated_at: string | null;
   completed_at: string | null;
+  source: string | null;
 }
 
 export class EntryRepository {
@@ -31,16 +32,29 @@ export class EntryRepository {
 
   create(input: CreateEntryInput): Entry {
     const id = uuidv4();
-    if (input.image_path) {
-      this.db
-        .prepare(
-          `INSERT INTO entries (id, raw_text, image_path, updated_at) VALUES (?, ?, ?, datetime('now'))`,
-        )
-        .run(id, input.raw_text, input.image_path);
-    } else {
-      this.db
-        .prepare(`INSERT INTO entries (id, raw_text, updated_at) VALUES (?, ?, datetime('now'))`)
-        .run(id, input.raw_text);
+    const preClassified = input.type && input.title;
+
+    this.db
+      .prepare(
+        `INSERT INTO entries (id, raw_text, image_path, type, title, urgent, due_date, status, delegatable, source, processed, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      )
+      .run(
+        id,
+        input.raw_text,
+        input.image_path ?? null,
+        input.type ?? null,
+        input.title ?? null,
+        input.urgent ? 1 : 0,
+        input.due_date ?? null,
+        preClassified && input.type === "task" ? "pending" : null,
+        input.delegatable ? 1 : 0,
+        input.source ?? null,
+        preClassified ? 1 : 0,
+      );
+
+    if (preClassified && input.tags?.length) {
+      this.replaceTags(id, input.tags);
     }
 
     // biome-ignore lint/style/noNonNullAssertion: row just inserted
@@ -341,6 +355,7 @@ export class EntryRepository {
       result: row.result ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
+      source: row.source ?? null,
     }));
   }
 
@@ -365,6 +380,7 @@ export class EntryRepository {
       result: row.result ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
+      source: row.source ?? null,
     };
   }
 }

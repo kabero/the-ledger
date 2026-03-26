@@ -116,6 +116,9 @@ function runMigrations(db: Database.Database): void {
       "UPDATE entries SET completed_at = updated_at WHERE status = 'done' AND completed_at IS NULL",
     );
   }
+  if (!hasCol("source")) {
+    db.exec("ALTER TABLE entries ADD COLUMN source TEXT");
+  }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {
     db.exec(

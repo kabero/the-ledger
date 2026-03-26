@@ -26,22 +26,52 @@ const server = new McpServer({
 
 server.tool(
   "add_entry",
-  "Add a new raw entry to The Ledger. Just throw in whatever you're thinking. Optionally attach an image.",
+  "Add a new entry to The Ledger. Provide just raw_text for quick capture (will need processing later), or include type + title to add a pre-classified entry that skips the processing queue.",
   {
     raw_text: z.string().describe("The raw text of the thought, idea, task, etc."),
+    type: z.enum(ENTRY_TYPES).optional().describe("Pre-classify: task, note, wish, or trash"),
+    title: z.string().optional().describe("Short title (required if type is provided)"),
+    tags: z.array(z.string()).optional().describe("Tags for categorization"),
+    urgent: z.boolean().optional().describe("Whether this is urgent"),
+    due_date: z.string().nullable().optional().describe("ISO date string for deadline"),
+    delegatable: z.boolean().optional().describe("Whether this task can be delegated to an LLM"),
+    source: z
+      .string()
+      .optional()
+      .describe("Origin of the entry: slack, email, calendar, web, etc."),
     image: z.string().optional().describe("Base64-encoded image data (optional)"),
     image_ext: z
       .string()
       .optional()
       .describe("Image file extension: png, jpg, jpeg, gif, webp (optional)"),
   },
-  async ({ raw_text, image, image_ext }) => {
+  async ({
+    raw_text,
+    type,
+    title,
+    tags,
+    urgent,
+    due_date,
+    delegatable,
+    source,
+    image,
+    image_ext,
+  }) => {
     let entry: Entry;
     if (image && image_ext) {
       const imageData = Buffer.from(image, "base64");
       entry = service.createEntryWithImage(raw_text, imageData, image_ext);
     } else {
-      entry = service.createEntry({ raw_text });
+      entry = service.createEntry({
+        raw_text,
+        type,
+        title,
+        tags,
+        urgent,
+        due_date,
+        delegatable,
+        source,
+      });
     }
     return {
       content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],

@@ -35,11 +35,20 @@ export interface Entry extends RawEntry {
   result: string | null;
   result_seen: boolean;
   completed_at: string | null;
+  source: string | null;
 }
 
 export interface CreateEntryInput {
   raw_text: string;
   image_path?: string;
+  // Pre-classified fields — if type + title provided, entry is marked as processed
+  type?: EntryType;
+  title?: string;
+  tags?: string[];
+  urgent?: boolean;
+  due_date?: string | null;
+  delegatable?: boolean;
+  source?: string;
 }
 
 export interface SubmitProcessedInput {

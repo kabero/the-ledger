@@ -1816,15 +1816,29 @@ body {
 
 @media (max-width: 480px) {
   .ai-mini-cards {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 
   .ai-pipeline {
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 6px 8px;
     padding: 12px 8px;
+    justify-content: space-evenly;
+  }
+
+  .ai-pipe-arrow {
+    display: none;
+  }
+
+  .ai-pipe-sep {
+    display: none;
   }
 
   .ai-pipe-num {
     font-size: 22px;
+  }
+
+  .ai-pipe-stage {
+    min-width: 40px;
   }
 }

@@ -33,6 +33,15 @@
   flex-wrap: wrap;
 }
 
+.ai-detail-actions .ai-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+
 .ai-action-btn.urgent-active {
   color: var(--danger, #ff5252);
   border-color: var(--danger, #ff5252);

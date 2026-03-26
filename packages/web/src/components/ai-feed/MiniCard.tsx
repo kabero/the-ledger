@@ -36,7 +36,11 @@ export const MiniCard = memo(function MiniCard({
 
   return (
     <div className={`ai-mini-wrap ${hoverContent ? "has-tooltip" : ""}`}>
-      <button type="button" className={`ai-mini ${className}`} onClick={onClick}>
+      <button
+        type="button"
+        className={`ai-mini ${className} ${entry.result_url ? "has-link" : ""}`}
+        onClick={onClick}
+      >
         <div className="ai-mini-top">
           <div className="ai-mini-title">{entry.title ?? entry.raw_text}</div>
           {showImplementing && <span className="ai-badge implementing">実装中</span>}

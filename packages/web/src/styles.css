@@ -1949,6 +1949,10 @@ body {
   border-left-color: var(--accent);
 }
 
+.ai-mini.has-link {
+  border-right: 2px solid var(--link-bright);
+}
+
 .ai-mini-top {
   display: flex;
   justify-content: space-between;

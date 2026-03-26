@@ -44,6 +44,10 @@ server.tool(
       .string()
       .optional()
       .describe("Markdown-formatted content body (e.g. summary, research results)"),
+    result_url: z
+      .string()
+      .optional()
+      .describe("URL to external result (e.g. GitHub PR, deployed page, document)"),
     image: z.string().optional().describe("Base64-encoded image data (optional)"),
     image_ext: z
       .string()
@@ -60,6 +64,7 @@ server.tool(
     delegatable,
     source,
     result,
+    result_url,
     image,
     image_ext,
   }) => {
@@ -78,6 +83,7 @@ server.tool(
         delegatable,
         source,
         result,
+        result_url,
       });
     }
     return {
@@ -267,9 +273,13 @@ server.tool(
       .describe(
         "Markdown-formatted summary of completed work. Use headings, lists, bold for structure.",
       ),
+    result_url: z
+      .string()
+      .optional()
+      .describe("URL to external result (e.g. GitHub PR, deployed page, document)"),
   },
-  async ({ id, result }) => {
-    const entry = service.updateEntry({ id, status: "done", result });
+  async ({ id, result, result_url }) => {
+    const entry = service.updateEntry({ id, status: "done", result, result_url });
     return {
       content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
     };

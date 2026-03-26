@@ -119,6 +119,9 @@ function runMigrations(db: Database.Database): void {
   if (!hasCol("source")) {
     db.exec("ALTER TABLE entries ADD COLUMN source TEXT");
   }
+  if (!hasCol("result_url")) {
+    db.exec("ALTER TABLE entries ADD COLUMN result_url TEXT");
+  }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {
     db.exec(

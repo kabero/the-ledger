@@ -33,6 +33,7 @@ export interface Entry extends RawEntry {
   delegatable: boolean;
   image_path: string | null;
   result: string | null;
+  result_url: string | null;
   result_seen: boolean;
   completed_at: string | null;
   source: string | null;
@@ -50,6 +51,7 @@ export interface CreateEntryInput {
   delegatable?: boolean;
   source?: string;
   result?: string;
+  result_url?: string;
 }
 
 export interface SubmitProcessedInput {
@@ -72,6 +74,7 @@ export interface UpdateEntryInput {
   type?: EntryType;
   delegatable?: boolean;
   result?: string;
+  result_url?: string;
   result_seen?: boolean;
 }
 

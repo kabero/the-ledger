@@ -20,6 +20,7 @@ type EntryItem = {
   status: string | null;
   source: string | null;
   result: string | null;
+  result_url: string | null;
   result_seen: boolean;
   urgent: boolean;
   delegatable: boolean;
@@ -147,6 +148,16 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 </span>
               ))}
             </div>
+          )}
+          {selectedEntry.result_url && (
+            <a
+              href={selectedEntry.result_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ai-result-url"
+            >
+              {"\u2197"} {selectedEntry.result_url}
+            </a>
           )}
           {selectedEntry.result ? (
             <>

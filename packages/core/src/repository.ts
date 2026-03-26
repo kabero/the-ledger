@@ -21,6 +21,7 @@ interface EntryRow {
   delegatable: number;
   image_path: string | null;
   result: string | null;
+  result_url: string | null;
   result_seen: number;
   updated_at: string | null;
   completed_at: string | null;
@@ -36,8 +37,8 @@ export class EntryRepository {
 
     this.db
       .prepare(
-        `INSERT INTO entries (id, raw_text, image_path, type, title, urgent, due_date, status, delegatable, source, result, processed, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO entries (id, raw_text, image_path, type, title, urgent, due_date, status, delegatable, source, result, result_url, processed, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
       .run(
         id,
@@ -51,6 +52,7 @@ export class EntryRepository {
         input.delegatable ? 1 : 0,
         input.source ?? null,
         input.result ?? null,
+        input.result_url ?? null,
         preClassified ? 1 : 0,
       );
 
@@ -206,6 +208,10 @@ export class EntryRepository {
       sets.push("result = ?");
       params.push(input.result);
       sets.push("result_seen = 0");
+    }
+    if (input.result_url !== undefined) {
+      sets.push("result_url = ?");
+      params.push(input.result_url);
     }
     if (input.result_seen !== undefined) {
       sets.push("result_seen = ?");
@@ -383,6 +389,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
+      result_url: row.result_url ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
       source: row.source ?? null,
@@ -408,6 +415,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
+      result_url: row.result_url ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
       source: row.source ?? null,

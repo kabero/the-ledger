@@ -94,6 +94,7 @@ export const appRouter = t.router({
         type: entryTypeEnum.optional(),
         delegatable: z.boolean().optional(),
         result: z.string().optional(),
+        result_url: z.string().optional(),
         result_seen: z.boolean().optional(),
       }),
     )

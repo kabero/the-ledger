@@ -7,7 +7,9 @@
     "dev": "vite",
     "generate-icons": "node scripts/generate-icons.mjs",
     "build": "node scripts/generate-icons.mjs && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "screenshot": "npx tsx scripts/screenshot.ts",
+    "test:e2e": "npx playwright test"
   },
   "dependencies": {
     "@tanstack/react-query": "^5",
@@ -23,6 +25,7 @@
     "superjson": "^2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4",

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { Gallery } from "./components/Gallery";
 import { applyFont, Settings } from "./components/Settings";
+import { remarkPlugins, safeUrlTransform } from "./markdown";
 import { POLL } from "./poll";
 import { trpc } from "./trpc";
 
@@ -219,7 +219,7 @@ export function App() {
               </div>
               {e.result && (
                 <div className="sidebar-card-summary">
-                  <Markdown remarkPlugins={[remarkGfm]}>
+                  <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
                     {(e.result.length > 200 ? `${e.result.slice(0, 200)}...` : e.result).replace(
                       /\\n/g,
                       "\n",

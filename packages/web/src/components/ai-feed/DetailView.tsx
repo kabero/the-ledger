@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { remarkPlugins, safeUrlTransform } from "../../markdown";
 import type { EntryItem } from "./types";
 import { formatDateTime, normalizeResult } from "./utils";
 
@@ -11,13 +11,13 @@ interface DetailViewProps {
   onRetry: (id: string) => void;
 }
 
-const remarkPlugins = [remarkGfm];
-
 export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps) {
   const resultMarkdown = useMemo(
     () =>
       entry.result ? (
-        <Markdown remarkPlugins={remarkPlugins}>{normalizeResult(entry.result)}</Markdown>
+        <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+          {normalizeResult(entry.result)}
+        </Markdown>
       ) : null,
     [entry.result],
   );
@@ -25,7 +25,9 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
   const rawTextMarkdown = useMemo(
     () =>
       !entry.result && entry.raw_text && entry.raw_text !== entry.title ? (
-        <Markdown remarkPlugins={remarkPlugins}>{normalizeResult(entry.raw_text)}</Markdown>
+        <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+          {normalizeResult(entry.raw_text)}
+        </Markdown>
       ) : null,
     [entry.result, entry.raw_text, entry.title],
   );

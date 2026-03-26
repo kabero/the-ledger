@@ -695,6 +695,29 @@ body {
   font-size: 14px;
 }
 
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.empty-state-title {
+  color: var(--dim);
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.empty-state-hint {
+  color: var(--dim);
+  font-size: 13px;
+  line-height: 2;
+}
+
+.empty-state-arrow {
+  color: var(--accent);
+  font-size: 14px;
+}
+
 /* Image attach button */
 .btn-img {
   background: transparent;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { remarkPlugins, safeUrlTransform } from "../markdown";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 
@@ -264,7 +264,16 @@ export function EntryList({ tab }: EntryListProps) {
   );
 
   if (items.length === 0) {
-    return <div className="unprocessed-text">まだ何もない。</div>;
+    return (
+      <div className="empty-state">
+        <div className="empty-state-title">まだ何もない。</div>
+        <div className="empty-state-hint">
+          頭の中にあること、なんでも書いてみて。
+          <br />
+          <span className="empty-state-arrow">{"+"} を押して入力スタート</span>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -372,7 +381,9 @@ function ResultModal({
         </div>
         <div className="result-modal-title">{title}</div>
         <div className="result-modal-body">
-          <Markdown remarkPlugins={[remarkGfm]}>{result.replace(/\\n/g, "\n")}</Markdown>
+          <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+            {result.replace(/\\n/g, "\n")}
+          </Markdown>
         </div>
       </div>
     </div>

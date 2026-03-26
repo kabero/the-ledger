@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { remarkPlugins, safeUrlTransform } from "../../markdown";
 import type { EntryItem } from "./types";
 import { formatTime, normalizeResult } from "./utils";
 
@@ -11,8 +11,6 @@ interface MiniCardProps {
   showNew?: boolean;
   timeField?: "created_at" | "completed_at";
 }
-
-const remarkPlugins = [remarkGfm];
 
 export const MiniCard = memo(function MiniCard({
   entry,
@@ -27,7 +25,9 @@ export const MiniCard = memo(function MiniCard({
   const tooltipMarkdown = useMemo(
     () =>
       hoverContent ? (
-        <Markdown remarkPlugins={remarkPlugins}>{normalizeResult(hoverContent)}</Markdown>
+        <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+          {normalizeResult(hoverContent)}
+        </Markdown>
       ) : null,
     [hoverContent],
   );

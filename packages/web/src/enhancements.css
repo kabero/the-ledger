@@ -932,10 +932,10 @@ html {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 
   html {
@@ -987,7 +987,7 @@ html {
   .ai-decision-opt,
   .ai-decision-comment,
   .settings-theme-toggle {
-    display: none !important;
+    display: none;
   }
 
   /* Remove fixed positioning */
@@ -1017,8 +1017,8 @@ html {
 
   /* Remove animations */
   * {
-    animation: none !important;
-    transition: none !important;
+    animation: none;
+    transition: none;
   }
 
   /* Page break control */

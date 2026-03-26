@@ -91,15 +91,20 @@ export class EntryRepository {
     return this.rowToEntry(row);
   }
 
-  list(filter: ListEntriesFilter = {}): Entry[] {
+  /**
+   * Build WHERE clause conditions and params from a ListEntriesFilter.
+   * Shared between list() and count() to avoid duplication.
+   */
+  private buildFilterClause(filter: ListEntriesFilter): {
+    conditions: string[];
+    params: unknown[];
+  } {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
-    // Exclude archived entries by default
     if (!filter.includeArchived) {
       conditions.push("e.archived_at IS NULL");
     }
-
     if (filter.type !== undefined) {
       conditions.push("e.type = ?");
       params.push(filter.type);
@@ -124,9 +129,8 @@ export class EntryRepository {
     }
     if (filter.query !== undefined) {
       conditions.push("e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)");
-      // Sanitize FTS5 query: wrap each term in double quotes to escape special syntax
       const sanitized = filter.query
-        .replace(/"/g, '""') // escape existing double quotes
+        .replace(/"/g, '""')
         .split(/\s+/)
         .filter((t) => t.length > 0)
         .map((t) => `"${t}"`)
@@ -150,12 +154,20 @@ export class EntryRepository {
       params.push(filter.until);
     }
 
-    const sortCol =
-      filter.sort === "completed_at"
-        ? "e.completed_at"
-        : filter.sort === "updated_at"
-          ? "e.updated_at"
-          : "e.created_at";
+    return { conditions, params };
+  }
+
+  private resolveSortColumn(sort: ListEntriesFilter["sort"]): string {
+    return sort === "completed_at"
+      ? "e.completed_at"
+      : sort === "updated_at"
+        ? "e.updated_at"
+        : "e.created_at";
+  }
+
+  list(filter: ListEntriesFilter = {}): Entry[] {
+    const { conditions, params } = this.buildFilterClause(filter);
+    const sortCol = this.resolveSortColumn(filter.sort);
 
     // Cursor-based pagination: decode cursor as "sortValue|rowid"
     if (filter.cursor !== undefined) {
@@ -185,6 +197,55 @@ export class EntryRepository {
       .all(...params, limit, offset) as EntryRow[];
 
     return this.rowsToEntries(rows);
+  }
+
+  /**
+   * List entries with cursor-based pagination, returning a nextCursor for the next page.
+   * Prefer this over list() when building paginated APIs.
+   */
+  listWithCursor(filter: ListEntriesFilter = {}): { entries: Entry[]; nextCursor: string | null } {
+    const { conditions, params } = this.buildFilterClause(filter);
+    const sortCol = this.resolveSortColumn(filter.sort);
+
+    if (filter.cursor !== undefined) {
+      const sepIdx = filter.cursor.lastIndexOf("|");
+      if (sepIdx > 0) {
+        const cursorSort = filter.cursor.slice(0, sepIdx);
+        const cursorRowid = filter.cursor.slice(sepIdx + 1);
+        conditions.push(`(${sortCol} < ? OR (${sortCol} = ? AND e.rowid < ?))`);
+        params.push(cursorSort, cursorSort, Number(cursorRowid));
+      }
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const limit = filter.limit ?? 100;
+
+    const secondarySort =
+      sortCol === "e.created_at" ? "e.rowid DESC" : "e.created_at DESC, e.rowid DESC";
+
+    // Fetch one extra row to determine if there's a next page
+    const rows = this.db
+      .prepare(
+        `SELECT e.*, e.rowid as _rowid FROM entries e ${where} ORDER BY ${sortCol} DESC, ${secondarySort} LIMIT ?`,
+      )
+      .all(...params, limit + 1) as (EntryRow & { _rowid: number })[];
+
+    const hasMore = rows.length > limit;
+    const resultRows = hasMore ? rows.slice(0, limit) : rows;
+
+    let nextCursor: string | null = null;
+    if (hasMore && resultRows.length > 0) {
+      const lastRow = resultRows[resultRows.length - 1];
+      const sortValue =
+        sortCol === "e.completed_at"
+          ? lastRow.completed_at
+          : sortCol === "e.updated_at"
+            ? lastRow.updated_at
+            : lastRow.created_at;
+      nextCursor = `${sortValue}|${lastRow._rowid}`;
+    }
+
+    return { entries: this.rowsToEntries(resultRows), nextCursor };
   }
 
   getUnprocessed(limit: number = 20): Entry[] {
@@ -348,62 +409,7 @@ export class EntryRepository {
   }
 
   count(filter: ListEntriesFilter = {}): number {
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-
-    if (!filter.includeArchived) {
-      conditions.push("e.archived_at IS NULL");
-    }
-
-    if (filter.type !== undefined) {
-      conditions.push("e.type = ?");
-      params.push(filter.type);
-    }
-    if (filter.status !== undefined) {
-      conditions.push("e.status = ?");
-      params.push(filter.status);
-    }
-    if (filter.processed !== undefined) {
-      conditions.push("e.processed = ?");
-      params.push(filter.processed ? 1 : 0);
-    }
-    if (filter.delegatable !== undefined) {
-      conditions.push("e.delegatable = ?");
-      params.push(filter.delegatable ? 1 : 0);
-    }
-    if (filter.tag !== undefined) {
-      conditions.push(
-        "EXISTS (SELECT 1 FROM entry_tags et WHERE et.entry_id = e.id AND et.tag = ?)",
-      );
-      params.push(filter.tag);
-    }
-    if (filter.query !== undefined) {
-      conditions.push("e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)");
-      const sanitized = filter.query
-        .replace(/"/g, '""')
-        .split(/\s+/)
-        .filter((t) => t.length > 0)
-        .map((t) => `"${t}"`)
-        .join(" ");
-      params.push(sanitized || '""');
-    }
-    if (filter.source !== undefined) {
-      if (filter.source === "any") {
-        conditions.push("e.source IS NOT NULL");
-      } else {
-        conditions.push("e.source = ?");
-        params.push(filter.source);
-      }
-    }
-    if (filter.since !== undefined) {
-      conditions.push("e.created_at >= ?");
-      params.push(filter.since);
-    }
-    if (filter.until !== undefined) {
-      conditions.push("e.created_at < ?");
-      params.push(filter.until);
-    }
-
+    const { conditions, params } = this.buildFilterClause(filter);
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const row = this.db
       .prepare(`SELECT COUNT(*) as cnt FROM entries e ${where}`)

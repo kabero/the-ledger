@@ -341,7 +341,6 @@ export function AiFeed({ onClose }: AiFeedProps) {
                             id: e.id,
                             decision_selected: idx,
                             decision_comment: decisionComment[e.id] || null,
-                            status: "done",
                           });
                         }}
                       >

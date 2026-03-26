@@ -64,6 +64,9 @@ export class EntryService {
     if (!input.raw_text || input.raw_text.trim().length === 0) {
       throw new Error("raw_text must not be empty");
     }
+    if (input.raw_text.length > 50_000) {
+      throw new Error(`raw_text too long: ${input.raw_text.length} chars (max 50000)`);
+    }
     if (input.title !== undefined && input.title.length > 200) {
       throw new Error(`title too long: ${input.title.length} chars (max 200)`);
     }
@@ -73,6 +76,9 @@ export class EntryService {
           `Invalid due_date format: "${input.due_date}". Expected ISO date (YYYY-MM-DD).`,
         );
       }
+    }
+    if (input.decision_options !== undefined && input.decision_options.length > 20) {
+      throw new Error(`Too many decision_options: ${input.decision_options.length} (max 20)`);
     }
     if (input.tags) {
       input = { ...input, tags: normalizeTags(input.tags) };
@@ -94,6 +100,13 @@ export class EntryService {
 
   listEntries(filter: ListEntriesFilter = {}): Entry[] {
     return this.repository.list(filter);
+  }
+
+  listEntriesWithCursor(filter: ListEntriesFilter = {}): {
+    entries: Entry[];
+    nextCursor: string | null;
+  } {
+    return this.repository.listWithCursor(filter);
   }
 
   countEntries(filter: ListEntriesFilter = {}): number {

@@ -96,7 +96,30 @@ setInterval(() => {
   }
 }, 300_000).unref();
 
-app.use("/trpc/*", requireApiKey, rateLimit);
+// --- Request logging middleware ---
+const LOG_REQUESTS = process.env.LOG_REQUESTS !== "0"; // enabled by default
+
+const requestLogger: MiddlewareHandler = async (c, next) => {
+  if (!LOG_REQUESTS) {
+    await next();
+    return;
+  }
+  const start = Date.now();
+  const method = c.req.method;
+  const path = c.req.path;
+  await next();
+  const duration = Date.now() - start;
+  const status = c.res.status;
+  // Log slow requests (>500ms) at warn level, others at info
+  const msg = `${method} ${path} ${status} ${duration}ms`;
+  if (duration > 500) {
+    console.warn(`[api:slow] ${msg}`);
+  } else {
+    console.log(`[api] ${msg}`);
+  }
+};
+
+app.use("/trpc/*", requestLogger, requireApiKey, rateLimit);
 app.use(
   "/trpc/*",
   trpcServer({

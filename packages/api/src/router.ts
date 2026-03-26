@@ -64,6 +64,30 @@ export const appRouter = t.router({
       return ctx.service.listEntries(input ?? {});
     }),
 
+  listEntriesWithCursor: t.procedure
+    .input(
+      z
+        .object({
+          type: entryTypeEnum.optional(),
+          status: taskStatusEnum.optional(),
+          tag: z.string().optional(),
+          query: z.string().optional(),
+          processed: z.boolean().optional(),
+          delegatable: z.boolean().optional(),
+          source: z.string().optional(),
+          since: z.string().optional(),
+          until: z.string().optional(),
+          includeArchived: z.boolean().optional(),
+          limit: z.number().int().positive().max(100).optional(),
+          sort: z.enum(["created_at", "updated_at", "completed_at"]).optional(),
+          cursor: z.string().optional(),
+        })
+        .optional(),
+    )
+    .query(({ input, ctx }) => {
+      return ctx.service.listEntriesWithCursor(input ?? {});
+    }),
+
   countEntries: t.procedure
     .input(
       z

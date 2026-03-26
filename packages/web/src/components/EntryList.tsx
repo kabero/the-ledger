@@ -275,9 +275,7 @@ export function EntryList({ tab }: EntryListProps) {
           </div>
           <div className="entry-tags">
             {entry.type && tab === "all" && (
-              <span className="priority" style={{ marginLeft: 4 }}>
-                [{entry.type}]
-              </span>
+              <span className={`entry-type-badge entry-type-${entry.type}`}>{entry.type}</span>
             )}
             {entry.due_date &&
               entry.status !== "done" &&

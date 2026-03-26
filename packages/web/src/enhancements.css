@@ -52,6 +52,16 @@
   border-color: var(--accent, #4fc3f7);
 }
 
+.ai-action-btn.retry {
+  border-color: var(--warning, #f80);
+  color: var(--warning, #f80);
+  margin-top: 8px;
+}
+
+.ai-action-btn.retry:hover {
+  background: rgba(255, 136, 0, 0.1);
+}
+
 /* Decision display in detail view */
 .ai-detail-decision {
   margin: 12px 0;
@@ -75,6 +85,36 @@
   margin-top: 6px;
   color: #aaa;
   font-style: italic;
+}
+
+/* Entry type badges (in "all" tab) */
+.entry-type-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border-muted, #333);
+  color: var(--dim, #666);
+  font-family: var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.entry-type-task {
+  color: var(--accent, #ff0);
+  border-color: rgba(255, 255, 0, 0.3);
+  background: rgba(255, 255, 0, 0.05);
+}
+
+.entry-type-note {
+  color: var(--fg-subtle, #555);
+  border-color: var(--border-subtle, #222);
+  background: var(--bg-card, #0a0a0a);
+}
+
+.entry-type-wish {
+  color: var(--done-light, #4f4);
+  border-color: rgba(0, 255, 0, 0.2);
+  background: rgba(0, 255, 0, 0.03);
 }
 
 /* Loading skeleton */

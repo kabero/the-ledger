@@ -32,10 +32,19 @@ export function EntryList({ tab }: EntryListProps) {
     Record<string, { status: string; completed_at: string | null }>
   >({});
 
-  const updateEntry = trpc.updateEntry.useMutation();
+  const updateEntry = trpc.updateEntry.useMutation({
+    onError: () => {
+      // Rollback optimistic local status on error
+      setLocalStatus({});
+      utils.listEntries.invalidate();
+    },
+  });
 
   const deleteEntry = trpc.deleteEntry.useMutation({
     onSuccess: () => {
+      utils.listEntries.invalidate();
+    },
+    onError: () => {
       utils.listEntries.invalidate();
     },
   });

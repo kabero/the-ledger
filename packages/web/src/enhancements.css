@@ -639,3 +639,94 @@
   text-shadow: 0 0 4px rgba(255, 255, 0, 0.5);
   box-shadow: 0 0 4px rgba(255, 255, 0, 0.3);
 }
+
+/* ============================================================
+   TASK: Smooth scroll-to-top on tab switch
+   Global smooth scrolling behavior
+   ============================================================ */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ============================================================
+   TASK: Enhanced input box focus-within glow
+   Subtle accent glow when the input box is focused
+   ============================================================ */
+.box:focus-within {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 0, 0.1),
+    0 0 12px rgba(255, 255, 0, 0.06);
+}
+
+/* ============================================================
+   TASK: Staggered entry list fade-in animation
+   Entries appear with a cascading delay
+   ============================================================ */
+.entry {
+  animation: entry-stagger-in 0.25s ease-out both;
+}
+
+.entry:nth-child(1) {
+  animation-delay: 0s;
+}
+.entry:nth-child(2) {
+  animation-delay: 0.03s;
+}
+.entry:nth-child(3) {
+  animation-delay: 0.06s;
+}
+.entry:nth-child(4) {
+  animation-delay: 0.09s;
+}
+.entry:nth-child(5) {
+  animation-delay: 0.12s;
+}
+.entry:nth-child(6) {
+  animation-delay: 0.15s;
+}
+.entry:nth-child(7) {
+  animation-delay: 0.18s;
+}
+.entry:nth-child(8) {
+  animation-delay: 0.21s;
+}
+.entry:nth-child(n + 9) {
+  animation-delay: 0.24s;
+}
+
+@keyframes entry-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Done entries inherit lower opacity from .entry.done */
+.entry.done {
+  animation: entry-stagger-in-done 0.25s ease-out both;
+}
+
+@keyframes entry-stagger-in-done {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 0.4;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================
+   TASK: Visual separator between overdue and regular tasks
+   Subtle accent line after overdue entries group
+   ============================================================ */
+.entry.urgent + .entry:not(.urgent) {
+  border-top: 1px solid var(--border-muted, #333);
+  margin-top: 4px;
+  padding-top: 10px;
+}

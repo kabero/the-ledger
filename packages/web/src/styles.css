@@ -944,6 +944,19 @@ body {
   border-color: var(--done);
   color: var(--done);
   background: var(--bg-done-tint);
+  animation: check-flash 0.3s ease-out;
+}
+
+@keyframes check-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 8px 4px rgba(0, 255, 0, 0.2);
+  }
+  100% {
+    box-shadow: none;
+  }
 }
 
 .entry.done .entry-title > div:first-child {
@@ -1019,14 +1032,15 @@ body {
     color 0.1s,
     opacity 0.15s;
   -webkit-tap-highlight-color: transparent;
-  opacity: 0.3;
-}
-
-.entry:hover .btn-del {
-  opacity: 1;
 }
 
 @media (hover: hover) {
+  .btn-del {
+    opacity: 0.3;
+  }
+  .entry:hover .btn-del {
+    opacity: 1;
+  }
   .btn-del:hover {
     color: var(--danger);
   }

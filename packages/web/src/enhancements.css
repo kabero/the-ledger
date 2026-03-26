@@ -143,17 +143,20 @@
   justify-content: center;
   flex-shrink: 0;
   transition: all 0.15s;
-  opacity: 0.2;
 }
 
-.entry:hover .btn-priority {
-  opacity: 0.6;
-}
-
-.btn-priority:hover {
-  opacity: 1;
-  border-color: var(--danger, #f00);
-  color: var(--danger, #f00);
+@media (hover: hover) {
+  .btn-priority {
+    opacity: 0.2;
+  }
+  .entry:hover .btn-priority {
+    opacity: 0.6;
+  }
+  .btn-priority:hover {
+    opacity: 1;
+    border-color: var(--danger, #f00);
+    color: var(--danger, #f00);
+  }
 }
 
 .btn-priority.active {

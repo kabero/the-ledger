@@ -112,7 +112,7 @@ export function App() {
 
   // External sourced entries for sidebar
   const sourcedEntries = trpc.listEntries.useQuery(
-    { source: "any", limit: 10 },
+    { source: "any", limit: 20 },
     { refetchInterval: showAiFeed ? false : POLL.sidebarSourced },
   );
   const { recentSourced, recentSummaries } = useMemo(() => {
@@ -222,15 +222,17 @@ export function App() {
                   </button>
                 )}
               </span>
-              {recentSourced.length > 0 && (
+              {(recentSourced.length > 0 || recentSummaries.length > 0) && (
                 <button
                   type="button"
                   className={`header-link header-sourced-btn ${showSourcedModal ? "active" : ""}`}
                   onClick={() => setShowSourcedModal(true)}
-                  title="外部入力"
+                  title="外部入力・サマリ"
                 >
                   外部
-                  <span className="header-sourced-count">{recentSourced.length}</span>
+                  <span className="header-sourced-count">
+                    {recentSourced.length + recentSummaries.length}
+                  </span>
                 </button>
               )}
               <button
@@ -348,7 +350,7 @@ export function App() {
             </div>
           </div>
         )}
-        {showSourcedModal && recentSourced.length > 0 && (
+        {showSourcedModal && (recentSourced.length > 0 || recentSummaries.length > 0) && (
           <div
             className="bottom-sheet-overlay"
             role="dialog"
@@ -361,7 +363,7 @@ export function App() {
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
             <div className="bottom-sheet sourced-modal" onClick={(e) => e.stopPropagation()}>
               <div className="sourced-modal-header">
-                <span className="sourced-modal-title">外部入力</span>
+                <span className="sourced-modal-title">外部入力・サマリ</span>
                 <button
                   type="button"
                   className="sourced-modal-close"
@@ -371,35 +373,77 @@ export function App() {
                 </button>
               </div>
               <div className="sourced-modal-list">
-                {recentSourced.map((e) => (
-                  <div key={e.id} className="sidebar-card">
-                    <div className="sidebar-card-header">
-                      {e.source && <span className="ai-badge source">{e.source}</span>}
-                      <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
-                    </div>
-                    {e.result && (
-                      <div className="sidebar-card-summary">
-                        <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                          {(e.result.length > 200
-                            ? `${e.result.slice(0, 200)}...`
-                            : e.result
-                          ).replace(/\\n/g, "\n")}
-                        </Markdown>
+                {recentSummaries.length > 0 && (
+                  <>
+                    <div className="sourced-modal-section-title">サマリ</div>
+                    {recentSummaries.map((e) => (
+                      <div key={e.id} className="sidebar-card sidebar-card-summary-type">
+                        <div className="sidebar-card-header">
+                          {e.source && <span className="ai-badge source">{e.source}</span>}
+                          <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
+                        </div>
+                        {e.result && (
+                          <div className="sidebar-card-summary">
+                            <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                              {(e.result.length > 200
+                                ? `${e.result.slice(0, 200)}...`
+                                : e.result
+                              ).replace(/\\n/g, "\n")}
+                            </Markdown>
+                          </div>
+                        )}
+                        {!e.result && e.raw_text && (
+                          <div className="sidebar-card-summary">
+                            <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                              {(e.raw_text.length > 300
+                                ? `${e.raw_text.slice(0, 300)}...`
+                                : e.raw_text
+                              ).replace(/\\n/g, "\n")}
+                            </Markdown>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {e.result_url && (
-                      <button
-                        type="button"
-                        className="entry-result-url-btn"
-                        onClick={() =>
-                          window.open(e.result_url as string, "_blank", "noopener,noreferrer,popup")
-                        }
-                      >
-                        {"\u2197"} URL
-                      </button>
-                    )}
-                  </div>
-                ))}
+                    ))}
+                  </>
+                )}
+                {recentSourced.length > 0 && (
+                  <>
+                    <div className="sourced-modal-section-title">外部入力</div>
+                    {recentSourced.map((e) => (
+                      <div key={e.id} className="sidebar-card">
+                        <div className="sidebar-card-header">
+                          {e.source && <span className="ai-badge source">{e.source}</span>}
+                          <span className="sidebar-card-title">{e.title ?? e.raw_text}</span>
+                        </div>
+                        {e.result && (
+                          <div className="sidebar-card-summary">
+                            <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                              {(e.result.length > 200
+                                ? `${e.result.slice(0, 200)}...`
+                                : e.result
+                              ).replace(/\\n/g, "\n")}
+                            </Markdown>
+                          </div>
+                        )}
+                        {e.result_url && (
+                          <button
+                            type="button"
+                            className="entry-result-url-btn"
+                            onClick={() =>
+                              window.open(
+                                e.result_url as string,
+                                "_blank",
+                                "noopener,noreferrer,popup",
+                              )
+                            }
+                          >
+                            {"\u2197"} URL
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
           </div>

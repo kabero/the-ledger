@@ -899,6 +899,30 @@ body {
   margin-bottom: 0;
 }
 
+/* Summary-type sidebar cards */
+.sidebar-card-summary-type {
+  border-left: 2px solid var(--accent, #ff0);
+}
+
+.sidebar-title + .sidebar-title {
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+/* Section titles in sourced modal */
+.sourced-modal-section-title {
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 1px;
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--border-card);
+  margin-bottom: 4px;
+}
+
+.sourced-modal-section-title:first-child {
+  padding-top: 0;
+}
+
 /* Mobile sourced button — hidden on desktop (sidebar visible) */
 .header-sourced-btn {
   display: none;

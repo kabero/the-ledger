@@ -49,6 +49,7 @@ export interface CreateEntryInput {
   due_date?: string | null;
   delegatable?: boolean;
   source?: string;
+  result?: string;
 }
 
 export interface SubmitProcessedInput {
@@ -82,6 +83,7 @@ export interface ListEntriesFilter {
   processed?: boolean;
   delegatable?: boolean;
   since?: string; // ISO date — filter entries created on or after this date
+  until?: string; // ISO date — filter entries created before this date
   limit?: number;
   offset?: number;
   sort?: "created_at" | "updated_at" | "completed_at";

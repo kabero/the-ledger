@@ -106,6 +106,10 @@ export class EntryService {
     return this.ensureScheduledTaskRepo().delete(id);
   }
 
+  getTagVocabulary(): { tag: string; count: number }[] {
+    return this.repository.getTagVocabulary();
+  }
+
   getStats() {
     return this.repository.getStats();
   }

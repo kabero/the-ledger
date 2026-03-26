@@ -40,6 +40,10 @@ server.tool(
       .string()
       .optional()
       .describe("Origin of the entry: slack, email, calendar, web, etc."),
+    result: z
+      .string()
+      .optional()
+      .describe("Markdown-formatted content body (e.g. summary, research results)"),
     image: z.string().optional().describe("Base64-encoded image data (optional)"),
     image_ext: z
       .string()
@@ -55,6 +59,7 @@ server.tool(
     due_date,
     delegatable,
     source,
+    result,
     image,
     image_ext,
   }) => {
@@ -72,6 +77,7 @@ server.tool(
         due_date,
         delegatable,
         source,
+        result,
       });
     }
     return {
@@ -104,6 +110,66 @@ server.tool(
       }
     }
     return { content };
+  },
+);
+
+const TAG_PRESETS = [
+  "work",
+  "personal",
+  "health",
+  "finance",
+  "learning",
+  "shopping",
+  "home",
+  "communication",
+  "automation",
+  "research",
+];
+const MIN_VOCABULARY_SIZE = 10;
+const MAX_TAG_LENGTH = 20;
+
+server.tool(
+  "get_tag_vocabulary",
+  "Get existing tags with usage counts, plus presets if vocabulary is small. Call this before classifying entries to maintain consistent tagging. Tags should be lowercase, max 20 chars.",
+  {},
+  async () => {
+    const existing = service.getTagVocabulary();
+    const existingTags = new Set(existing.map((t) => t.tag));
+    const presets =
+      existing.length < MIN_VOCABULARY_SIZE
+        ? TAG_PRESETS.filter((t) => !existingTags.has(t)).map((tag) => ({ tag, count: 0 }))
+        : [];
+
+    // Detect dominant language from existing tags
+    const jaCount = existing.filter((t) => /[\u3000-\u9fff\uff00-\uffef]/.test(t.tag)).length;
+    const enCount = existing.filter((t) => /^[a-z0-9-]+$/.test(t.tag)).length;
+    const dominantLang = jaCount > enCount ? "ja" : enCount > jaCount ? "en" : "mixed";
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              existing,
+              presets,
+              rules: {
+                max_length: MAX_TAG_LENGTH,
+                dominant_language: dominantLang,
+                style:
+                  dominantLang === "ja"
+                    ? "日本語タグ優先、既存タグを再利用、最大20文字"
+                    : dominantLang === "en"
+                      ? "lowercase english, no spaces (use hyphens), reuse existing tags"
+                      : "match language of existing tags in same category, max 20 chars",
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    };
   },
 );
 
@@ -163,15 +229,17 @@ server.tool(
     status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
     tag: z.string().optional().describe("Filter by tag"),
     since: z.string().optional().describe("ISO date — only entries created on or after this date"),
+    until: z.string().optional().describe("ISO date — only entries created before this date"),
     limit: z.number().int().positive().max(100).default(20).describe("Max results"),
   },
-  async ({ query, type, status, tag, since, limit }) => {
+  async ({ query, type, status, tag, since, until, limit }) => {
     const entries = service.listEntries({
       query,
       type,
       status,
       tag,
       since,
+      until,
       processed: true,
       limit,
       offset: 0,

@@ -22,6 +22,7 @@ export function App() {
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAiFeed, setShowAiFeed] = useState(false);
+  const [showMobileInput, setShowMobileInput] = useState(false);
 
   useEffect(() => {
     applyFont();
@@ -146,7 +147,9 @@ export function App() {
               </button>
             </div>
           </div>
-          <EntryInput />
+          <div className="desktop-input">
+            <EntryInput />
+          </div>
         </div>
 
         <div className="section">
@@ -179,6 +182,30 @@ export function App() {
           </div>
         </div>
         {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+        <button
+          type="button"
+          className="fab-add"
+          onClick={() => setShowMobileInput(true)}
+          aria-label="入力"
+        >
+          +
+        </button>
+        {showMobileInput && (
+          <div
+            className="bottom-sheet-overlay"
+            role="dialog"
+            onClick={() => setShowMobileInput(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowMobileInput(false);
+            }}
+          >
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
+            <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+              <EntryInput onSubmitted={() => setShowMobileInput(false)} />
+            </div>
+          </div>
+        )}
       </div>
       {recentSourced.length > 0 && (
         <aside className="sidebar-sourced">

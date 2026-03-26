@@ -15,7 +15,11 @@ function _getExtFromMime(mime: string): string {
   return map[mime] || "png";
 }
 
-export function EntryInput() {
+interface EntryInputProps {
+  onSubmitted?: () => void;
+}
+
+export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -27,6 +31,7 @@ export function EntryInput() {
   const addEntry = trpc.addEntry.useMutation({
     onSuccess: () => {
       reset();
+      onSubmitted?.();
     },
   });
 
@@ -75,6 +80,7 @@ export function EntryInput() {
           throw new Error(err.error || "アップロード失敗");
         }
         reset();
+        onSubmitted?.();
       } catch (err) {
         alert(err instanceof Error ? err.message : "アップロード失敗");
       } finally {
@@ -83,7 +89,7 @@ export function EntryInput() {
     } else {
       addEntry.mutate({ raw_text: text.trim() });
     }
-  }, [text, imageFile, addEntry, reset, isBusy]);
+  }, [text, imageFile, addEntry, reset, isBusy, onSubmitted]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {

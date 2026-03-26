@@ -82,6 +82,7 @@ export interface ListEntriesFilter {
   query?: string;
   processed?: boolean;
   delegatable?: boolean;
+  source?: string; // filter by source (slack, auto-summary, etc.) — "any" matches all non-null
   since?: string; // ISO date — filter entries created on or after this date
   until?: string; // ISO date — filter entries created before this date
   limit?: number;

@@ -27,21 +27,29 @@ export function AiFeed({ onClose }: AiFeedProps) {
     { refetchInterval: 5_000 },
   );
   const sourced = trpc.listEntries.useQuery(
-    { processed: true, limit: 100 },
+    { source: "any", limit: 100 },
     { refetchInterval: 5_000 },
+  );
+  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 5_000 });
+  const humanTasks = trpc.listEntries.useQuery(
+    { type: "task", status: "pending", limit: 50 },
+    { refetchInterval: 10_000 },
   );
   const updateEntry = trpc.updateEntry.useMutation();
 
   const allItems = delegatable.data ?? [];
   const allSourced = sourced.data ?? [];
+  const unprocessedItems = unprocessed.data ?? [];
+  const humanPending = useMemo(
+    () => (humanTasks.data ?? []).filter((e) => !e.delegatable),
+    [humanTasks.data],
+  );
 
   // Deduplicated AI-related entries
   const allAi = useMemo(() => {
     const map = new Map<string, EntryItem>();
     for (const e of allItems) map.set(e.id, e);
-    for (const e of allSourced) {
-      if (e.source || e.delegatable) map.set(e.id, e);
-    }
+    for (const e of allSourced) map.set(e.id, e);
     return [...map.values()];
   }, [allItems, allSourced]);
 
@@ -151,22 +159,29 @@ export function AiFeed({ onClose }: AiFeedProps) {
         {/* Pipeline */}
         <div className="ai-pipeline">
           <div className="ai-pipe-stage">
+            <div className={`ai-pipe-num ${unprocessedItems.length > 0 ? "danger" : "dim"}`}>
+              {unprocessedItems.length}
+            </div>
+            <div className="ai-pipe-label">未処理</div>
+          </div>
+          <div className="ai-pipe-arrow">{"\u2192"}</div>
+          <div className="ai-pipe-stage">
             <div className="ai-pipe-num accent">{inProgress.length}</div>
-            <div className="ai-pipe-label">進行中</div>
+            <div className="ai-pipe-label">AI進行中</div>
           </div>
           <div className="ai-pipe-arrow">{"\u2192"}</div>
           <div className="ai-pipe-stage">
             <div className="ai-pipe-num done">{completed.length}</div>
-            <div className="ai-pipe-label">完了</div>
+            <div className="ai-pipe-label">AI完了</div>
           </div>
           <div className="ai-pipe-sep" />
           <div className="ai-pipe-stage">
-            <div className="ai-pipe-num new">{newResults}</div>
-            <div className="ai-pipe-label">未読</div>
+            <div className="ai-pipe-num human">{humanPending.length}</div>
+            <div className="ai-pipe-label">人間タスク</div>
           </div>
           <div className="ai-pipe-stage">
-            <div className="ai-pipe-num dim">{allAi.length}</div>
-            <div className="ai-pipe-label">総数</div>
+            <div className={`ai-pipe-num ${newResults > 0 ? "new" : "dim"}`}>{newResults}</div>
+            <div className="ai-pipe-label">未読</div>
           </div>
         </div>
 
@@ -190,18 +205,12 @@ export function AiFeed({ onClose }: AiFeedProps) {
             </div>
             <div className="ai-mini-cards">
               {inProgress.map((e) => (
-                <button
-                  type="button"
+                <MiniCard
                   key={e.id}
-                  className={`ai-mini ${e.urgent ? "urgent" : ""}`}
+                  entry={e}
+                  className={e.urgent ? "urgent" : ""}
                   onClick={() => setSelectedEntry(e)}
-                >
-                  <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
-                  <div className="ai-mini-meta">
-                    {e.source && <span className="ai-badge source">{e.source}</span>}
-                    <span className="ai-mini-time">{formatTime(e.created_at)}</span>
-                  </div>
-                </button>
+                />
               ))}
             </div>
           </div>
@@ -214,27 +223,16 @@ export function AiFeed({ onClose }: AiFeedProps) {
               <span className="ai-dot done" /> 最近の完了
             </div>
             <div className="ai-mini-cards">
-              {completed.slice(0, 6).map((e) => {
-                const isNew = e.result && !e.result_seen;
-                return (
-                  <button
-                    type="button"
-                    key={e.id}
-                    className={`ai-mini done ${isNew ? "has-new" : ""}`}
-                    onClick={() => setSelectedEntry(e)}
-                  >
-                    <div className="ai-mini-top">
-                      <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
-                      {isNew && <span className="ai-badge new">NEW</span>}
-                    </div>
-                    <div className="ai-mini-meta">
-                      {e.completed_at && (
-                        <span className="ai-mini-time">{formatTime(e.completed_at)}</span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+              {completed.slice(0, 6).map((e) => (
+                <MiniCard
+                  key={e.id}
+                  entry={e}
+                  className={`done ${e.result && !e.result_seen ? "has-new" : ""}`}
+                  onClick={() => setSelectedEntry(e)}
+                  showNew={!!(e.result && !e.result_seen)}
+                  timeField="completed_at"
+                />
+              ))}
             </div>
           </div>
         )}
@@ -264,10 +262,89 @@ export function AiFeed({ onClose }: AiFeedProps) {
           </div>
         )}
 
-        {allAi.length === 0 && (
-          <div className="unprocessed-text">AIアクティビティはまだありません</div>
+        {/* Unprocessed */}
+        {unprocessedItems.length > 0 && (
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
+            </div>
+            <div className="ai-mini-cards">
+              {unprocessedItems.slice(0, 6).map((e) => (
+                <div key={e.id} className="ai-mini unprocessed">
+                  <div className="ai-mini-title">{e.raw_text}</div>
+                  <div className="ai-mini-meta">
+                    <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Human pending tasks */}
+        {humanPending.length > 0 && (
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span className="ai-dot human" /> 人間タスク ({humanPending.length})
+            </div>
+            <div className="ai-mini-cards">
+              {humanPending.slice(0, 6).map((e) => (
+                <div key={e.id} className={`ai-mini human ${e.urgent ? "urgent" : ""}`}>
+                  <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
+                  <div className="ai-mini-meta">
+                    {e.due_date && <span className="ai-badge type">{e.due_date}</span>}
+                    {e.urgent && <span className="ai-badge urgent">!</span>}
+                    <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {allAi.length === 0 && unprocessedItems.length === 0 && humanPending.length === 0 && (
+          <div className="unprocessed-text">アクティビティはまだありません</div>
         )}
       </div>
+    </div>
+  );
+}
+
+function MiniCard({
+  entry,
+  className = "",
+  onClick,
+  showNew = false,
+  timeField = "created_at",
+}: {
+  entry: EntryItem;
+  className?: string;
+  onClick: () => void;
+  showNew?: boolean;
+  timeField?: "created_at" | "completed_at";
+}) {
+  const time = timeField === "completed_at" ? entry.completed_at : entry.created_at;
+
+  return (
+    <div className={`ai-mini-wrap ${entry.result ? "has-tooltip" : ""}`}>
+      <button type="button" className={`ai-mini ${className}`} onClick={onClick}>
+        <div className="ai-mini-top">
+          <div className="ai-mini-title">{entry.title ?? entry.raw_text}</div>
+          {showNew && <span className="ai-badge new">NEW</span>}
+        </div>
+        <div className="ai-mini-meta">
+          {entry.source && <span className="ai-badge source">{entry.source}</span>}
+          {time && <span className="ai-mini-time">{formatTime(time)}</span>}
+        </div>
+      </button>
+      {entry.result && (
+        <div className="ai-hover-modal">
+          <div
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
+            dangerouslySetInnerHTML={{ __html: simpleMarkdown(entry.result) }}
+          />
+        </div>
+      )}
     </div>
   );
 }

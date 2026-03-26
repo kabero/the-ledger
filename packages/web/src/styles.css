@@ -1240,6 +1240,14 @@ body {
   color: #f80;
 }
 
+.ai-pipe-num.danger {
+  color: var(--danger);
+}
+
+.ai-pipe-num.human {
+  color: #88f;
+}
+
 .ai-pipe-num.dim {
   color: var(--dim);
 }
@@ -1325,6 +1333,15 @@ body {
   background: #4f4;
 }
 
+.ai-dot.unprocessed {
+  background: var(--danger);
+  box-shadow: 0 0 6px var(--danger);
+}
+
+.ai-dot.human {
+  background: #88f;
+}
+
 /* Mini cards */
 
 .ai-mini-cards {
@@ -1394,6 +1411,60 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.ai-mini-wrap {
+  position: relative;
+}
+
+.ai-hover-modal {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 200;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--fg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.ai-mini-wrap.has-tooltip:hover .ai-hover-modal {
+  display: block;
+}
+
+.ai-hover-modal .result-h {
+  margin: 8px 0 4px;
+  color: var(--accent);
+}
+
+.ai-hover-modal h2.result-h {
+  font-size: 15px;
+}
+
+.ai-hover-modal h3.result-h {
+  font-size: 13px;
+}
+
+.ai-hover-modal h4.result-h {
+  font-size: 12px;
+}
+
+.ai-hover-modal .result-li {
+  margin-left: 16px;
+  list-style: disc;
+}
+
+.ai-hover-modal strong {
+  color: var(--accent);
 }
 
 .ai-mini-time {

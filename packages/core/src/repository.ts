@@ -100,6 +100,14 @@ export class EntryRepository {
       conditions.push("e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)");
       params.push(filter.query);
     }
+    if (filter.source !== undefined) {
+      if (filter.source === "any") {
+        conditions.push("e.source IS NOT NULL");
+      } else {
+        conditions.push("e.source = ?");
+        params.push(filter.source);
+      }
+    }
     if (filter.since !== undefined) {
       conditions.push("e.created_at >= ?");
       params.push(filter.since);

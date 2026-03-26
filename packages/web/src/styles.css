@@ -43,6 +43,7 @@
   /* foreground shades */
   --fg-muted: #444;
   --fg-subtle: #555;
+  --fg-dim-readable: #999;
 
   /* semantic colors */
   --link: #4af;
@@ -100,6 +101,7 @@
 
   --fg-muted: #999;
   --fg-subtle: #777;
+  --fg-dim-readable: #666;
 
   --link: #1a6dd4;
   --link-bright: #2563eb;
@@ -1042,7 +1044,7 @@ body {
 
 .sidebar-title {
   font-size: 11px;
-  color: var(--dim);
+  color: var(--fg-subtle);
   letter-spacing: 1px;
   padding: 4px 0;
   border-bottom: 1px solid var(--border-card);
@@ -1088,8 +1090,8 @@ body {
 }
 
 .sidebar-card-summary {
-  color: var(--dim);
-  font-size: 11px;
+  color: var(--fg-dim-readable);
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2068,8 +2070,8 @@ body {
   gap: 6px;
   padding-top: 4px;
   border-top: 1px solid var(--border-card);
-  font-size: 10px;
-  color: var(--dim);
+  font-size: 11px;
+  color: var(--fg-dim-readable);
 }
 
 @media (min-width: 900px) {
@@ -3680,7 +3682,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #0a0a0a;
+  background: radial-gradient(ellipse at 50% 40%, #0d1117 0%, #060608 100%);
   color: var(--fg);
   font-family: var(--font);
   display: flex;
@@ -3688,6 +3690,22 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100dvh;
+}
+
+[data-theme="light"] .focus-mode {
+  background: radial-gradient(ellipse at 50% 40%, #e8e4dc 0%, #d8d4cc 100%);
+}
+
+.focus-mode-label {
+  position: absolute;
+  top: 1.3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  color: var(--dim);
+  text-transform: uppercase;
+  font-family: var(--font);
 }
 
 .focus-mode-header {
@@ -3739,6 +3757,33 @@ body {
   padding: 2rem 2.5rem;
   width: 100%;
   text-align: center;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.03);
+  animation: focus-breathe 4s ease-in-out infinite;
+}
+
+@keyframes focus-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.02);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.06);
+  }
+}
+
+[data-theme="light"] .focus-mode-card {
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.05);
+  animation: focus-breathe-light 4s ease-in-out infinite;
+}
+
+@keyframes focus-breathe-light {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.04);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
+  }
 }
 
 .focus-mode-urgent {
@@ -3852,6 +3897,24 @@ body {
   color: var(--dim);
   font-size: 0.85rem;
   font-family: var(--font);
+}
+
+.focus-mode-hints {
+  margin-top: 0.5rem;
+  color: var(--dim);
+  font-size: 0.7rem;
+  font-family: var(--font);
+  opacity: 0.6;
+}
+
+.focus-mode-hints kbd {
+  display: inline-block;
+  border: 1px solid var(--border-muted);
+  border-radius: 3px;
+  padding: 0.05rem 0.35rem;
+  font-family: var(--font);
+  font-size: 0.65rem;
+  margin: 0 0.15rem;
 }
 
 /* --- Activity Chart (5-min bin bar chart) --- */

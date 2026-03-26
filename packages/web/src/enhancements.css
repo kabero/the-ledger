@@ -77,6 +77,53 @@
   font-style: italic;
 }
 
+/* Loading skeleton */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.skeleton-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle, #222);
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle, #222) 25%,
+    var(--border-card, #1a1a1a) 50%,
+    var(--border-subtle, #222) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-line-title {
+  width: 70%;
+}
+
+.skeleton-line-sub {
+  width: 40%;
+  height: 8px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* Entry fade-in animation */
 @keyframes fadeSlideIn {
   from {

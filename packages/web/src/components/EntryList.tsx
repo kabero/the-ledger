@@ -348,6 +348,19 @@ export function EntryList({ tab }: EntryListProps) {
     [items, tab],
   );
 
+  if (entries.isLoading) {
+    return (
+      <div className="skeleton-list">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="skeleton-entry">
+            <div className="skeleton-line skeleton-line-title" />
+            <div className="skeleton-line skeleton-line-sub" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="empty-state">

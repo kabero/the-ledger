@@ -814,6 +814,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+@media (hover: hover) {
+  .sidebar-card:hover {
+    border-color: var(--border-muted);
+    background: var(--bg-elevated);
+  }
 }
 
 .sidebar-card-header {

@@ -128,4 +128,16 @@ function runMigrations(db: Database.Database): void {
       "UPDATE entries SET urgent = CASE WHEN priority >= 4 THEN 1 ELSE 0 END WHERE priority IS NOT NULL",
     );
   }
+
+  // --- Indexes for common query patterns ---
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_entries_status ON entries(status);
+    CREATE INDEX IF NOT EXISTS idx_entries_processed ON entries(processed);
+    CREATE INDEX IF NOT EXISTS idx_entries_type_status ON entries(type, status);
+    CREATE INDEX IF NOT EXISTS idx_entries_delegatable ON entries(delegatable);
+    CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at);
+    CREATE INDEX IF NOT EXISTS idx_entries_completed_at ON entries(completed_at);
+    CREATE INDEX IF NOT EXISTS idx_entries_source ON entries(source);
+    CREATE INDEX IF NOT EXISTS idx_entry_tags_tag ON entry_tags(tag);
+  `);
 }

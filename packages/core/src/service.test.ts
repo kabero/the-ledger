@@ -623,6 +623,114 @@ describe("EntryService", () => {
     });
   });
 
+  // ─── Bulk operations ────────────────────────────────────────
+
+  describe("bulk operations", () => {
+    it("bulkUpdateStatus marks multiple entries done", () => {
+      const e1 = service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      const e2 = service.createEntry({ raw_text: "b", type: "task", title: "B" });
+
+      const count = service.bulkUpdateStatus([e1.id, e2.id], "done");
+      expect(count).toBe(2);
+      expect(service.getEntry(e1.id)?.status).toBe("done");
+      expect(service.getEntry(e2.id)?.status).toBe("done");
+    });
+
+    it("bulkDelete removes multiple entries", () => {
+      const e1 = service.createEntry({ raw_text: "a" });
+      const e2 = service.createEntry({ raw_text: "b" });
+
+      const count = service.bulkDelete([e1.id, e2.id]);
+      expect(count).toBe(2);
+      expect(service.getEntry(e1.id)).toBeNull();
+      expect(service.getEntry(e2.id)).toBeNull();
+    });
+
+    it("bulkUpdateStatus with empty array returns 0", () => {
+      expect(service.bulkUpdateStatus([], "done")).toBe(0);
+    });
+
+    it("bulkDelete with empty array returns 0", () => {
+      expect(service.bulkDelete([])).toBe(0);
+    });
+  });
+
+  // ─── Overdue tasks ─────────────────────────────────────────
+
+  describe("overdue tasks", () => {
+    it("returns tasks past their due date", () => {
+      service.createEntry({
+        raw_text: "overdue",
+        type: "task",
+        title: "Overdue",
+        due_date: "2020-01-01",
+      });
+      service.createEntry({
+        raw_text: "future",
+        type: "task",
+        title: "Future",
+        due_date: "2099-12-31",
+      });
+
+      const overdue = service.getOverdueTasks("2026-01-01");
+      expect(overdue.length).toBe(1);
+      expect(overdue[0].title).toBe("Overdue");
+    });
+
+    it("uses today when no date specified", () => {
+      service.createEntry({
+        raw_text: "overdue",
+        type: "task",
+        title: "Overdue",
+        due_date: "2020-01-01",
+      });
+
+      const overdue = service.getOverdueTasks();
+      expect(overdue.length).toBe(1);
+    });
+
+    it("returns empty when no overdue tasks", () => {
+      service.createEntry({
+        raw_text: "future",
+        type: "task",
+        title: "Future",
+        due_date: "2099-12-31",
+      });
+      expect(service.getOverdueTasks().length).toBe(0);
+    });
+  });
+
+  // ─── Type summary ──────────────────────────────────────────
+
+  describe("type summary", () => {
+    it("returns counts by type", () => {
+      service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      service.createEntry({ raw_text: "b", type: "task", title: "B" });
+      service.createEntry({ raw_text: "c", type: "note", title: "C" });
+
+      const summary = service.getTypeSummary();
+      expect(summary.find((s) => s.type === "task")?.count).toBe(2);
+      expect(summary.find((s) => s.type === "note")?.count).toBe(1);
+    });
+  });
+
+  // ─── Count entries ─────────────────────────────────────────
+
+  describe("countEntries", () => {
+    it("counts all entries", () => {
+      service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      service.createEntry({ raw_text: "b", type: "note", title: "B" });
+      service.createEntry({ raw_text: "c" });
+      expect(service.countEntries()).toBe(3);
+    });
+
+    it("counts with filter", () => {
+      service.createEntry({ raw_text: "a", type: "task", title: "A" });
+      service.createEntry({ raw_text: "b", type: "note", title: "B" });
+      expect(service.countEntries({ type: "task" })).toBe(1);
+    });
+  });
+
   // ─── getUnprocessed ────────────────────────────────────────
 
   describe("getUnprocessed", () => {

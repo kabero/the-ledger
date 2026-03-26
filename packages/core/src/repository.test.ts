@@ -435,6 +435,148 @@ describe("EntryRepository", () => {
     });
   });
 
+  // ─── bulkUpdateStatus ───────────────────────────────────────
+
+  describe("bulkUpdateStatus", () => {
+    it("marks multiple entries as done", () => {
+      const e1 = repo.create({ raw_text: "a", type: "task", title: "A" });
+      const e2 = repo.create({ raw_text: "b", type: "task", title: "B" });
+      const e3 = repo.create({ raw_text: "c", type: "task", title: "C" });
+
+      const count = repo.bulkUpdateStatus([e1.id, e2.id], "done");
+      expect(count).toBe(2);
+      expect(repo.getById(e1.id)?.status).toBe("done");
+      expect(repo.getById(e1.id)?.completed_at).not.toBeNull();
+      expect(repo.getById(e2.id)?.status).toBe("done");
+      expect(repo.getById(e3.id)?.status).toBe("pending");
+    });
+
+    it("marks entries as pending and clears completed_at", () => {
+      const e1 = repo.create({ raw_text: "a", type: "task", title: "A" });
+      repo.update({ id: e1.id, status: "done" });
+      expect(repo.getById(e1.id)?.completed_at).not.toBeNull();
+
+      repo.bulkUpdateStatus([e1.id], "pending");
+      expect(repo.getById(e1.id)?.status).toBe("pending");
+      expect(repo.getById(e1.id)?.completed_at).toBeNull();
+    });
+
+    it("returns 0 for empty ids array", () => {
+      expect(repo.bulkUpdateStatus([], "done")).toBe(0);
+    });
+
+    it("ignores non-existent ids", () => {
+      const e1 = repo.create({ raw_text: "a", type: "task", title: "A" });
+      const count = repo.bulkUpdateStatus([e1.id, "nonexistent"], "done");
+      expect(count).toBe(1);
+    });
+  });
+
+  // ─── bulkDelete ────────────────────────────────────────────
+
+  describe("bulkDelete", () => {
+    it("deletes multiple entries", () => {
+      const e1 = repo.create({ raw_text: "a" });
+      const e2 = repo.create({ raw_text: "b" });
+      const e3 = repo.create({ raw_text: "c" });
+
+      const count = repo.bulkDelete([e1.id, e2.id]);
+      expect(count).toBe(2);
+      expect(repo.getById(e1.id)).toBeNull();
+      expect(repo.getById(e2.id)).toBeNull();
+      expect(repo.getById(e3.id)).not.toBeNull();
+    });
+
+    it("returns 0 for empty ids array", () => {
+      expect(repo.bulkDelete([])).toBe(0);
+    });
+
+    it("ignores non-existent ids", () => {
+      const count = repo.bulkDelete(["nonexistent"]);
+      expect(count).toBe(0);
+    });
+
+    it("cascades tag deletion", () => {
+      const e = repo.create({ raw_text: "x", type: "task", title: "T", tags: ["a", "b"] });
+      repo.bulkDelete([e.id]);
+      const tags = db.prepare("SELECT * FROM entry_tags WHERE entry_id = ?").all(e.id);
+      expect(tags.length).toBe(0);
+    });
+  });
+
+  // ─── getOverdueTasks ───────────────────────────────────────
+
+  describe("getOverdueTasks", () => {
+    it("returns tasks with due_date before given date", () => {
+      repo.create({ raw_text: "a", type: "task", title: "Overdue", due_date: "2020-01-01" });
+      repo.create({ raw_text: "b", type: "task", title: "Future", due_date: "2099-12-31" });
+      repo.create({ raw_text: "c", type: "task", title: "No due date" });
+
+      const overdue = repo.getOverdueTasks("2026-01-01");
+      expect(overdue.length).toBe(1);
+      expect(overdue[0].title).toBe("Overdue");
+    });
+
+    it("excludes done tasks", () => {
+      const e = repo.create({
+        raw_text: "done",
+        type: "task",
+        title: "Done overdue",
+        due_date: "2020-01-01",
+      });
+      repo.update({ id: e.id, status: "done" });
+
+      const overdue = repo.getOverdueTasks("2026-01-01");
+      expect(overdue.length).toBe(0);
+    });
+
+    it("returns empty when no overdue tasks", () => {
+      repo.create({ raw_text: "a", type: "task", title: "Future", due_date: "2099-12-31" });
+      expect(repo.getOverdueTasks("2026-01-01")).toEqual([]);
+    });
+
+    it("orders by due_date ascending", () => {
+      repo.create({ raw_text: "b", type: "task", title: "Later", due_date: "2024-06-01" });
+      repo.create({ raw_text: "a", type: "task", title: "Earlier", due_date: "2024-01-01" });
+
+      const overdue = repo.getOverdueTasks("2026-01-01");
+      expect(overdue[0].title).toBe("Earlier");
+      expect(overdue[1].title).toBe("Later");
+    });
+  });
+
+  // ─── getTypeSummary ────────────────────────────────────────
+
+  describe("getTypeSummary", () => {
+    it("returns counts grouped by type", () => {
+      repo.create({ raw_text: "a", type: "task", title: "A" });
+      repo.create({ raw_text: "b", type: "task", title: "B" });
+      repo.create({ raw_text: "c", type: "note", title: "C" });
+      repo.create({ raw_text: "d", type: "wish", title: "D" });
+      repo.create({ raw_text: "unprocessed" }); // no type
+
+      const summary = repo.getTypeSummary();
+      expect(summary.find((s) => s.type === "task")?.count).toBe(2);
+      expect(summary.find((s) => s.type === "note")?.count).toBe(1);
+      expect(summary.find((s) => s.type === "wish")?.count).toBe(1);
+    });
+
+    it("returns empty array when no typed entries", () => {
+      repo.create({ raw_text: "unprocessed" });
+      expect(repo.getTypeSummary()).toEqual([]);
+    });
+
+    it("sorted by count descending", () => {
+      repo.create({ raw_text: "a", type: "task", title: "A" });
+      repo.create({ raw_text: "b", type: "task", title: "B" });
+      repo.create({ raw_text: "c", type: "note", title: "C" });
+
+      const summary = repo.getTypeSummary();
+      expect(summary[0].type).toBe("task");
+      expect(summary[0].count).toBe(2);
+    });
+  });
+
   // ─── getTagVocabulary ─────────────────────────────────────
 
   describe("getTagVocabulary", () => {

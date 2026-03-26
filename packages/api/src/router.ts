@@ -133,6 +133,33 @@ export const appRouter = t.router({
     return ctx.service.deleteEntry(input.id);
   }),
 
+  bulkUpdateStatus: t.procedure
+    .input(
+      z.object({
+        ids: z.array(z.string()).min(1).max(100),
+        status: taskStatusEnum,
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      return { count: ctx.service.bulkUpdateStatus(input.ids, input.status) };
+    }),
+
+  bulkDelete: t.procedure
+    .input(z.object({ ids: z.array(z.string()).min(1).max(100) }))
+    .mutation(({ input, ctx }) => {
+      return { count: ctx.service.bulkDelete(input.ids) };
+    }),
+
+  getOverdueTasks: t.procedure
+    .input(z.object({ before_date: z.string().optional() }).optional())
+    .query(({ input, ctx }) => {
+      return ctx.service.getOverdueTasks(input?.before_date);
+    }),
+
+  getTypeSummary: t.procedure.query(({ ctx }) => {
+    return ctx.service.getTypeSummary();
+  }),
+
   getStats: t.procedure.query(({ ctx }) => {
     return ctx.service.getStats();
   }),

@@ -113,6 +113,23 @@ export class EntryService {
     return this.repository.markAllResultsSeen();
   }
 
+  bulkUpdateStatus(ids: string[], status: "pending" | "done"): number {
+    return this.repository.bulkUpdateStatus(ids, status);
+  }
+
+  bulkDelete(ids: string[]): number {
+    return this.repository.bulkDelete(ids);
+  }
+
+  getOverdueTasks(beforeDate?: string): Entry[] {
+    const date = beforeDate ?? new Date().toISOString().slice(0, 10);
+    return this.repository.getOverdueTasks(date);
+  }
+
+  getTypeSummary(): { type: string; count: number }[] {
+    return this.repository.getTypeSummary();
+  }
+
   deleteEntry(id: string): boolean {
     // Clean up image file before deleting DB record
     const entry = this.repository.getById(id);

@@ -348,6 +348,73 @@ export class EntryRepository {
     return row.cnt;
   }
 
+  /**
+   * Bulk-update status for multiple entries in a single transaction.
+   * Returns the number of entries actually updated.
+   */
+  bulkUpdateStatus(ids: string[], status: "pending" | "done"): number {
+    if (ids.length === 0) return 0;
+    return this.db.transaction(() => {
+      let count = 0;
+      const completedClause =
+        status === "done" ? ", completed_at = datetime('now')" : ", completed_at = NULL";
+      const stmt = this.db.prepare(
+        `UPDATE entries SET status = ?, updated_at = datetime('now')${completedClause} WHERE id = ?`,
+      );
+      for (const id of ids) {
+        const result = stmt.run(status, id);
+        count += result.changes;
+      }
+      return count;
+    })();
+  }
+
+  /**
+   * Bulk-delete multiple entries in a single transaction.
+   * Returns the number of entries actually deleted.
+   */
+  bulkDelete(ids: string[]): number {
+    if (ids.length === 0) return 0;
+    return this.db.transaction(() => {
+      let count = 0;
+      const stmt = this.db.prepare("DELETE FROM entries WHERE id = ?");
+      for (const id of ids) {
+        const result = stmt.run(id);
+        count += result.changes;
+      }
+      return count;
+    })();
+  }
+
+  /**
+   * Get pending tasks whose due_date is before the given date (YYYY-MM-DD).
+   * Useful for overdue task detection.
+   */
+  getOverdueTasks(beforeDate: string): Entry[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM entries
+         WHERE type = 'task'
+           AND status = 'pending'
+           AND due_date IS NOT NULL
+           AND due_date < ?
+         ORDER BY due_date ASC`,
+      )
+      .all(beforeDate) as EntryRow[];
+    return this.rowsToEntries(rows);
+  }
+
+  /**
+   * Get a summary of entry counts grouped by type.
+   */
+  getTypeSummary(): { type: string; count: number }[] {
+    return this.db
+      .prepare(
+        `SELECT type, COUNT(*) as count FROM entries WHERE type IS NOT NULL GROUP BY type ORDER BY count DESC`,
+      )
+      .all() as { type: string; count: number }[];
+  }
+
   getTagVocabulary(): { tag: string; count: number }[] {
     return this.db
       .prepare("SELECT tag, COUNT(*) as count FROM entry_tags GROUP BY tag ORDER BY count DESC")

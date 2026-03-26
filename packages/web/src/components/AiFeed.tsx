@@ -87,6 +87,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
 
   const [selectedEntry, setSelectedEntry] = useState<EntryItem | null>(null);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
 
   const mutateRef = useRef(updateEntry.mutate);
   mutateRef.current = updateEntry.mutate;
@@ -114,6 +115,41 @@ export function AiFeed({ onClose }: AiFeedProps) {
 
   return (
     <div className="ai-feed">
+      {confirmDelete && (
+        <div
+          className="result-overlay"
+          role="dialog"
+          onClick={() => setConfirmDelete(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setConfirmDelete(null);
+          }}
+        >
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-message">「{confirmDelete.label}」を削除しますか？</div>
+            <div className="confirm-buttons">
+              <button
+                type="button"
+                className="confirm-btn confirm-btn-cancel"
+                onClick={() => setConfirmDelete(null)}
+              >
+                やめる
+              </button>
+              <button
+                type="button"
+                className="confirm-btn confirm-btn-ok"
+                onClick={() => {
+                  deleteEntry.mutate({ id: confirmDelete.id });
+                  setConfirmDelete(null);
+                }}
+              >
+                削除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="ai-feed-header">
         <span className="ai-feed-title">AI Dashboard</span>
         <button type="button" className="gallery-close" aria-label="閉じる" onClick={onClose}>
@@ -181,7 +217,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     <button
                       type="button"
                       className="ai-action trash"
-                      onClick={() => deleteEntry.mutate({ id: e.id })}
+                      onClick={() => setConfirmDelete({ id: e.id, label: e.raw_text })}
                       title="削除"
                     >
                       {"\u2715"}

@@ -47,9 +47,11 @@ export function EntryList({ tab }: EntryListProps) {
   }
 
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ message: string; onOk: () => void } | null>(
-    null,
-  );
+  const [confirmAction, setConfirmAction] = useState<{
+    message: string;
+    onOk: () => void;
+    okLabel?: string;
+  } | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = modalEntry || confirmAction ? "hidden" : "";
@@ -108,6 +110,7 @@ export function EntryList({ tab }: EntryListProps) {
           message={confirmAction.message}
           onOk={confirmAction.onOk}
           onCancel={() => setConfirmAction(null)}
+          okLabel={confirmAction.okLabel}
         />
       )}
       {modalEntry && (
@@ -244,7 +247,16 @@ export function EntryList({ tab }: EntryListProps) {
                 type="button"
                 className="btn-del"
                 aria-label="削除"
-                onClick={() => deleteEntry.mutate({ id: entry.id })}
+                onClick={() => {
+                  setConfirmAction({
+                    message: `「${entry.title ?? entry.raw_text}」を削除しますか？`,
+                    okLabel: "削除",
+                    onOk: () => {
+                      deleteEntry.mutate({ id: entry.id });
+                      setConfirmAction(null);
+                    },
+                  });
+                }}
               >
                 x
               </button>
@@ -359,10 +371,12 @@ function ConfirmModal({
   message,
   onOk,
   onCancel,
+  okLabel = "戻す",
 }: {
   message: string;
   onOk: () => void;
   onCancel: () => void;
+  okLabel?: string;
 }) {
   return (
     <div
@@ -382,7 +396,7 @@ function ConfirmModal({
             やめる
           </button>
           <button type="button" className="confirm-btn confirm-btn-ok" onClick={onOk}>
-            戻す
+            {okLabel}
           </button>
         </div>
       </div>

@@ -98,7 +98,19 @@ export function App() {
     { type: "task", status: "pending", limit: 100 },
     { refetchInterval: showAiFeed ? false : POLL.entries },
   );
-  const [overdueDismissed, setOverdueDismissed] = useState(false);
+  const [overdueDismissed, setOverdueDismissed] = useState(() => {
+    const key = "overdue-dismissed";
+    const stored = sessionStorage.getItem(key);
+    if (!stored) return false;
+    // Persist dismiss only for the current calendar day
+    const today = new Date().toISOString().slice(0, 10);
+    return stored === today;
+  });
+  const handleOverdueDismiss = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    sessionStorage.setItem("overdue-dismissed", today);
+    setOverdueDismissed(true);
+  }, []);
   const overdueCount = useMemo(() => {
     if (!pendingTasks.data) return 0;
     const now = new Date();
@@ -262,11 +274,7 @@ export function App() {
             >
               確認
             </button>
-            <button
-              type="button"
-              className="overdue-banner-dismiss"
-              onClick={() => setOverdueDismissed(true)}
-            >
+            <button type="button" className="overdue-banner-dismiss" onClick={handleOverdueDismiss}>
               {"\u2715"}
             </button>
           </div>

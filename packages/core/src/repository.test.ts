@@ -945,6 +945,23 @@ describe("EntryRepository", () => {
     it("returns 0 for no matches", () => {
       expect(repo.count({ type: "task" })).toBe(0);
     });
+
+    it("counts by query (FTS)", () => {
+      seedForCount();
+      expect(repo.count({ query: "Task" })).toBe(2);
+      expect(repo.count({ query: "Note" })).toBe(1);
+      expect(repo.count({ query: "Wish" })).toBe(1);
+    });
+
+    it("counts by query combined with type", () => {
+      seedForCount();
+      expect(repo.count({ query: "1", type: "task" })).toBe(1);
+    });
+
+    it("counts by query with no FTS matches returns 0", () => {
+      seedForCount();
+      expect(repo.count({ query: "nonexistent" })).toBe(0);
+    });
   });
 
   // ─── markAllResultsSeen ─────────────────────────────────────

@@ -69,6 +69,7 @@ export const appRouter = t.router({
           type: entryTypeEnum.optional(),
           status: taskStatusEnum.optional(),
           tag: z.string().optional(),
+          query: z.string().optional(),
           processed: z.boolean().optional(),
           delegatable: z.boolean().optional(),
           source: z.string().optional(),

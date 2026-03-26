@@ -730,3 +730,127 @@ html {
   margin-top: 4px;
   padding-top: 10px;
 }
+
+/* ============================================================
+   TASK: Urgent task priority label
+   Small "PRIORITY" label next to urgent tasks for clarity
+   ============================================================ */
+.entry.urgent .btn-priority.active::after {
+  content: "PRIORITY";
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  color: var(--danger, #f00);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.btn-priority {
+  position: relative;
+}
+
+/* ============================================================
+   TASK: Sidebar card hover lift
+   Subtle lift effect on sidebar cards
+   ============================================================ */
+@media (hover: hover) {
+  .sidebar-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* ============================================================
+   TASK: Decision card pulse for pending decisions
+   Attract attention to cards awaiting human judgment
+   ============================================================ */
+.ai-decision-card {
+  border-left: 3px solid var(--warning, #f80);
+  animation: decision-pulse 3s ease-in-out infinite;
+}
+
+@keyframes decision-pulse {
+  0%,
+  100% {
+    border-left-color: var(--warning, #f80);
+  }
+  50% {
+    border-left-color: var(--accent, #ff0);
+  }
+}
+
+/* ============================================================
+   TASK: Improve done-section toggle appearance
+   Better visual for the collapsible done section
+   ============================================================ */
+.done-section-toggle {
+  position: relative;
+  overflow: hidden;
+}
+
+.done-section-toggle::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--done, #0f0);
+  opacity: 0.4;
+}
+
+/* ============================================================
+   TASK: Result modal scrollbar styling
+   Better scrollbar for result modal content
+   ============================================================ */
+.result-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.result-modal::-webkit-scrollbar-thumb {
+  background: var(--border-muted, #333);
+  border-radius: 3px;
+}
+
+.result-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================================
+   TASK: "All done!" celebration state
+   Positive feedback when all pending tasks are completed
+   ============================================================ */
+.all-done-state {
+  text-align: center;
+  padding: 32px 16px 16px;
+  animation: fadeSlideIn 0.3s ease-out;
+}
+
+.all-done-title {
+  font-size: 18px;
+  color: var(--done, #0f0);
+  margin-bottom: 8px;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  animation: all-done-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes all-done-glow {
+  from {
+    text-shadow: 0 0 6px rgba(0, 255, 0, 0.2);
+  }
+  to {
+    text-shadow: 0 0 14px rgba(0, 255, 0, 0.4);
+  }
+}
+
+.all-done-hint {
+  font-size: 12px;
+  color: var(--dim, #666);
+  line-height: 1.8;
+}

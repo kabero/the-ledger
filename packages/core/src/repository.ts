@@ -327,6 +327,16 @@ export class EntryRepository {
       );
       params.push(filter.tag);
     }
+    if (filter.query !== undefined) {
+      conditions.push("e.rowid IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?)");
+      const sanitized = filter.query
+        .replace(/"/g, '""')
+        .split(/\s+/)
+        .filter((t) => t.length > 0)
+        .map((t) => `"${t}"`)
+        .join(" ");
+      params.push(sanitized || '""');
+    }
     if (filter.source !== undefined) {
       if (filter.source === "any") {
         conditions.push("e.source IS NOT NULL");

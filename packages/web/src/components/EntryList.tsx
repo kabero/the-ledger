@@ -142,11 +142,26 @@ export function EntryList({ tab }: EntryListProps) {
     const sorted =
       tab === "task"
         ? [...filtered].sort((a, b) => {
+            // 1. Done items sink to bottom
             const aDone = a.status === "done" ? 1 : 0;
             const bDone = b.status === "done" ? 1 : 0;
             if (aDone !== bDone) return aDone - bDone;
             if (aDone && bDone) {
               return (b.completed_at ?? "").localeCompare(a.completed_at ?? "");
+            }
+            // 2. Among pending: urgent (priority-flagged) float to top
+            const aUrgent = a.urgent ? 1 : 0;
+            const bUrgent = b.urgent ? 1 : 0;
+            if (aUrgent !== bUrgent) return bUrgent - aUrgent;
+            // 3. Among urgent: overdue items first
+            if (aUrgent && bUrgent) {
+              const now = new Date();
+              now.setHours(0, 0, 0, 0);
+              const aDue = a.due_date ? new Date(`${a.due_date}T00:00:00`) : null;
+              const bDue = b.due_date ? new Date(`${b.due_date}T00:00:00`) : null;
+              const aOverdue = aDue && aDue.getTime() < now.getTime() ? 1 : 0;
+              const bOverdue = bDue && bDue.getTime() < now.getTime() ? 1 : 0;
+              if (aOverdue !== bOverdue) return bOverdue - aOverdue;
             }
             return 0;
           })
@@ -390,6 +405,12 @@ export function EntryList({ tab }: EntryListProps) {
         />
       )}
       <div>
+        {tab === "task" && pending.length === 0 && done.length > 0 && (
+          <div className="all-done-state">
+            <div className="all-done-title">全部やった！</div>
+            <div className="all-done-hint">今日のタスクは全部片付いたよ。おつかれさま。</div>
+          </div>
+        )}
         {pending.map(renderEntry)}
         {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
       </div>

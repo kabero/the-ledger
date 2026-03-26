@@ -72,6 +72,7 @@
   --z-fullscreen: 100;
   --z-fullscreen-close: 101;
   --z-tooltip: 200;
+  --z-toast: 45;
 }
 
 body {
@@ -547,7 +548,7 @@ body {
   border-radius: 8px;
   padding: 10px 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  z-index: var(--z-toast);
   animation: undo-slide-up 0.2s ease-out;
   max-width: 90vw;
 }

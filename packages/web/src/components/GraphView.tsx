@@ -74,13 +74,16 @@ export function GraphView({ fullscreen }: GraphViewProps) {
     }
   }
 
-  // Build edges from shared tags
+  // Build edges from shared tags (skip overly popular tags to avoid O(n^2) blowup)
+  const MAX_TAG_ENTRIES = 30;
   const linkMap = new Map<string, number>();
   for (const [tag, ids] of Object.entries(tagEntries)) {
+    // Skip tags that appear on too many entries — they create noise, not signal
+    if (ids.length > MAX_TAG_ENTRIES) continue;
     const rarity = 1 / (tagCount[tag] ?? 1);
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
-        const key = [ids[i], ids[j]].sort().join("--");
+        const key = ids[i] < ids[j] ? `${ids[i]}--${ids[j]}` : `${ids[j]}--${ids[i]}`;
         linkMap.set(key, (linkMap.get(key) ?? 0) + rarity);
       }
     }

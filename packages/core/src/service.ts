@@ -40,6 +40,20 @@ function validateImageMagicBytes(data: Buffer, ext: string): boolean {
   });
 }
 
+/** Normalize tags: lowercase, trim, deduplicate, limit length to 20 chars */
+function normalizeTags(tags: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of tags) {
+    const tag = raw.trim().toLowerCase().slice(0, 20);
+    if (tag && !seen.has(tag)) {
+      seen.add(tag);
+      result.push(tag);
+    }
+  }
+  return result;
+}
+
 export class EntryService {
   constructor(
     private repository: EntryRepository,
@@ -47,6 +61,9 @@ export class EntryService {
   ) {}
 
   createEntry(input: CreateEntryInput): Entry {
+    if (input.tags) {
+      input = { ...input, tags: normalizeTags(input.tags) };
+    }
     return this.repository.create(input);
   }
 
@@ -63,10 +80,16 @@ export class EntryService {
   }
 
   submitProcessed(input: SubmitProcessedInput): Entry {
+    if (input.tags) {
+      input = { ...input, tags: normalizeTags(input.tags) };
+    }
     return this.repository.submitProcessed(input);
   }
 
   updateEntry(input: UpdateEntryInput): Entry | null {
+    if (input.tags) {
+      input = { ...input, tags: normalizeTags(input.tags) };
+    }
     // Validate decision_selected is within bounds of decision_options
     if (input.decision_selected != null) {
       const entry = this.repository.getById(input.id);

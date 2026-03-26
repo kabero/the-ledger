@@ -445,6 +445,24 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.entry-result-url {
+  display: inline-block;
+  font-size: 11px;
+  color: #4af;
+  background: rgba(68, 170, 255, 0.1);
+  border: 1px solid rgba(68, 170, 255, 0.3);
+  border-radius: 3px;
+  padding: 0 5px;
+  margin-left: 6px;
+  text-decoration: none;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.entry-result-url:hover {
+  background: rgba(68, 170, 255, 0.25);
+}
+
 .tag {
   font-size: 12px;
   color: var(--accent);

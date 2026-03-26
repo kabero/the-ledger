@@ -182,6 +182,17 @@ export function EntryList({ tab }: EntryListProps) {
                   ) : (
                     (entry.title ?? entry.raw_text)
                   )}
+                  {entry.result_url && (
+                    <a
+                      href={entry.result_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="entry-result-url"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {"\u2197"} URL
+                    </a>
+                  )}
                 </div>
                 <div className="entry-tags">
                   {entry.type && tab === "all" && (

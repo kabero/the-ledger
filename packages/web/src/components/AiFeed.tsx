@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { trpc } from "../trpc";
+
+function normalizeResult(text: string): string {
+  return text.replace(/\\n/g, "\n");
+}
 
 interface AiFeedProps {
   onClose: () => void;
@@ -137,11 +143,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
           {selectedEntry.result ? (
             <>
               <div className="ai-detail-result">
-                <div
-                  className="result-markdown"
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
-                  dangerouslySetInnerHTML={{ __html: simpleMarkdown(selectedEntry.result) }}
-                />
+                <Markdown remarkPlugins={[remarkGfm]}>
+                  {normalizeResult(selectedEntry.result)}
+                </Markdown>
               </div>
               {selectedEntry.status === "done" && selectedEntry.delegatable && (
                 <button
@@ -158,10 +162,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
             </>
           ) : selectedEntry.raw_text && selectedEntry.raw_text !== selectedEntry.title ? (
             <div className="ai-detail-result">
-              <div
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
-                dangerouslySetInnerHTML={{ __html: simpleMarkdown(selectedEntry.raw_text) }}
-              />
+              <Markdown remarkPlugins={[remarkGfm]}>
+                {normalizeResult(selectedEntry.raw_text)}
+              </Markdown>
             </div>
           ) : (
             <div className="ai-detail-empty">
@@ -382,10 +385,7 @@ function MiniCard({
       </button>
       {hoverContent && (
         <div className="ai-hover-modal">
-          <div
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
-            dangerouslySetInnerHTML={{ __html: simpleMarkdown(hoverContent) }}
-          />
+          <Markdown remarkPlugins={[remarkGfm]}>{normalizeResult(hoverContent)}</Markdown>
         </div>
       )}
     </div>
@@ -404,18 +404,4 @@ function formatTime(iso: string): string {
   const diffDay = Math.floor(diffHour / 24);
   if (diffDay < 7) return `${diffDay}日前`;
   return d.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
-}
-
-function simpleMarkdown(md: string): string {
-  return md
-    .replace(/\\n/g, "\n") // normalize literal \n to real newlines
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/^### (.+)$/gm, '<h4 class="result-h">$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3 class="result-h">$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2 class="result-h">$1</h2>')
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/^- (.+)$/gm, '<li class="result-li">$1</li>')
-    .replace(/\n/g, "<br />");
 }

@@ -1508,30 +1508,39 @@ body {
   display: block;
 }
 
-.ai-hover-modal .result-h {
+.ai-hover-modal h2,
+.ai-hover-modal h3,
+.ai-hover-modal h4 {
   margin: 8px 0 4px;
   color: var(--accent);
 }
 
-.ai-hover-modal h2.result-h {
-  font-size: 15px;
-}
-
-.ai-hover-modal h3.result-h {
-  font-size: 13px;
-}
-
-.ai-hover-modal h4.result-h {
-  font-size: 12px;
-}
-
-.ai-hover-modal .result-li {
+.ai-hover-modal ul,
+.ai-hover-modal ol {
   margin-left: 16px;
-  list-style: disc;
 }
 
 .ai-hover-modal strong {
   color: var(--accent);
+}
+
+.ai-hover-modal table {
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 8px 0;
+}
+
+.ai-hover-modal th,
+.ai-hover-modal td {
+  border: 1px solid #333;
+  padding: 2px 6px;
+}
+
+.ai-hover-modal code {
+  background: #1a1a1a;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 11px;
 }
 
 .ai-mini-time {
@@ -1637,30 +1646,60 @@ body {
   line-height: 1.7;
 }
 
-.ai-detail-result .result-h {
+.ai-detail-result h2,
+.ai-detail-result h3,
+.ai-detail-result h4 {
   margin: 12px 0 6px;
   color: var(--accent);
 }
 
-.ai-detail-result h2.result-h {
-  font-size: 16px;
-}
-
-.ai-detail-result h3.result-h {
-  font-size: 14px;
-}
-
-.ai-detail-result h4.result-h {
-  font-size: 13px;
-}
-
-.ai-detail-result .result-li {
+.ai-detail-result ul,
+.ai-detail-result ol {
   margin-left: 16px;
-  list-style: disc;
 }
 
 .ai-detail-result strong {
   color: var(--accent);
+}
+
+.ai-detail-result table {
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.ai-detail-result th,
+.ai-detail-result td {
+  border: 1px solid #333;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.ai-detail-result th {
+  background: #1a1a1a;
+  color: var(--accent);
+}
+
+.ai-detail-result code {
+  background: #1a1a1a;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.ai-detail-result pre {
+  background: #0f0f0f;
+  border: 1px solid #222;
+  border-radius: 4px;
+  padding: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.ai-detail-result pre code {
+  background: none;
+  padding: 0;
 }
 
 .ai-detail-empty {

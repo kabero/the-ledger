@@ -31,6 +31,10 @@ interface EntryRow {
 export class EntryRepository {
   constructor(private db: Database.Database) {}
 
+  runInTransaction<T>(fn: () => T): T {
+    return this.db.transaction(fn)();
+  }
+
   create(input: CreateEntryInput): Entry {
     const id = uuidv4();
     const preClassified = input.type && input.title;

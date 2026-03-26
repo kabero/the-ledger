@@ -139,8 +139,11 @@ export class EntryService {
     const createdEntries: Entry[] = [];
     for (const task of dueTasks) {
       try {
-        const entry = this.createEntry({ raw_text: task.raw_text });
-        repo.markRun(task.id);
+        const entry = this.repository.runInTransaction(() => {
+          const created = this.createEntry({ raw_text: task.raw_text });
+          repo.markRun(task.id);
+          return created;
+        });
         createdEntries.push(entry);
       } catch (err) {
         console.error(`Failed to run scheduled task ${task.id}:`, err);

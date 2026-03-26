@@ -185,63 +185,65 @@ export class EntryRepository {
   }
 
   update(input: UpdateEntryInput): Entry | null {
-    const sets: string[] = [];
-    const params: unknown[] = [];
+    return this.db.transaction(() => {
+      const sets: string[] = [];
+      const params: unknown[] = [];
 
-    if (input.title !== undefined) {
-      sets.push("title = ?");
-      params.push(input.title);
-    }
-    if (input.urgent !== undefined) {
-      sets.push("urgent = ?");
-      params.push(input.urgent ? 1 : 0);
-    }
-    if (input.due_date !== undefined) {
-      sets.push("due_date = ?");
-      params.push(input.due_date);
-    }
-    if (input.status !== undefined) {
-      sets.push("status = ?");
-      params.push(input.status);
-      if (input.status === "done") {
-        sets.push("completed_at = datetime('now')");
-      } else {
-        sets.push("completed_at = NULL");
+      if (input.title !== undefined) {
+        sets.push("title = ?");
+        params.push(input.title);
       }
-    }
-    if (input.type !== undefined) {
-      sets.push("type = ?");
-      params.push(input.type);
-    }
-    if (input.delegatable !== undefined) {
-      sets.push("delegatable = ?");
-      params.push(input.delegatable ? 1 : 0);
-    }
-    if (input.result !== undefined) {
-      sets.push("result = ?");
-      params.push(input.result);
-      sets.push("result_seen = 0");
-    }
-    if (input.result_url !== undefined) {
-      sets.push("result_url = ?");
-      params.push(input.result_url);
-    }
-    if (input.result_seen !== undefined) {
-      sets.push("result_seen = ?");
-      params.push(input.result_seen ? 1 : 0);
-    }
+      if (input.urgent !== undefined) {
+        sets.push("urgent = ?");
+        params.push(input.urgent ? 1 : 0);
+      }
+      if (input.due_date !== undefined) {
+        sets.push("due_date = ?");
+        params.push(input.due_date);
+      }
+      if (input.status !== undefined) {
+        sets.push("status = ?");
+        params.push(input.status);
+        if (input.status === "done") {
+          sets.push("completed_at = datetime('now')");
+        } else {
+          sets.push("completed_at = NULL");
+        }
+      }
+      if (input.type !== undefined) {
+        sets.push("type = ?");
+        params.push(input.type);
+      }
+      if (input.delegatable !== undefined) {
+        sets.push("delegatable = ?");
+        params.push(input.delegatable ? 1 : 0);
+      }
+      if (input.result !== undefined) {
+        sets.push("result = ?");
+        params.push(input.result);
+        sets.push("result_seen = 0");
+      }
+      if (input.result_url !== undefined) {
+        sets.push("result_url = ?");
+        params.push(input.result_url);
+      }
+      if (input.result_seen !== undefined) {
+        sets.push("result_seen = ?");
+        params.push(input.result_seen ? 1 : 0);
+      }
 
-    sets.push("updated_at = datetime('now')");
-    if (sets.length > 0) {
-      params.push(input.id);
-      this.db.prepare(`UPDATE entries SET ${sets.join(", ")} WHERE id = ?`).run(...params);
-    }
+      sets.push("updated_at = datetime('now')");
+      if (sets.length > 0) {
+        params.push(input.id);
+        this.db.prepare(`UPDATE entries SET ${sets.join(", ")} WHERE id = ?`).run(...params);
+      }
 
-    if (input.tags !== undefined) {
-      this.replaceTags(input.id, input.tags);
-    }
+      if (input.tags !== undefined) {
+        this.replaceTags(input.id, input.tags);
+      }
 
-    return this.getById(input.id);
+      return this.getById(input.id);
+    })();
   }
 
   delete(id: string): boolean {

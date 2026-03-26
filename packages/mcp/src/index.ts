@@ -313,7 +313,7 @@ server.tool(
 
 server.tool(
   "update_entry",
-  "Update an existing entry's fields. Use this to change tags, urgency, due dates, type, status, delegatable flag, etc.",
+  "Update an existing entry's fields. Use this for partial updates like tags, urgency, due dates, type, status, delegatable flag, etc. Note: setting result automatically resets result_seen to false. For completing delegated tasks, prefer complete_task instead.",
   {
     id: z.string().describe("Entry ID to update"),
     type: z.enum(ENTRY_TYPES).optional().describe("Change type: task, note, wish, or trash"),
@@ -371,7 +371,7 @@ server.tool(
 
 server.tool(
   "complete_task",
-  "Complete a delegatable task by writing the result. Automatically sets status to done. Use this when you finish working on a delegatable task.",
+  "Complete a delegatable task by writing the result. Automatically sets status to done and resets result_seen to false (so the user sees the new result). Prefer this over update_entry when finishing delegated work, as it handles the done+result flow in one call.",
   {
     id: z.string().describe("Entry ID of the task to complete"),
     result: z

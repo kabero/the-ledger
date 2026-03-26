@@ -87,6 +87,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
 
   const [selectedEntry, setSelectedEntry] = useState<EntryItem | null>(null);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
+  const [showAllHumanTasks, setShowAllHumanTasks] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
 
   const mutateRef = useRef(updateEntry.mutate);
@@ -299,7 +300,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
               <span className="ai-dot human" /> 人間タスク ({humanPending.length})
             </div>
             <div className="ai-mini-cards">
-              {humanPending.slice(0, 6).map((e) => (
+              {(showAllHumanTasks ? humanPending : humanPending.slice(0, 6)).map((e) => (
                 <div key={e.id} className={`ai-mini human ${e.urgent ? "urgent" : ""}`}>
                   <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
                   {e.tags.length > 0 && (
@@ -337,6 +338,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 </div>
               ))}
             </div>
+            {humanPending.length > 6 && (
+              <button
+                type="button"
+                className="ai-show-more"
+                onClick={() => setShowAllHumanTasks(!showAllHumanTasks)}
+              >
+                {showAllHumanTasks ? "閉じる" : `もっと見る (${humanPending.length - 6}件)`}
+              </button>
+            )}
           </div>
         )}
 

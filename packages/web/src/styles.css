@@ -742,6 +742,52 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Overdue warning banner */
+.overdue-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(220, 50, 50, 0.12);
+  border: 1px solid rgba(220, 50, 50, 0.3);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.overdue-banner-text {
+  flex: 1;
+  font-size: 12px;
+  color: #dc3232;
+  font-weight: bold;
+}
+
+.overdue-banner-action {
+  background: none;
+  border: 1px solid rgba(220, 50, 50, 0.4);
+  color: #dc3232;
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overdue-banner-dismiss {
+  background: none;
+  border: none;
+  color: #dc3232;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  opacity: 0.6;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overdue-banner-dismiss:hover {
+  opacity: 1;
+}
+
 .section {
   margin-bottom: 20px;
 }

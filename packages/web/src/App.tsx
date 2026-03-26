@@ -51,6 +51,23 @@ export function App() {
     [aiTasks.data],
   );
 
+  // Overdue task detection
+  const pendingTasks = trpc.listEntries.useQuery(
+    { type: "task", status: "pending", limit: 100 },
+    { refetchInterval: showAiFeed ? false : POLL.entries },
+  );
+  const [overdueDismissed, setOverdueDismissed] = useState(false);
+  const overdueCount = useMemo(() => {
+    if (!pendingTasks.data) return 0;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return pendingTasks.data.filter((e) => {
+      if (!e.due_date) return false;
+      const due = new Date(`${e.due_date}T00:00:00`);
+      return due.getTime() < now.getTime();
+    }).length;
+  }, [pendingTasks.data]);
+
   // External sourced entries for sidebar
   const sourcedEntries = trpc.listEntries.useQuery(
     { source: "any", limit: 10 },
@@ -164,6 +181,28 @@ export function App() {
             <EntryInput />
           </div>
         </div>
+
+        {overdueCount > 0 && !overdueDismissed && (
+          <div className="overdue-banner">
+            <span className="overdue-banner-text">
+              {overdueCount}件のタスクが期限超過しています
+            </span>
+            <button
+              type="button"
+              className="overdue-banner-action"
+              onClick={() => setActiveTab("task")}
+            >
+              確認
+            </button>
+            <button
+              type="button"
+              className="overdue-banner-dismiss"
+              onClick={() => setOverdueDismissed(true)}
+            >
+              {"\u2715"}
+            </button>
+          </div>
+        )}
 
         <div className="section">
           <div className="tabs">

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { EntryItem } from "./types";
@@ -10,7 +11,25 @@ interface DetailViewProps {
   onRetry: (id: string) => void;
 }
 
+const remarkPlugins = [remarkGfm];
+
 export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps) {
+  const resultMarkdown = useMemo(
+    () =>
+      entry.result ? (
+        <Markdown remarkPlugins={remarkPlugins}>{normalizeResult(entry.result)}</Markdown>
+      ) : null,
+    [entry.result],
+  );
+
+  const rawTextMarkdown = useMemo(
+    () =>
+      !entry.result && entry.raw_text && entry.raw_text !== entry.title ? (
+        <Markdown remarkPlugins={remarkPlugins}>{normalizeResult(entry.raw_text)}</Markdown>
+      ) : null,
+    [entry.result, entry.raw_text, entry.title],
+  );
+
   return (
     <div className="ai-feed">
       <div className="ai-feed-header">
@@ -51,11 +70,9 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
             {"\u2197"} {entry.result_url}
           </a>
         )}
-        {entry.result ? (
+        {resultMarkdown ? (
           <>
-            <div className="ai-detail-result">
-              <Markdown remarkPlugins={[remarkGfm]}>{normalizeResult(entry.result)}</Markdown>
-            </div>
+            <div className="ai-detail-result">{resultMarkdown}</div>
             {entry.status === "done" && entry.delegatable && (
               <button
                 type="button"
@@ -66,10 +83,8 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
               </button>
             )}
           </>
-        ) : entry.raw_text && entry.raw_text !== entry.title ? (
-          <div className="ai-detail-result">
-            <Markdown remarkPlugins={[remarkGfm]}>{normalizeResult(entry.raw_text)}</Markdown>
-          </div>
+        ) : rawTextMarkdown ? (
+          <div className="ai-detail-result">{rawTextMarkdown}</div>
         ) : (
           <div className="ai-detail-empty">
             {entry.status === "done" ? "結果なし" : "作業待ち..."}

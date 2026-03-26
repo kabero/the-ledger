@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { EntryItem } from "./types";
@@ -11,7 +12,9 @@ interface MiniCardProps {
   timeField?: "created_at" | "completed_at";
 }
 
-export function MiniCard({
+const remarkPlugins = [remarkGfm];
+
+export const MiniCard = memo(function MiniCard({
   entry,
   className = "",
   onClick,
@@ -20,6 +23,14 @@ export function MiniCard({
 }: MiniCardProps) {
   const time = timeField === "completed_at" ? entry.completed_at : entry.created_at;
   const hoverContent = entry.result ?? (entry.raw_text !== entry.title ? entry.raw_text : null);
+
+  const tooltipMarkdown = useMemo(
+    () =>
+      hoverContent ? (
+        <Markdown remarkPlugins={remarkPlugins}>{normalizeResult(hoverContent)}</Markdown>
+      ) : null,
+    [hoverContent],
+  );
 
   return (
     <div className={`ai-mini-wrap ${hoverContent ? "has-tooltip" : ""}`}>
@@ -38,11 +49,7 @@ export function MiniCard({
           {time && <span className="ai-mini-time">{formatTime(time)}</span>}
         </div>
       </button>
-      {hoverContent && (
-        <div className="ai-hover-modal">
-          <Markdown remarkPlugins={[remarkGfm]}>{normalizeResult(hoverContent)}</Markdown>
-        </div>
-      )}
+      {tooltipMarkdown && <div className="ai-hover-modal">{tooltipMarkdown}</div>}
     </div>
   );
-}
+});

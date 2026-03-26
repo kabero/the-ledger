@@ -361,7 +361,6 @@ body {
   border-radius: 0 0 8px 8px;
   padding: 16px 20px;
   min-height: 20vh;
-  flex: 1;
 }
 
 .entry-list-box:has(.empty-state) {

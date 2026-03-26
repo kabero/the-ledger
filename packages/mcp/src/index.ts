@@ -321,6 +321,55 @@ server.tool(
 );
 
 server.tool(
+  "search_entries_paginated",
+  "Search entries with cursor-based pagination. Returns entries and a nextCursor for the next page. Use this for iterating through large result sets without missing or duplicating entries.",
+  {
+    query: z.string().optional().describe("Full-text search query"),
+    type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
+    status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
+    tag: z.string().optional().describe("Filter by tag"),
+    source: z.string().optional().describe("Filter by source"),
+    since: z.string().optional().describe("ISO date — only entries created on or after this date"),
+    until: z.string().optional().describe("ISO date — only entries created before this date"),
+    limit: z.number().int().positive().max(100).default(20).describe("Max results per page"),
+    cursor: z
+      .string()
+      .optional()
+      .describe("Cursor from previous response's nextCursor for next page"),
+  },
+  async ({ query, type, status, tag, source, since, until, limit, cursor }) => {
+    try {
+      const result = service.listEntriesWithCursor({
+        query,
+        type,
+        status,
+        tag,
+        source,
+        since,
+        until,
+        processed: true,
+        limit,
+        cursor,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              { entries: result.entries, nextCursor: result.nextCursor },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResponse(err);
+    }
+  },
+);
+
+server.tool(
   "update_entry",
   "Update an existing entry's fields. Use this for partial updates like tags, urgency, due dates, type, status, delegatable flag, etc. Note: setting result automatically resets result_seen to false. For completing delegated tasks, prefer complete_task instead.",
   {

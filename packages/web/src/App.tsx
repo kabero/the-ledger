@@ -27,13 +27,17 @@ export function App() {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 10_000 });
+  // Disable polling when AiFeed is open (it has its own queries)
+  const unprocessed = trpc.getUnprocessed.useQuery(
+    { limit: 50 },
+    { refetchInterval: showAiFeed ? false : 10_000 },
+  );
   const unprocessedCount = unprocessed.data?.length ?? 0;
 
   // Check for unseen AI results
   const aiTasks = trpc.listEntries.useQuery(
     { delegatable: true, limit: 100 },
-    { refetchInterval: 10_000 },
+    { refetchInterval: showAiFeed ? false : 10_000 },
   );
   const hasNewAiResults = useMemo(
     () => (aiTasks.data ?? []).some((e) => e.result && !e.result_seen),

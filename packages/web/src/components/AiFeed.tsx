@@ -13,13 +13,13 @@ interface AiFeedProps {
 export function AiFeed({ onClose }: AiFeedProps) {
   const delegatable = trpc.listEntries.useQuery(
     { delegatable: true, limit: 100 },
-    { refetchInterval: 5_000 },
+    { refetchInterval: 10_000 },
   );
   const sourced = trpc.listEntries.useQuery(
     { source: "any", limit: 100 },
-    { refetchInterval: 5_000 },
+    { refetchInterval: 10_000 },
   );
-  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 5_000 });
+  const unprocessed = trpc.getUnprocessed.useQuery({ limit: 50 }, { refetchInterval: 10_000 });
   const humanTasks = trpc.listEntries.useQuery(
     { type: "task", status: "pending", limit: 50 },
     { refetchInterval: 10_000 },

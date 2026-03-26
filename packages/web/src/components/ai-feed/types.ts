@@ -1,0 +1,16 @@
+export type EntryItem = {
+  id: string;
+  title: string | null;
+  raw_text: string;
+  type: string | null;
+  status: string | null;
+  source: string | null;
+  result: string | null;
+  result_url: string | null;
+  result_seen: boolean;
+  urgent: boolean;
+  delegatable: boolean;
+  created_at: string;
+  completed_at: string | null;
+  tags: string[];
+};

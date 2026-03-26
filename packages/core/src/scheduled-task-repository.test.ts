@@ -147,4 +147,117 @@ describe("ScheduledTaskRepository", () => {
       expect(updated?.last_run_at).not.toBeNull();
     });
   });
+
+  // ─── getDue ────────────────────────────────────────────────
+
+  describe("getDue", () => {
+    it("excludes disabled tasks", () => {
+      const now = new Date();
+      const task = repo.create({
+        raw_text: "disabled",
+        frequency: "daily",
+        hour: now.getHours(),
+      });
+      repo.update({ id: task.id, enabled: false });
+
+      const due = repo.getDue();
+      expect(due.find((t) => t.id === task.id)).toBeUndefined();
+    });
+
+    it("excludes tasks already run today", () => {
+      const now = new Date();
+      const task = repo.create({
+        raw_text: "already ran",
+        frequency: "daily",
+        hour: now.getHours(),
+      });
+      repo.markRun(task.id);
+
+      const due = repo.getDue();
+      expect(due.find((t) => t.id === task.id)).toBeUndefined();
+    });
+
+    it("excludes tasks with different hour", () => {
+      const now = new Date();
+      const differentHour = (now.getHours() + 12) % 24; // 12 hours away
+      repo.create({
+        raw_text: "wrong hour",
+        frequency: "daily",
+        hour: differentHour,
+      });
+
+      const due = repo.getDue();
+      expect(due.length).toBe(0);
+    });
+
+    it("includes daily task at current hour with no prior run", () => {
+      const now = new Date();
+      const task = repo.create({
+        raw_text: "daily task",
+        frequency: "daily",
+        hour: now.getHours(),
+      });
+
+      const due = repo.getDue();
+      const found = due.find((t) => t.id === task.id);
+      expect(found).toBeDefined();
+      expect(found?.raw_text).toBe("daily task");
+    });
+
+    it("weekly task only due on correct day_of_week", () => {
+      const now = new Date();
+      const wrongDay = (now.getDay() + 3) % 7; // 3 days off
+      repo.create({
+        raw_text: "wrong day",
+        frequency: "weekly",
+        day_of_week: wrongDay,
+        hour: now.getHours(),
+      });
+
+      const due = repo.getDue();
+      expect(due.length).toBe(0);
+    });
+
+    it("monthly task only due on correct day_of_month", () => {
+      const now = new Date();
+      // Use a day that definitely differs from today
+      const wrongDom = now.getDate() === 28 ? 1 : 28;
+      repo.create({
+        raw_text: "wrong dom",
+        frequency: "monthly",
+        day_of_month: wrongDom,
+        hour: now.getHours(),
+      });
+
+      const due = repo.getDue();
+      expect(due.length).toBe(0);
+    });
+  });
+
+  // ─── update edge cases ────────────────────────────────────
+
+  describe("update edge cases", () => {
+    it("updates hour", () => {
+      const task = repo.create({ raw_text: "task", frequency: "daily", hour: 8 });
+      const updated = repo.update({ id: task.id, hour: 14 });
+      expect(updated?.hour).toBe(14);
+    });
+
+    it("updates day_of_week to null", () => {
+      const task = repo.create({ raw_text: "task", frequency: "weekly", day_of_week: 3 });
+      const updated = repo.update({ id: task.id, day_of_week: null });
+      expect(updated?.day_of_week).toBeNull();
+    });
+
+    it("updates day_of_month", () => {
+      const task = repo.create({ raw_text: "task", frequency: "monthly", day_of_month: 15 });
+      const updated = repo.update({ id: task.id, day_of_month: 1 });
+      expect(updated?.day_of_month).toBe(1);
+    });
+
+    it("returns null for non-existent id", () => {
+      const result = repo.update({ id: "non-existent", raw_text: "x" });
+      expect(result).toBeNull();
+    });
+  });
 });

@@ -104,6 +104,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
   }, [allAi]);
 
   const [selectedEntry, setSelectedEntry] = useState<EntryItem | null>(null);
+  const [showAllCompleted, setShowAllCompleted] = useState(false);
 
   useEffect(() => {
     if (!selectedEntry) return;
@@ -132,6 +133,12 @@ export function AiFeed({ onClose }: AiFeedProps) {
             {selectedEntry.status === "done" && <span className="ai-badge done">{"\u2713"}</span>}
           </div>
           <h2 className="ai-detail-title">{selectedEntry.title ?? selectedEntry.raw_text}</h2>
+          <div className="ai-detail-timestamps">
+            <span>作成: {formatDateTime(selectedEntry.created_at)}</span>
+            {selectedEntry.completed_at && (
+              <span>完了: {formatDateTime(selectedEntry.completed_at)}</span>
+            )}
+          </div>
           {selectedEntry.tags.length > 0 && (
             <div className="ai-card-tags">
               {selectedEntry.tags.map((t) => (
@@ -257,7 +264,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
               <span className="ai-dot done" /> 最近の完了
             </div>
             <div className="ai-mini-cards">
-              {completed.slice(0, 6).map((e) => (
+              {(showAllCompleted ? completed : completed.slice(0, 6)).map((e) => (
                 <MiniCard
                   key={e.id}
                   entry={e}
@@ -268,6 +275,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 />
               ))}
             </div>
+            {completed.length > 6 && (
+              <button
+                type="button"
+                className="ai-show-more"
+                onClick={() => setShowAllCompleted(!showAllCompleted)}
+              >
+                {showAllCompleted ? "閉じる" : `もっと見る (${completed.length - 6}件)`}
+              </button>
+            )}
           </div>
         )}
 
@@ -408,4 +424,13 @@ function formatTime(iso: string): string {
   const diffDay = Math.floor(diffHour / 24);
   if (diffDay < 7) return `${diffDay}日前`;
   return d.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(`${iso}Z`).toLocaleDateString("ja-JP", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

@@ -587,6 +587,30 @@ body {
   }
 }
 
+/* Load more button (おつかいタブ pagination) */
+.btn-load-more {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  margin: 4px 0;
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 6px;
+  color: var(--fg-muted);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+}
+@media (hover: hover) {
+  .btn-load-more:hover {
+    color: var(--dim);
+    border-color: var(--border-muted);
+    background: var(--bg-card);
+  }
+}
+
 /* Undo toast */
 .undo-toast {
   position: fixed;
@@ -793,9 +817,10 @@ body {
 
 .tag {
   font-size: 11px;
-  color: var(--accent);
-  opacity: 0.6;
-  padding: 0 3px;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  opacity: 0.85;
+  padding: 1px 5px;
   border-radius: 2px;
   transition: opacity 0.15s;
 }
@@ -900,6 +925,40 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Sidebar custom scrollbar */
+.sidebar-sourced::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-sourced::-webkit-scrollbar-track {
+  background: var(--bg-card, #0a0a0a);
+  border-radius: 3px;
+}
+
+.sidebar-sourced::-webkit-scrollbar-thumb {
+  background: var(--border-muted, #333);
+  border-radius: 3px;
+}
+
+.sidebar-sourced::-webkit-scrollbar-thumb:hover {
+  background: var(--dim, #666);
+}
+
+/* Tablet: collapsed sidebar (768-899px) */
+@media (min-width: 768px) and (max-width: 899px) {
+  .sidebar-sourced {
+    width: 200px;
+  }
+
+  .sidebar-card-summary {
+    display: none;
+  }
+
+  .sidebar-card {
+    padding: 8px 10px;
+  }
+}
+
 .sidebar-title {
   font-size: 11px;
   color: var(--dim);
@@ -990,7 +1049,7 @@ body {
   display: none;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 767px) {
   .sidebar-sourced {
     display: none;
   }
@@ -1858,6 +1917,80 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.ai-dash-top {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ai-dash-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ai-dash-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.ai-dash-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ai-sidebar-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Sidebar-specific card readability improvements */
+.ai-sidebar-cards .ai-mini {
+  gap: 8px;
+  padding: 12px 14px;
+  min-height: 72px;
+}
+
+.ai-sidebar-cards .ai-mini-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  -webkit-line-clamp: 3;
+}
+
+.ai-sidebar-cards .ai-mini-meta {
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-card);
+  font-size: 10px;
+  color: var(--dim);
+}
+
+@media (min-width: 900px) {
+  .ai-dash-body {
+    flex-direction: row;
+    gap: 20px;
+  }
+
+  .ai-dash-main {
+    flex: 1;
+  }
+
+  .ai-dash-sidebar {
+    width: 260px;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+  }
+}
+
 .ai-feed-input {
   flex-shrink: 0;
   padding: 0 16px;
@@ -2050,22 +2183,22 @@ body {
 
 .ai-mini-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
 }
 
 .ai-mini {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: 5px;
+  padding: 12px 14px;
   border: 1px solid var(--border-card);
   border-radius: 6px;
   background: var(--bg-card);
   text-align: left;
   color: var(--fg);
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 12.5px;
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -2194,6 +2327,20 @@ body {
   border-left: 3px solid var(--danger);
   border-radius: 6px;
   background: var(--bg-card);
+  position: relative;
+}
+
+.ai-decision-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ai-decision-card:hover .ai-decision-delete {
+  opacity: 1;
 }
 
 .ai-decision-title {
@@ -2243,6 +2390,181 @@ body {
 
 .ai-decision-comment:focus {
   border-color: var(--accent);
+}
+
+/* Decision dot indicator */
+.ai-dot.decision {
+  background: var(--warning, #f80);
+}
+
+/* Decision badge */
+.ai-badge.decision {
+  background: var(--warning, #f80);
+  color: #fff;
+}
+
+/* Decision option selected state */
+.ai-decision-opt.selected {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+/* Clickable decision title */
+.ai-decision-title-btn {
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.ai-decision-title-btn:hover {
+  color: var(--accent);
+}
+
+/* Decision footer with time + delegate button */
+.ai-decision-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Delegate button */
+.ai-decision-delegate-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.ai-decision-delegate-btn:hover {
+  opacity: 0.85;
+}
+
+.ai-decision-delegate-btn:active {
+  transform: scale(0.97);
+}
+
+/* Compact decision card row */
+.ai-decision-card.compact {
+  padding: 0;
+  gap: 0;
+}
+
+.ai-decision-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ai-decision-compact-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ai-decision-compact-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.ai-decision-compact-tags {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ai-decision-compact-tags .tag {
+  font-size: 10px;
+  padding: 1px 6px;
+}
+
+.ai-decision-compact-row .ai-mini-time {
+  flex-shrink: 0;
+}
+
+.ai-decision-chevron {
+  font-size: 10px;
+  color: var(--fg-muted, #888);
+  flex-shrink: 0;
+}
+
+/* Expanded decision card */
+.ai-decision-card.expanded {
+  padding: 0;
+  gap: 0;
+}
+
+.ai-decision-card.expanded .ai-decision-compact-row {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-card);
+}
+
+.ai-decision-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.ai-decision-detail-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.ai-decision-detail-link:hover {
+  opacity: 0.8;
+}
+
+/* Detail view decision panel */
+.ai-detail-decision-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--warning, #f80);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning, #f80) 5%, var(--surface));
+  margin: 8px 0;
+}
+
+.ai-detail-decision-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warning, #f80);
 }
 
 .ai-action-btn {
@@ -2438,6 +2760,85 @@ body {
   flex-wrap: wrap;
 }
 
+/* Prompt copy cards */
+
+.ai-prompt-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.ai-prompt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font);
+  text-align: left;
+  color: var(--fg);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.ai-prompt-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.ai-prompt-card:active {
+  transform: scale(0.98);
+}
+
+.ai-prompt-card.copied {
+  border-color: var(--done);
+}
+
+.ai-prompt-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-prompt-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.ai-prompt-card-copy {
+  font-size: 11px;
+  color: var(--dim);
+  padding: 1px 6px;
+  border: 1px solid var(--border-muted);
+  border-radius: 3px;
+  white-space: nowrap;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.ai-prompt-card:hover .ai-prompt-card-copy {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ai-prompt-card.copied .ai-prompt-card-copy {
+  color: var(--done);
+  border-color: var(--done);
+}
+
+.ai-prompt-card-desc {
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.4;
+}
+
 /* Detail view */
 
 .ai-detail-back {
@@ -2626,12 +3027,12 @@ body {
 
 @media (max-width: 480px) {
   .ai-mini-cards {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
   .ai-pipeline {
     flex-wrap: wrap;
-    gap: 6px 8px;
+    gap: 8px 12px;
     padding: 12px 8px;
     justify-content: space-evenly;
   }
@@ -2645,11 +3046,41 @@ body {
   }
 
   .ai-pipe-num {
+    font-size: 24px;
+  }
+
+  .ai-pipe-label {
+    font-size: 9px;
+  }
+
+  .ai-pipe-stage {
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 375px) {
+  .ai-pipeline {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px 8px;
+    padding: 10px 6px;
+    justify-content: flex-start;
+  }
+
+  .ai-pipe-num {
     font-size: 22px;
+  }
+
+  .ai-pipe-label {
+    font-size: 8px;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
   }
 
   .ai-pipe-stage {
     min-width: 40px;
+    flex-shrink: 0;
   }
 }
 
@@ -2714,8 +3145,8 @@ body {
     align-items: center;
     justify-content: center;
     position: fixed;
-    bottom: calc(20px + env(safe-area-inset-bottom));
-    right: 20px;
+    bottom: calc(32px + env(safe-area-inset-bottom));
+    right: 24px;
     width: 48px;
     height: 48px;
     border-radius: 50%;

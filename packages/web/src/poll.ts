@@ -17,6 +17,8 @@ export const POLL = {
   sourced: ms(15_000),
   /** AI human tasks */
   humanTasks: ms(18_000),
+  /** Pending decisions (delegatable: false, needs human judgment) */
+  pendingDecisions: ms(12_000),
   /** Sidebar external entries (slower) */
   sidebarSourced: ms(30_000),
 } as const;

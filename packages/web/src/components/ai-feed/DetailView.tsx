@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { useClipboard } from "../../hooks/useClipboard";
 import { remarkPlugins, safeUrlTransform } from "../../markdown";
@@ -19,6 +19,15 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
     onSuccess: () => utils.listEntries.invalidate(),
   });
   const [copied, copy] = useClipboard();
+  const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
+  const [comment, setComment] = useState("");
+  const needsDecision =
+    !entry.delegatable &&
+    entry.status !== "done" &&
+    entry.type !== "trash" &&
+    (entry.type === "task" ||
+      entry.type === "wish" ||
+      (entry.decision_options && entry.decision_options.length > 0));
 
   const resultMarkdown = useMemo(
     () =>
@@ -58,6 +67,7 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
           {entry.delegatable && entry.status !== "done" && (
             <span className="ai-badge implementing">実装中</span>
           )}
+          {needsDecision && <span className="ai-badge decision">判断待ち</span>}
           {entry.urgent && <span className="ai-badge urgent">!</span>}
         </div>
         <h2 className="ai-detail-title">{entry.title ?? entry.raw_text}</h2>
@@ -105,7 +115,7 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
             {"\u2197"} {entry.result_url}
           </button>
         )}
-        {/* Decision info if applicable */}
+        {/* Decision info if already decided */}
         {entry.decision_options && entry.decision_selected != null && (
           <div className="ai-detail-decision">
             <div className="ai-detail-decision-label">選択済み:</div>
@@ -115,6 +125,51 @@ export function DetailView({ entry, onBack, onClose, onRetry }: DetailViewProps)
             {entry.decision_comment && (
               <div className="ai-detail-decision-comment">コメント: {entry.decision_comment}</div>
             )}
+          </div>
+        )}
+        {/* Decision panel for entries awaiting judgment */}
+        {needsDecision && (
+          <div className="ai-detail-decision-panel">
+            <div className="ai-detail-decision-panel-title">方針を決定してください</div>
+            {entry.decision_options && entry.decision_options.length > 0 && (
+              <div className="ai-decision-options">
+                {entry.decision_options.map((opt, idx) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    className={`ai-decision-opt ${selectedOpt === idx ? "selected" : ""}`}
+                    onClick={() => setSelectedOpt(selectedOpt === idx ? null : idx)}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              className="ai-decision-comment"
+              placeholder="コメント（任意）"
+              aria-label="判断コメント"
+              value={comment}
+              onChange={(ev) => setComment(ev.target.value)}
+            />
+            <button
+              type="button"
+              className="ai-decision-delegate-btn"
+              onClick={() => {
+                updateEntry.mutate({
+                  id: entry.id,
+                  delegatable: true,
+                  decision_selected: selectedOpt,
+                  decision_comment: comment || null,
+                });
+                onBack();
+              }}
+            >
+              {entry.decision_options && selectedOpt != null
+                ? `「${entry.decision_options[selectedOpt]}」で決定して委譲`
+                : "決定して委譲"}
+            </button>
           </div>
         )}
         {resultMarkdown ? (

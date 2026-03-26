@@ -99,6 +99,15 @@
   letter-spacing: 0.5px;
 }
 
+.entry-url-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(100, 149, 237, 0.1);
+  border: 1px solid rgba(100, 149, 237, 0.3);
+  cursor: default;
+}
+
 .entry-type-task {
   color: var(--accent, #ff0);
   border-color: rgba(255, 255, 0, 0.3);
@@ -113,8 +122,37 @@
 
 .entry-type-wish {
   color: var(--done-light, #4f4);
-  border-color: rgba(0, 255, 0, 0.2);
-  background: rgba(0, 255, 0, 0.03);
+  border-color: rgba(0, 255, 0, 0.3);
+  background: rgba(0, 255, 0, 0.06);
+}
+
+/* Card-level type distinction (left border) */
+.entry.entry-card-task {
+  border-left: 3px solid rgba(255, 255, 0, 0.45);
+}
+
+.entry.entry-card-note {
+  border-left: 3px solid rgba(128, 128, 128, 0.35);
+}
+
+.entry.entry-card-wish {
+  border-left: 3px solid rgba(0, 230, 230, 0.5);
+  color: var(--fg);
+  background: rgba(0, 230, 230, 0.04);
+}
+
+.entry.entry-card-wish .entry-title {
+  color: var(--fg);
+}
+
+.entry.entry-card-wish .tag {
+  color: var(--fg-subtle);
+}
+
+/* Wish entries with done status need higher opacity for readability
+   (wish tab shows all items without a separate done section) */
+.entry.entry-card-wish.done {
+  opacity: 0.65;
 }
 
 /* Loading skeleton */
@@ -721,6 +759,22 @@ html {
   }
 }
 
+/* Wish done entries need higher opacity animation for readability */
+.entry.entry-card-wish.done {
+  animation: entry-stagger-in-wish-done 0.25s ease-out both;
+}
+
+@keyframes entry-stagger-in-wish-done {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 0.65;
+    transform: translateX(0);
+  }
+}
+
 /* ============================================================
    TASK: Visual separator between overdue and regular tasks
    Subtle accent line after overdue entries group
@@ -1282,6 +1336,7 @@ html {
    ============================================================ */
 .ai-mini {
   background: linear-gradient(135deg, var(--bg-card, #0a0a0a) 0%, var(--bg-elevated, #111) 100%);
+  border-color: #555;
 }
 
 .ai-mini:hover {
@@ -1675,10 +1730,10 @@ html {
 .sourced-modal::before {
   content: "";
   display: block;
-  width: 36px;
-  height: 4px;
-  background: var(--border-muted, #333);
-  border-radius: 2px;
+  width: 40px;
+  height: 5px;
+  background: #666;
+  border-radius: 3px;
   margin: 0 auto 12px;
 }
 
@@ -1760,4 +1815,18 @@ html {
 
 [data-theme="light"] .ai-mini:hover {
   background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--surface) 100%);
+}
+
+/* ============================================================
+   Mobile header touch targets — min 44px tap area
+   ============================================================ */
+@media (max-width: 480px) {
+  .header-link {
+    padding: 10px 8px;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }

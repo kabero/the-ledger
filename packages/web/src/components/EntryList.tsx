@@ -60,6 +60,16 @@ export function EntryList({ tab }: EntryListProps) {
   const deleteRef = useRef(deleteEntry.mutate);
   deleteRef.current = deleteEntry.mutate;
 
+  // Pagination for llm (おつかい) tab: show PAGE_SIZE items initially
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Reset visible count when tab changes
+  const prevTabRef = useRef(tab);
+  if (prevTabRef.current !== tab) {
+    prevTabRef.current = tab;
+    setVisibleCount(PAGE_SIZE);
+  }
+
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     message: string;
@@ -189,7 +199,7 @@ export function EntryList({ tab }: EntryListProps) {
     (entry: EntryRow) => (
       <div
         key={entry.id}
-        className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.result_url ? "has-url" : ""}`}
+        className={`entry entry-card-${entry.type} ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.result_url ? "has-url" : ""}`}
       >
         {entry.type === "task" && (
           <button
@@ -299,6 +309,11 @@ export function EntryList({ tab }: EntryListProps) {
             )}
           </div>
           <div className="entry-tags">
+            {entry.result_url && (
+              <span className="entry-url-badge" title={entry.result_url}>
+                🔗
+              </span>
+            )}
             {entry.type && tabRef.current === "all" && (
               <span className={`entry-type-badge entry-type-${entry.type}`}>{entry.type}</span>
             )}
@@ -443,7 +458,16 @@ export function EntryList({ tab }: EntryListProps) {
             <div className="all-done-hint">今日のタスクは全部片付いたよ。おつかれさま。</div>
           </div>
         )}
-        {pending.map(renderEntry)}
+        {tab === "llm" ? pending.slice(0, visibleCount).map(renderEntry) : pending.map(renderEntry)}
+        {tab === "llm" && pending.length > visibleCount && (
+          <button
+            type="button"
+            className="btn-load-more"
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+          >
+            もっと見る（残り {pending.length - visibleCount} 件）
+          </button>
+        )}
         {done.length > 0 && <DoneSection items={done} renderEntry={renderEntry} />}
       </div>
       {undoToast && (

@@ -1296,23 +1296,6 @@ html {
 }
 
 /* ============================================================
-   Subtle gradient border on the entry list box
-   Top-side gradient fading from accent color
-   ============================================================ */
-.entry-list-box {
-  border-image: linear-gradient(
-      to right,
-      var(--accent) 0%,
-      var(--border) 30%,
-      var(--border) 70%,
-      var(--accent) 100%
-    )
-    1;
-  border-image-slice: 1;
-  border-top: none;
-}
-
-/* ============================================================
    Better touch feedback for mobile action buttons
    Active state scale-down for all tappable elements
    ============================================================ */

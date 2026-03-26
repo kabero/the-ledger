@@ -1524,6 +1524,7 @@ body {
 .schedule-section {
   margin-top: 20px;
   padding-top: 16px;
+  padding-bottom: 24px;
   border-top: 1px solid var(--border-muted);
 }
 

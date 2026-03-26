@@ -5,7 +5,6 @@ import type Database from "better-sqlite3";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createDatabase } from "./db.js";
 import { EntryRepository } from "./repository.js";
-import type { Entry } from "./types.js";
 
 function createTestDb(): Database.Database {
   // Use in-memory SQLite for fast, isolated tests

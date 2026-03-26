@@ -261,6 +261,7 @@ export class EntryRepository {
         `SELECT DISTINCT date(completed_at, 'localtime') AS d
          FROM entries
          WHERE completed_at IS NOT NULL
+           AND completed_at >= datetime('now', '-365 days')
          ORDER BY d DESC`,
       )
       .all() as { d: string }[];
@@ -312,7 +313,8 @@ export class EntryRepository {
         `SELECT
            CAST(julianday(completed_at) - julianday(created_at) AS INTEGER) AS days
          FROM entries
-         WHERE completed_at IS NOT NULL`,
+         WHERE completed_at IS NOT NULL
+           AND completed_at >= datetime('now', '-365 days')`,
       )
       .all() as { days: number }[];
 

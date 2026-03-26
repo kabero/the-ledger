@@ -533,6 +533,23 @@ describe("EntryRepository", () => {
       expect(cleared?.decision_selected).toBeNull();
     });
 
+    it("rejects out-of-bounds decision_selected", () => {
+      const entry = repo.create({
+        raw_text: "bounds test",
+        type: "task",
+        title: "Bounds",
+        decision_options: ["A", "B"],
+      });
+      expect(() => repo.update({ id: entry.id, decision_selected: 2 })).toThrow(/out of bounds/);
+      expect(() => repo.update({ id: entry.id, decision_selected: -1 })).toThrow(/out of bounds/);
+      expect(() => repo.update({ id: entry.id, decision_selected: 99 })).toThrow(/out of bounds/);
+    });
+
+    it("rejects decision_selected when no options exist", () => {
+      const entry = repo.create({ raw_text: "no options", type: "task", title: "No opts" });
+      expect(() => repo.update({ id: entry.id, decision_selected: 0 })).toThrow(/out of bounds/);
+    });
+
     it("decision entry is found via list filter", () => {
       repo.create({
         raw_text: "Decision 1",

@@ -50,15 +50,6 @@ export function EntryList({ tab }: EntryListProps) {
     },
   });
 
-  // refetch時にローカル上書きをクリア
-  const prevDataRef = useRef(entries.data);
-  if (entries.data !== prevDataRef.current) {
-    prevDataRef.current = entries.data;
-    if (Object.keys(localStatus).length > 0) {
-      setLocalStatus({});
-    }
-  }
-
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     message: string;
@@ -73,11 +64,15 @@ export function EntryList({ tab }: EntryListProps) {
     undoFn: () => void;
   } | null>(null);
 
+  // Ref to hold the pending execute function so we can cancel it on refetch
+  const pendingExecuteRef = useRef<(() => void) | null>(null);
+
   const dismissUndo = useCallback(() => {
     setUndoToast((prev) => {
       if (prev) clearTimeout(prev.timerId);
       return null;
     });
+    pendingExecuteRef.current = null;
   }, []);
 
   const showUndoToast = useCallback(
@@ -89,14 +84,35 @@ export function EntryList({ tab }: EntryListProps) {
         }
         return null;
       });
+      pendingExecuteRef.current = executeFn;
       const timerId = setTimeout(() => {
-        executeFn();
+        // Only execute if the pending function hasn't been cancelled by a refetch
+        if (pendingExecuteRef.current === executeFn) {
+          executeFn();
+          pendingExecuteRef.current = null;
+        }
         setUndoToast(null);
       }, 5000);
       setUndoToast({ message, timerId, undoFn });
     },
     [],
   );
+
+  // refetch時にローカル上書きをクリア & 未実行のundo mutationをキャンセル
+  const prevDataRef = useRef(entries.data);
+  if (entries.data !== prevDataRef.current) {
+    prevDataRef.current = entries.data;
+    if (Object.keys(localStatus).length > 0) {
+      // Server data has refreshed — if there's a pending deferred mutation,
+      // fire it now so we don't lose the user's intent.
+      if (pendingExecuteRef.current) {
+        pendingExecuteRef.current();
+        pendingExecuteRef.current = null;
+      }
+      setLocalStatus({});
+      dismissUndo();
+    }
+  }
 
   useEffect(() => {
     document.body.style.overflow = modalEntry || confirmAction ? "hidden" : "";

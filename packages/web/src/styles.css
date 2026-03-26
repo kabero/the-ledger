@@ -17,6 +17,7 @@
   --font: "DotGothic16", monospace;
 
   /* surface & border palette */
+  --surface: #111;
   --bg-card: #0a0a0a;
   --bg-elevated: #111;
   --bg-pre: #0f0f0f;

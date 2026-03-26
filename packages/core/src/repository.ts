@@ -246,6 +246,22 @@ export class EntryRepository {
         params.push(input.result_seen ? 1 : 0);
       }
       if (input.decision_selected !== undefined) {
+        // Validate decision_selected is within bounds of decision_options
+        if (input.decision_selected !== null) {
+          const currentRow = this.db
+            .prepare("SELECT decision_options FROM entries WHERE id = ?")
+            .get(input.id) as { decision_options: string | null } | undefined;
+          const options = parseDecisionOptions(currentRow?.decision_options ?? null);
+          if (
+            !options ||
+            input.decision_selected < 0 ||
+            input.decision_selected >= options.length
+          ) {
+            throw new Error(
+              `decision_selected index ${input.decision_selected} is out of bounds (options length: ${options?.length ?? 0})`,
+            );
+          }
+        }
         sets.push("decision_selected = ?");
         params.push(input.decision_selected);
       }

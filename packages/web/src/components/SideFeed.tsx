@@ -49,8 +49,7 @@ interface FeedCardProps {
   onCopy: (text: string) => void;
 }
 
-const FeedCard = memo(function FeedCard({ entry, onMarkSeen, onCopy }: FeedCardProps) {
-  const resultText = entry.result ? normalizeResult(entry.result) : null;
+const FeedCard = memo(function FeedCard({ entry, onMarkSeen }: Omit<FeedCardProps, "onCopy">) {
   const isUnread = !!(entry.result && !entry.result_seen);
   const badge = getResultBadge(entry);
 

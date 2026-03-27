@@ -72,8 +72,8 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
     [],
   );
   const placeholder = isMac
-    ? "頭の中にあること...  (Cmd+Shift+K)"
-    : "頭の中にあること...  (Ctrl+Shift+K)";
+    ? "パッと浮かんだこと...  (Cmd+Shift+K)"
+    : "パッと浮かんだこと...  (Ctrl+Shift+K)";
 
   const handleSubmit = useCallback(async () => {
     if (isBusy) return;

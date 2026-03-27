@@ -374,6 +374,10 @@ export class EntryRepository {
         sets.push("decision_comment = ?");
         params.push(input.decision_comment);
       }
+      if (input.image_path !== undefined) {
+        sets.push("image_path = ?");
+        params.push(input.image_path);
+      }
 
       sets.push("updated_at = datetime('now')");
       if (sets.length > 0) {
@@ -792,35 +796,6 @@ export class EntryRepository {
         SELECT rowid, raw_text, title FROM entries
       `);
     })();
-  }
-
-  addHistoryEntry(
-    entryId: string,
-    result: string,
-    resultType: string | null,
-    feedback: string,
-    completedAt: string,
-  ): void {
-    this.db
-      .prepare(
-        "INSERT INTO entry_history (id, entry_id, result, result_type, feedback, completed_at, reopened_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      )
-      .run(uuidv4(), entryId, result, resultType, feedback, completedAt, new Date().toISOString());
-  }
-
-  incrementReopenCount(id: string): void {
-    this.db
-      .prepare(
-        "UPDATE entries SET reopen_count = reopen_count + 1, completed_at = NULL WHERE id = ?",
-      )
-      .run(id);
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: returns raw DB rows
-  getEntryHistory(entryId: string): any[] {
-    return this.db
-      .prepare("SELECT * FROM entry_history WHERE entry_id = ? ORDER BY reopened_at DESC")
-      .all(entryId);
   }
 
   private replaceTags(entryId: string, tags: string[]): void {

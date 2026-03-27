@@ -98,6 +98,7 @@ export interface UpdateEntryInput {
   result_seen?: boolean;
   decision_selected?: number | null;
   decision_comment?: string | null;
+  image_path?: string;
 }
 
 export interface ListEntriesFilter {

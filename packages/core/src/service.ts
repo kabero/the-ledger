@@ -239,13 +239,17 @@ export class EntryService {
     ext: string,
     input: Omit<CreateEntryInput, "image_path"> = { raw_text: "(画像)" },
   ): Entry {
-    const tempId = uuidv4();
-    const imagePath = this.saveImage(imageData, tempId, ext);
-    return this.repository.create({
+    // 1. Create entry first (gets real ID)
+    const entry = this.repository.create({
       ...input,
       raw_text: input.raw_text || "(画像)",
-      image_path: imagePath,
     });
+    // 2. Save image using the real entry.id
+    const imagePath = this.saveImage(imageData, entry.id, ext);
+    // 3. Update entry with image_path
+    this.repository.update({ id: entry.id, image_path: imagePath });
+    // biome-ignore lint/style/noNonNullAssertion: entry was just created
+    return this.repository.getById(entry.id)!;
   }
 
   private ensureScheduledTaskRepo(): ScheduledTaskRepository {
@@ -332,12 +336,18 @@ export class EntryService {
 
     // Snapshot current result into entry_history
     if (entry.result) {
-      this.repository.addHistoryEntry(
+      // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
+      const db = (this.repository as any).db;
+      db.prepare(
+        "INSERT INTO entry_history (id, entry_id, result, result_type, feedback, completed_at, reopened_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ).run(
+        uuidv4(),
         id,
         entry.result,
         entry.result_type ?? null,
         feedback ?? "",
         entry.completed_at ?? new Date().toISOString(),
+        new Date().toISOString(),
       );
     }
 
@@ -354,7 +364,11 @@ export class EntryService {
     });
 
     // Increment reopen_count and clear completed_at
-    this.repository.incrementReopenCount(id);
+    const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
+      (this.repository as any).db;
+    db.prepare(
+      "UPDATE entries SET reopen_count = reopen_count + 1, completed_at = NULL WHERE id = ?",
+    ).run(id);
 
     if (!updated) {
       throw new Error(`Failed to reopen entry: ${id}`);
@@ -365,7 +379,11 @@ export class EntryService {
 
   // biome-ignore lint/suspicious/noExplicitAny: returns raw DB rows
   getEntryHistory(entryId: string): any[] {
-    return this.repository.getEntryHistory(entryId);
+    const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
+      (this.repository as any).db;
+    return db
+      .prepare("SELECT * FROM entry_history WHERE entry_id = ? ORDER BY reopened_at DESC")
+      .all(entryId);
   }
 
   /**

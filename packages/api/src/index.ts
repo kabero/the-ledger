@@ -49,6 +49,25 @@ const MIME_TYPES: Record<string, string> = {
   json: "application/json",
 };
 
+const IMAGES_DIR = path.join(os.homedir(), ".theledger", "images");
+
+app.get("/images/:filename", (c) => {
+  const filename = c.req.param("filename");
+  if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+    return c.json({ error: "Invalid filename" }, 400);
+  }
+  const filePath = path.join(IMAGES_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    return c.json({ error: "File not found" }, 404);
+  }
+  const ext = path.extname(filename).slice(1).toLowerCase();
+  const contentType = MIME_TYPES[ext] || "application/octet-stream";
+  const data = fs.readFileSync(filePath);
+  c.header("Content-Type", contentType);
+  c.header("Cache-Control", "public, max-age=31536000, immutable");
+  return c.body(data);
+});
+
 app.get("/results/:filename", (c) => {
   const filename = c.req.param("filename");
   // Path traversal protection

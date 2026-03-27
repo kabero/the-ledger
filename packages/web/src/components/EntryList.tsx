@@ -31,14 +31,13 @@ export function EntryList({ tab }: EntryListProps) {
 
   const updateEntry = trpc.updateEntry.useMutation({
     onSuccess: () => {
-      utils.getTodayTasks.invalidate();
+      utils.listEntries.invalidate();
     },
   });
 
   const deleteEntry = trpc.deleteEntry.useMutation({
     onSuccess: () => {
       utils.listEntries.invalidate();
-      utils.getTodayTasks.invalidate();
     },
   });
 
@@ -167,7 +166,6 @@ export function EntryList({ tab }: EntryListProps) {
               key={entry.id}
               className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}
             >
-              {entry.urgent && <span className="entry-meta-dot" />}
               {entry.type === "task" && (
                 <button
                   type="button"
@@ -238,19 +236,6 @@ export function EntryList({ tab }: EntryListProps) {
                       [{entry.type}]
                     </span>
                   )}
-                  {entry.due_date && (
-                    <span className="entry-due-label">
-                      {new Date(`${entry.due_date}T00:00:00`).toLocaleDateString("ja-JP", {
-                        month: "numeric",
-                        day: "numeric",
-                      })}
-                    </span>
-                  )}
-                  {entry.tags?.slice(0, 2).map((tag) => (
-                    <span key={tag} className="entry-tag-chip">
-                      {tag}
-                    </span>
-                  ))}
                   {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
                     <span className="completed-at">
                       {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
@@ -266,7 +251,15 @@ export function EntryList({ tab }: EntryListProps) {
               <button
                 type="button"
                 className="btn-del"
-                onClick={() => deleteEntry.mutate({ id: entry.id })}
+                onClick={() =>
+                  setConfirmAction({
+                    message: `「${entry.title ?? entry.raw_text}」を削除しますか？`,
+                    onOk: () => {
+                      deleteEntry.mutate({ id: entry.id });
+                      setConfirmAction(null);
+                    },
+                  })
+                }
               >
                 x
               </button>

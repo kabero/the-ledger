@@ -248,8 +248,8 @@
 }
 
 .ai-pipe-label {
-  font-size: 10px;
-  color: var(--dim);
+  font-size: 11px;
+  color: #aaa;
 }
 
 .ai-pipe-arrow {

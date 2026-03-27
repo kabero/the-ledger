@@ -2936,3 +2936,33 @@
   border-top-right-radius: 2px;
   color: var(--fg);
 }
+
+/* ─── Inspector fixes ─────────────────────────── */
+
+/* Desktop: card-style entry separation */
+@media (min-width: 481px) {
+  .entry {
+    background: #0d0d0d;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Mobile: badge spacing, entry density, FAB label */
+@media (max-width: 480px) {
+  .badge {
+    margin-left: 8px;
+    margin-right: 4px;
+  }
+
+  .entry {
+    min-height: 48px;
+    line-height: 2;
+    padding: 8px 0 8px 8px;
+  }
+
+  .fab-add::after {
+    content: " 追加";
+    font-size: 12px;
+  }
+}

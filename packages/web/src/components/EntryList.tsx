@@ -184,6 +184,8 @@ export function EntryList({ tab }: EntryListProps) {
     }
   }
 
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     document.body.style.overflow = modalEntry || confirmAction || selectedEntryId ? "hidden" : "";
     return () => {
@@ -366,17 +368,24 @@ export function EntryList({ tab }: EntryListProps) {
                 {!entry.result_seen && <span className="badge-new">NEW</span>}
                 {entry.title ?? entry.raw_text}
               </button>
-            ) : tabRef.current === "note" ? (
-              <span
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
+            ) : entry.type === "note" ? (
+              <button
+                type="button"
+                className="btn-note-toggle"
+                onClick={() => {
+                  setExpandedNotes((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(entry.id)) {
+                      next.delete(entry.id);
+                    } else {
+                      next.add(entry.id);
+                    }
+                    return next;
+                  });
                 }}
               >
-                {entry.raw_text}
-              </span>
+                {entry.title ?? entry.raw_text}
+              </button>
             ) : (
               (entry.title ?? entry.raw_text)
             )}
@@ -393,6 +402,14 @@ export function EntryList({ tab }: EntryListProps) {
                 {"\u2197"} URL
               </button>
             )}
+            {entry.type === "note" &&
+              entry.raw_text &&
+              entry.title &&
+              entry.raw_text !== entry.title && (
+                <div className={`note-body ${expandedNotes.has(entry.id) ? "expanded" : ""}`}>
+                  {entry.raw_text}
+                </div>
+              )}
           </div>
           <div className="entry-tags">
             {entry.result_url && (
@@ -470,7 +487,7 @@ export function EntryList({ tab }: EntryListProps) {
         </button>
       </div>
     ),
-    [showUndoToast, selectedEntryId],
+    [showUndoToast, selectedEntryId, expandedNotes],
   );
 
   const pending = useMemo(

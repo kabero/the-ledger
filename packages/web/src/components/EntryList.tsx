@@ -269,7 +269,7 @@ export function EntryList({ tab }: EntryListProps) {
       // biome-ignore lint/a11y/useKeyWithClickEvents: entry card click opens detail panel
       <div
         key={entry.id}
-        className={`entry entry-card-${entry.type} ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.result_url ? "has-url" : ""} ${entry.id === selectedEntryId ? "entry-selected" : ""}`}
+        className={`entry entry-card-${entry.type} ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.type === "wish" ? "wish-entry" : ""} ${entry.result_url ? "has-url" : ""} ${entry.id === selectedEntryId ? "entry-selected" : ""}`}
         onClick={(e) => {
           // Don't open detail if clicking on a button
           if ((e.target as HTMLElement).closest("button")) return;

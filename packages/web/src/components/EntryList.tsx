@@ -31,13 +31,14 @@ export function EntryList({ tab }: EntryListProps) {
 
   const updateEntry = trpc.updateEntry.useMutation({
     onSuccess: () => {
-      utils.listEntries.invalidate();
+      utils.getTodayTasks.invalidate();
     },
   });
 
   const deleteEntry = trpc.deleteEntry.useMutation({
     onSuccess: () => {
       utils.listEntries.invalidate();
+      utils.getTodayTasks.invalidate();
     },
   });
 
@@ -111,6 +112,19 @@ export function EntryList({ tab }: EntryListProps) {
       return text.includes(q);
     });
   }, [items, searchQuery]);
+
+  if (entries.isLoading) {
+    return (
+      <div className="skeleton-list">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="skeleton-entry">
+            <div className="skeleton-line skeleton-line-title" />
+            <div className="skeleton-line skeleton-line-sub" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
@@ -251,15 +265,7 @@ export function EntryList({ tab }: EntryListProps) {
               <button
                 type="button"
                 className="btn-del"
-                onClick={() =>
-                  setConfirmAction({
-                    message: `「${entry.title ?? entry.raw_text}」を削除しますか？`,
-                    onOk: () => {
-                      deleteEntry.mutate({ id: entry.id });
-                      setConfirmAction(null);
-                    },
-                  })
-                }
+                onClick={() => deleteEntry.mutate({ id: entry.id })}
               >
                 x
               </button>

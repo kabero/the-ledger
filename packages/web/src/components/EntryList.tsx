@@ -270,7 +270,7 @@ export function EntryList({ tab }: EntryListProps) {
       // biome-ignore lint/a11y/useKeyWithClickEvents: entry card click opens detail panel
       <div
         key={entry.id}
-        className={`entry entry-card-${entry.type} ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.type === "wish" ? "wish-entry" : ""} ${entry.result_url ? "has-url" : ""} ${entry.id === selectedEntryId ? "entry-selected" : ""}`}
+        className={`entry entry-card-${entry.type} ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""} ${entry.type === "wish" ? "wish-entry" : ""} ${entry.result_url ? "has-url" : ""} ${entry.id === selectedEntryId ? "entry-selected" : ""} ${(entry.title ?? entry.raw_text).includes("[再オープン]") || (entry.result && entry.status === "pending") ? "reopened" : ""}`}
         onClick={(e) => {
           // Don't open detail if clicking on a button
           if ((e.target as HTMLElement).closest("button")) return;
@@ -365,6 +365,10 @@ export function EntryList({ tab }: EntryListProps) {
                 }}
               >
                 {!entry.result_seen && <span className="badge-new">NEW</span>}
+                {((entry.title ?? entry.raw_text).includes("[再オープン]") ||
+                  (entry.result && entry.status === "pending")) && (
+                  <span className="badge-reopen">再</span>
+                )}
                 {entry.title ?? entry.raw_text}
               </button>
             ) : entry.type === "note" ? (
@@ -386,7 +390,13 @@ export function EntryList({ tab }: EntryListProps) {
                 {entry.title ?? entry.raw_text}
               </button>
             ) : (
-              (entry.title ?? entry.raw_text)
+              <>
+                {((entry.title ?? entry.raw_text).includes("[再オープン]") ||
+                  (entry.result && entry.status === "pending")) && (
+                  <span className="badge-reopen">再</span>
+                )}
+                {entry.title ?? entry.raw_text}
+              </>
             )}
             {entry.result_url && (
               <button

@@ -828,6 +828,21 @@ body {
   vertical-align: middle;
 }
 
+.badge-reopen {
+  font-size: 9px;
+  background: #e89a00;
+  color: var(--bg);
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-right: 6px;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.entry.reopened {
+  border-left-color: #e89a00;
+}
+
 .settings-font-list {
   display: flex;
   flex-direction: column;

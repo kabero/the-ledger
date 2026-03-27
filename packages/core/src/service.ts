@@ -332,9 +332,8 @@ export class EntryService {
 
     // Snapshot current result into entry_history
     if (entry.result) {
-      const { v4: uuidv4 } = require("uuid");
-      const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
-        (this.repository as any).db;
+      // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
+      const db = (this.repository as any).db;
       db.prepare(
         "INSERT INTO entry_history (id, entry_id, result, result_type, feedback, completed_at, reopened_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       ).run(

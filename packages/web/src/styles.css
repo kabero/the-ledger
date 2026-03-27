@@ -4483,6 +4483,63 @@ body {
   font-size: 11px;
 }
 
+/* Activity timeline */
+.activity-timeline {
+  margin-top: 12px;
+  padding: 12px 0;
+}
+
+.activity-timeline-title {
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+.activity-timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.activity-timeline-time {
+  width: 42px;
+  flex-shrink: 0;
+  color: var(--dim);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-timeline-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+}
+
+.activity-timeline-icon.done {
+  color: #b48eff;
+}
+
+.activity-timeline-icon.pending {
+  color: #f5a623;
+}
+
+.activity-timeline-label {
+  flex: 1;
+  min-width: 0;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
 .sf-card-result code {
   font-size: 11px;
 }

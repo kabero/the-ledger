@@ -96,34 +96,28 @@ export function AiFeed({ onClose }: AiFeedProps) {
     { delegatable: false, limit: 100 },
     { refetchInterval: POLL.pendingDecisions },
   );
-  // --- Tag cluster progress queries ---
-  const TAG_CATEGORIES = [
-    "bug",
-    "feature",
-    "ux",
-    "css",
-    "mobile",
-    "performance",
-    "accessibility",
-  ] as const;
-
-  const tagTotalQueries = TAG_CATEGORIES.map((tag) =>
-    // biome-ignore lint: hooks in map is stable because TAG_CATEGORIES is constant
-    trpc.countEntries.useQuery({ tag }, { refetchInterval: POLL.delegatable }),
-  );
-  const tagDoneQueries = TAG_CATEGORIES.map((tag) =>
-    // biome-ignore lint: hooks in map is stable because TAG_CATEGORIES is constant
-    trpc.countEntries.useQuery({ tag, status: "done" }, { refetchInterval: POLL.delegatable }),
-  );
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: query arrays are stable per TAG_CATEGORIES constant
-  const tagProgress = useMemo(() => {
-    return TAG_CATEGORIES.map((tag, i) => {
-      const total = tagTotalQueries[i].data?.count ?? 0;
-      const done = tagDoneQueries[i].data?.count ?? 0;
-      return { tag, total, done };
-    }).filter((t) => t.total > 0);
-  }, [tagTotalQueries, tagDoneQueries]);
+  // --- Activity timeline: merge completed + in-progress, sort by time ---
+  const activityTimeline = useMemo(() => {
+    const items: { id: string; title: string; time: string; status: "done" | "pending" }[] = [];
+    for (const e of completedPage.data?.entries ?? []) {
+      items.push({
+        id: e.id,
+        title: e.title ?? e.raw_text,
+        time: e.completed_at ?? e.created_at,
+        status: "done",
+      });
+    }
+    for (const e of (delegatableInProgress.data ?? []).filter((x) => x.status === "pending")) {
+      items.push({
+        id: e.id,
+        title: e.title ?? e.raw_text,
+        time: e.created_at,
+        status: "pending",
+      });
+    }
+    items.sort((a, b) => new Date(`${b.time}Z`).getTime() - new Date(`${a.time}Z`).getTime());
+    return items.slice(0, 10);
+  }, [completedPage.data, delegatableInProgress.data]);
 
   const utils = trpc.useUtils();
   const invalidateAll = () => {
@@ -449,23 +443,26 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 </div>
               )}
 
-              {/* Tag cluster progress */}
-              {tagProgress.length > 0 && (
-                <div className="tag-cluster-progress">
-                  <div className="tag-cluster-title">
-                    {"\u2500\u2500\u2500"} 分野別進捗 {"\u2500\u2500\u2500"}
+              {/* Activity timeline */}
+              {activityTimeline.length > 0 && (
+                <div className="activity-timeline">
+                  <div className="activity-timeline-title">
+                    {"\u2500\u2500\u2500"} {"\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3"}{" "}
+                    {"\u2500\u2500\u2500"}
                   </div>
-                  {tagProgress.map(({ tag, total, done }) => {
-                    const pct = total > 0 ? (done / total) * 100 : 0;
+                  {activityTimeline.map((item) => {
+                    const d = new Date(`${item.time}Z`);
+                    const hh = String(d.getHours()).padStart(2, "0");
+                    const mm = String(d.getMinutes()).padStart(2, "0");
                     return (
-                      <div key={tag} className="tag-progress-row">
-                        <span className="tag-progress-name">{tag}</span>
-                        <div className="tag-progress-bar">
-                          <div className="tag-progress-fill" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="tag-progress-count">
-                          {done}/{total}
+                      <div key={item.id} className="activity-timeline-row">
+                        <span className="activity-timeline-time">
+                          {hh}:{mm}
                         </span>
+                        <span className={`activity-timeline-icon ${item.status}`}>
+                          {item.status === "done" ? "\u2705" : "\uD83D\uDD04"}
+                        </span>
+                        <span className="activity-timeline-label">{item.title}</span>
                       </div>
                     );
                   })}

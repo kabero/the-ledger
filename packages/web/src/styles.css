@@ -603,7 +603,124 @@ body {
   border-color: var(--danger);
 }
 
-/* Mobile */
+/* ========== FAB + Bottom Sheet (mobile input) ========== */
+
+.fab-add {
+  display: none;
+}
+
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: overlay-fade-in 0.15s ease-out;
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bottom-sheet {
+  width: 100%;
+  max-width: 640px;
+  background: var(--bg);
+  border-top: 2px solid var(--border);
+  border-radius: 12px 12px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  animation: slide-up 0.2s ease-out;
+}
+
+.bottom-sheet::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  margin: 0 auto 12px;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* ========== Priority button ========== */
+
+.btn-priority {
+  background: transparent;
+  border: none;
+  color: #444;
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-priority.active {
+  color: var(--danger);
+}
+
+/* ========== AI trigger button ========== */
+
+.header-ai-btn {
+  background: none;
+  border: 1px solid #333;
+  color: var(--done);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 8px 8px;
+  min-height: 44px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.header-ai-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ========== Keyboard shortcut hint ========== */
+
+.shortcut-hint {
+  font-size: 10px;
+  color: var(--dim);
+  opacity: 0.5;
+}
+
+/* ========== Wish tab contrast fix (task 9) ========== */
+/* Wish entries: use orange border instead of yellow to differentiate from yellow tags */
+
+.entry.wish-entry {
+  border-left-color: #e0a000;
+}
+
+.entry.wish-entry .tag {
+  color: #c0ff60;
+  opacity: 0.85;
+}
+
+/* ========== Mobile ========== */
+
 @media (max-width: 480px) {
   .container {
     padding: 16px 12px;
@@ -617,6 +734,9 @@ body {
 
   .entry-list-box {
     padding: 12px;
+    /* Task 8: reduce wasted whitespace when list is empty */
+    min-height: 30vh;
+    padding-bottom: 24px;
   }
 
   .header {
@@ -630,13 +750,21 @@ body {
     gap: 8px;
   }
 
+  /* Task 6: header nav font — min 12px for readability */
   .header-link {
-    font-size: 10px;
+    font-size: 12px;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
+  /* Task 4: tab height 44px minimum */
   .tab {
     font-size: 12px;
     padding: 8px 2px;
+    min-height: 44px;
   }
 
   .entry-title {
@@ -645,5 +773,61 @@ body {
 
   .input-box {
     font-size: 16px; /* prevent iOS zoom */
+  }
+
+  /* Task 2 & 3: Touch targets — min 44px tap area (Apple HIG) */
+  .checkbox,
+  .btn-priority,
+  .btn-del,
+  .header-ai-btn {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Task 5: Tag pill improvements */
+  .tag {
+    min-height: 28px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+  }
+
+  /* Task 7: Hide keyboard shortcut hint on mobile */
+  .shortcut-hint {
+    display: none;
+  }
+
+  /* Task 1: FAB button — fixed position bottom-right */
+  .fab-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    left: auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--bg);
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform 0.15s,
+      box-shadow 0.3s;
+  }
+
+  .fab-add:active {
+    transform: scale(0.9);
   }
 }

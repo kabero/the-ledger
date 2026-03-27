@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { GraphView } from "./components/GraphView";
-import { Settings, applyFont } from "./components/Settings";
+import { applyFont, Settings } from "./components/Settings";
 import { trpc } from "./trpc";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
@@ -19,7 +19,9 @@ export function App() {
   const [showGraph, setShowGraph] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => { applyFont(); }, []);
+  useEffect(() => {
+    applyFont();
+  }, []);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -76,20 +78,14 @@ export function App() {
             >
               完了
             </button>
-            <button
-              type="button"
-              className="header-link"
-              onClick={() => setShowSettings(true)}
-            >
+            <button type="button" className="header-link" onClick={() => setShowSettings(true)}>
               設定
             </button>
             {unprocessedCount > 0 && (
               <button
                 type="button"
                 className="badge"
-                onClick={() =>
-                  setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")
-                }
+                onClick={() => setActiveTab(activeTab === "unprocessed" ? "task" : "unprocessed")}
                 style={{ cursor: "pointer", border: "none" }}
               >
                 {unprocessedCount} 件 未処理

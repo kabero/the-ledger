@@ -60,7 +60,9 @@ export function Settings({ onClose }: SettingsProps) {
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, []);
 
   const handleSelect = (key: string) => {
@@ -74,7 +76,9 @@ export function Settings({ onClose }: SettingsProps) {
       className="result-overlay"
       role="dialog"
       onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}

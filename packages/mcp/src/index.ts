@@ -8,7 +8,6 @@ import {
   type Entry,
   EntryRepository,
   EntryService,
-  RESULT_TYPES,
   TASK_STATUSES,
 } from "@theledger/core";
 import { z } from "zod";
@@ -148,15 +147,13 @@ server.tool(
       .describe(
         "Markdown-formatted summary of completed work. Use headings, lists, bold for structure. Written when completing a delegatable task.",
       ),
-    result_type: z
-      .enum(RESULT_TYPES)
+    result_file: z
+      .string()
       .nullable()
       .optional()
-      .describe(
-        "Result classification: url, research, summary, or generic. Auto-detected from result content if not provided.",
-      ),
+      .describe("Server file path for an attached result file (set via complete_task)"),
   },
-  async ({ id, title, tags, urgent, due_date, status, type, result, result_type }) => {
+  async ({ id, title, tags, urgent, due_date, status, type, result, result_file }) => {
     const entry = service.updateEntry({
       id,
       title,
@@ -166,34 +163,8 @@ server.tool(
       status,
       type,
       result,
-      result_type,
+      result_file,
     });
-    return {
-      content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
-    };
-  },
-);
-
-server.tool(
-  "complete_task",
-  "Mark a task as done and record the result. Automatically classifies result_type if not provided.",
-  {
-    id: z.string().describe("Entry ID of the task to complete"),
-    result: z
-      .string()
-      .describe(
-        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure.",
-      ),
-    result_type: z
-      .enum(RESULT_TYPES)
-      .nullable()
-      .optional()
-      .describe(
-        "Result classification: url, research, summary, or generic. Auto-detected if omitted.",
-      ),
-  },
-  async ({ id, result, result_type }) => {
-    const entry = service.completeTask(id, result, result_type);
     return {
       content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
     };
@@ -224,6 +195,56 @@ server.tool(
     const tasks = service.getTodayTasks(limit);
     return {
       content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
+    };
+  },
+);
+
+server.tool(
+  "complete_task",
+  "Complete a delegatable task: mark as done, write result summary, and optionally attach a result file.",
+  {
+    id: z.string().describe("Entry ID of the task to complete"),
+    result: z
+      .string()
+      .describe(
+        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure.",
+      ),
+    result_file: z
+      .string()
+      .optional()
+      .describe(
+        "Absolute path to a local file to attach as the task result (e.g. generated report, image). Allowed extensions: png, jpg, jpeg, gif, webp, pdf, txt, md, csv, json. Max 50MB.",
+      ),
+  },
+  async ({ id, result, result_file }) => {
+    const entry = service.getEntry(id);
+    if (!entry) {
+      return { content: [{ type: "text", text: "Entry not found" }] };
+    }
+
+    let resultFilePath: string | null = null;
+    if (result_file) {
+      try {
+        resultFilePath = service.copyResultFile(result_file, id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        return {
+          content: [{ type: "text", text: `Failed to attach result file: ${message}` }],
+        };
+      }
+    }
+
+    const updated = service.updateEntry({
+      id,
+      status: "done",
+      result,
+      result_file: resultFilePath,
+    });
+
+    return {
+      content: [
+        { type: "text", text: updated ? JSON.stringify(updated, null, 2) : "Entry not found" },
+      ],
     };
   },
 );

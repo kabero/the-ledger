@@ -5,29 +5,18 @@ import { v4 as uuidv4 } from "uuid";
 import type { EntryRepository } from "./repository.js";
 import {
   ALLOWED_IMAGE_EXTENSIONS,
+  ALLOWED_RESULT_FILE_EXTENSIONS,
   type CreateEntryInput,
   type Entry,
   type ListEntriesFilter,
   MAX_IMAGE_SIZE,
-  type ResultType,
+  MAX_RESULT_FILE_SIZE,
   type SubmitProcessedInput,
   type UpdateEntryInput,
 } from "./types.js";
 
 const IMAGES_DIR = path.join(os.homedir(), ".theledger", "images");
-
-const URL_PATTERN = /https?:\/\/\S+/i;
-const RESEARCH_KEYWORDS =
-  /\b(調査|調べ|リサーチ|research|findings?|analysis|分析|考察|検討|比較)\b/i;
-const SUMMARY_KEYWORDS = /\b(まとめ|要約|概要|summary|overview|recap|結論|conclusion)\b/i;
-
-export function detectResultType(result: string | null | undefined): ResultType | null {
-  if (!result) return null;
-  if (URL_PATTERN.test(result)) return "url";
-  if (RESEARCH_KEYWORDS.test(result)) return "research";
-  if (SUMMARY_KEYWORDS.test(result)) return "summary";
-  return "generic";
-}
+const RESULTS_DIR = path.join(os.homedir(), ".theledger", "results");
 
 export class EntryService {
   constructor(private repository: EntryRepository) {}
@@ -53,20 +42,7 @@ export class EntryService {
   }
 
   updateEntry(input: UpdateEntryInput): Entry | null {
-    if (input.result !== undefined && input.result_type === undefined) {
-      input.result_type = detectResultType(input.result);
-    }
     return this.repository.update(input);
-  }
-
-  completeTask(id: string, result: string, resultType?: ResultType | null): Entry | null {
-    const resolvedType = resultType ?? detectResultType(result);
-    return this.repository.update({
-      id,
-      status: "done",
-      result,
-      result_type: resolvedType,
-    });
   }
 
   deleteEntry(id: string): boolean {
@@ -95,6 +71,42 @@ export class EntryService {
     const filePath = path.join(IMAGES_DIR, `${entryId}.${normalizedExt}`);
     fs.writeFileSync(filePath, data);
     return filePath;
+  }
+
+  saveResultFile(data: Buffer, entryId: string, originalName: string): string {
+    const ext = path.extname(originalName).slice(1).toLowerCase();
+    if (
+      !ALLOWED_RESULT_FILE_EXTENSIONS.includes(
+        ext as (typeof ALLOWED_RESULT_FILE_EXTENSIONS)[number],
+      )
+    ) {
+      throw new Error(
+        `Unsupported result file format: ${ext}. Allowed: ${ALLOWED_RESULT_FILE_EXTENSIONS.join(", ")}`,
+      );
+    }
+    if (data.length > MAX_RESULT_FILE_SIZE) {
+      throw new Error(
+        `Result file too large: ${(data.length / 1024 / 1024).toFixed(1)}MB. Max: 50MB`,
+      );
+    }
+    if (!fs.existsSync(RESULTS_DIR)) {
+      fs.mkdirSync(RESULTS_DIR, { recursive: true });
+    }
+    const sanitizedName = path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filename = `${entryId}_${sanitizedName}`;
+    const filePath = path.join(RESULTS_DIR, filename);
+    fs.writeFileSync(filePath, data);
+    return filePath;
+  }
+
+  copyResultFile(sourcePath: string, entryId: string): string {
+    const resolvedSource = path.resolve(sourcePath);
+    if (!fs.existsSync(resolvedSource)) {
+      throw new Error(`Source file not found: ${resolvedSource}`);
+    }
+    const originalName = path.basename(resolvedSource);
+    const data = fs.readFileSync(resolvedSource);
+    return this.saveResultFile(data, entryId, originalName);
   }
 
   createEntryWithImage(rawText: string, imageData: Buffer, ext: string): Entry {

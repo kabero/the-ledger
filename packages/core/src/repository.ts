@@ -21,7 +21,7 @@ interface EntryRow {
   delegatable: number;
   image_path: string | null;
   result: string | null;
-  result_type: string | null;
+  result_file: string | null;
   result_seen: number;
   updated_at: string | null;
   completed_at: string | null;
@@ -168,9 +168,9 @@ export class EntryRepository {
       params.push(input.result);
       sets.push("result_seen = 0");
     }
-    if (input.result_type !== undefined) {
-      sets.push("result_type = ?");
-      params.push(input.result_type);
+    if (input.result_file !== undefined) {
+      sets.push("result_file = ?");
+      params.push(input.result_file);
     }
     if (input.result_seen !== undefined) {
       sets.push("result_seen = ?");
@@ -262,7 +262,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
-      result_type: (row.result_type as Entry["result_type"]) ?? null,
+      result_file: row.result_file ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
     }));
@@ -287,7 +287,7 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
-      result_type: (row.result_type as Entry["result_type"]) ?? null,
+      result_file: row.result_file ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
     };

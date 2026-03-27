@@ -1,14 +1,25 @@
 export const ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"] as const;
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+export const ALLOWED_RESULT_FILE_EXTENSIONS = [
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp",
+  "pdf",
+  "txt",
+  "md",
+  "csv",
+  "json",
+] as const;
+export const MAX_RESULT_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 export const ENTRY_TYPES = ["task", "note", "wish", "trash"] as const;
 export type EntryType = (typeof ENTRY_TYPES)[number];
 
 export const TASK_STATUSES = ["pending", "done"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
-
-export const RESULT_TYPES = ["url", "research", "summary", "generic"] as const;
-export type ResultType = (typeof RESULT_TYPES)[number];
 
 export interface RawEntry {
   id: string;
@@ -36,7 +47,7 @@ export interface Entry extends RawEntry {
   delegatable: boolean;
   image_path: string | null;
   result: string | null;
-  result_type: ResultType | null;
+  result_file: string | null;
   result_seen: boolean;
   completed_at: string | null;
 }
@@ -66,7 +77,7 @@ export interface UpdateEntryInput {
   type?: EntryType;
   delegatable?: boolean;
   result?: string;
-  result_type?: ResultType | null;
+  result_file?: string | null;
   result_seen?: boolean;
 }
 

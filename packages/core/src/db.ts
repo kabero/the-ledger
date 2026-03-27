@@ -98,14 +98,14 @@ function runMigrations(db: Database.Database): void {
     db.exec("ALTER TABLE entries ADD COLUMN result_seen INTEGER NOT NULL DEFAULT 0");
     db.exec("UPDATE entries SET result_seen = 1 WHERE result IS NOT NULL");
   }
-  if (!hasCol("result_type")) {
-    db.exec("ALTER TABLE entries ADD COLUMN result_type TEXT");
-  }
   if (!hasCol("completed_at")) {
     db.exec("ALTER TABLE entries ADD COLUMN completed_at TEXT");
     db.exec(
       "UPDATE entries SET completed_at = updated_at WHERE status = 'done' AND completed_at IS NULL",
     );
+  }
+  if (!hasCol("result_file")) {
+    db.exec("ALTER TABLE entries ADD COLUMN result_file TEXT");
   }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {

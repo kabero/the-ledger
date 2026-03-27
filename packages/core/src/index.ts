@@ -1,6 +1,6 @@
 export { createDatabase } from "./db.js";
 export { EntryRepository } from "./repository.js";
-export { detectResultType, EntryService } from "./service.js";
+export { EntryService } from "./service.js";
 export type {
   CreateEntryInput,
   Entry,
@@ -8,15 +8,15 @@ export type {
   ListEntriesFilter,
   ProcessedFields,
   RawEntry,
-  ResultType,
   SubmitProcessedInput,
   TaskStatus,
   UpdateEntryInput,
 } from "./types.js";
 export {
   ALLOWED_IMAGE_EXTENSIONS,
+  ALLOWED_RESULT_FILE_EXTENSIONS,
   ENTRY_TYPES,
   MAX_IMAGE_SIZE,
-  RESULT_TYPES,
+  MAX_RESULT_FILE_SIZE,
   TASK_STATUSES,
 } from "./types.js";

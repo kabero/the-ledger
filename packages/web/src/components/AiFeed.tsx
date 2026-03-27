@@ -25,6 +25,16 @@ function formatRelativeTime(isoTime: string): string {
 
 const COMPLETED_PAGE_SIZE = 50;
 
+// Extended entry type that includes parent_id from the API response
+type EntryWithParent = EntryItem & { parent_id?: string | null };
+
+interface EpicNode {
+  entry: EntryWithParent;
+  children: EntryWithParent[];
+  doneCount: number;
+  totalCount: number;
+}
+
 interface AiFeedProps {
   onClose: () => void;
 }
@@ -109,6 +119,72 @@ export function AiFeed({ onClose }: AiFeedProps) {
     { delegatable: false, limit: 100 },
     { refetchInterval: POLL.pendingDecisions },
   );
+
+  // --- All tasks query for epic tree ---
+  const allTasks = trpc.listEntries.useQuery(
+    { type: "task", limit: 100 },
+    { refetchInterval: POLL.delegatable },
+  );
+
+  // --- Epic tree: group tasks by parent_id ---
+  const [expandedEpics, setExpandedEpics] = useState<Set<string>>(new Set());
+
+  const epicTree = useMemo(() => {
+    const tasks = (allTasks.data ?? []) as EntryWithParent[];
+    if (tasks.length === 0) return [];
+
+    // Build a map of all entries by id
+    const byId = new Map<string, EntryWithParent>();
+    for (const t of tasks) byId.set(t.id, t);
+
+    // Collect children grouped by parent_id
+    const childrenByParent = new Map<string, EntryWithParent[]>();
+    for (const t of tasks) {
+      if (t.parent_id) {
+        const list = childrenByParent.get(t.parent_id) ?? [];
+        list.push(t);
+        childrenByParent.set(t.parent_id, list);
+      }
+    }
+
+    // Epics: entries that have children (their id appears as a parent_id)
+    const epics: EpicNode[] = [];
+    for (const [parentId, children] of childrenByParent) {
+      const parentEntry = byId.get(parentId);
+      if (!parentEntry) continue; // parent not in current query results
+
+      const doneCount = children.filter((c) => c.status === "done").length;
+      epics.push({
+        entry: parentEntry,
+        children,
+        doneCount,
+        totalCount: children.length,
+      });
+    }
+
+    // Sort: incomplete epics first, then by title
+    epics.sort((a, b) => {
+      const aComplete = a.doneCount === a.totalCount ? 1 : 0;
+      const bComplete = b.doneCount === b.totalCount ? 1 : 0;
+      if (aComplete !== bComplete) return aComplete - bComplete;
+      return (a.entry.title ?? a.entry.raw_text).localeCompare(b.entry.title ?? b.entry.raw_text);
+    });
+
+    return epics;
+  }, [allTasks.data]);
+
+  const toggleEpic = useCallback((epicId: string) => {
+    setExpandedEpics((prev) => {
+      const next = new Set(prev);
+      if (next.has(epicId)) {
+        next.delete(epicId);
+      } else {
+        next.add(epicId);
+      }
+      return next;
+    });
+  }, []);
+
   // --- Activity timeline: merge completed + in-progress, sort by time ---
   const activityTimeline = useMemo(() => {
     const items: { id: string; title: string; time: string; status: "done" | "pending" }[] = [];
@@ -489,6 +565,75 @@ export function AiFeed({ onClose }: AiFeedProps) {
                               {item.status === "done" ? "\u5B8C\u4E86" : "\u9032\u884C\u4E2D"}
                             </span>
                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Epic Tree */}
+              {epicTree.length > 0 && (
+                <div className="epic-tree">
+                  <div className="activity-timeline-title">
+                    <span className="activity-timeline-title-line" />
+                    <span className="activity-timeline-title-text">
+                      {"\u30A8\u30D4\u30C3\u30AF"}
+                    </span>
+                    <span className="activity-timeline-title-line" />
+                  </div>
+                  <div className="epic-tree-items">
+                    {epicTree.map((epic) => {
+                      const isExpanded = expandedEpics.has(epic.entry.id);
+                      const isComplete = epic.doneCount === epic.totalCount;
+                      const progressPct =
+                        epic.totalCount > 0
+                          ? Math.round((epic.doneCount / epic.totalCount) * 100)
+                          : 0;
+                      return (
+                        <div key={epic.entry.id} className="epic-node">
+                          <button
+                            type="button"
+                            className={`epic-row ${isComplete ? "complete" : ""}`}
+                            onClick={() => toggleEpic(epic.entry.id)}
+                          >
+                            <span className="epic-toggle">{isExpanded ? "\u25BC" : "\u25B6"}</span>
+                            <span className="epic-title">
+                              {epic.entry.title ?? epic.entry.raw_text}
+                            </span>
+                            <span className="epic-count">
+                              {epic.doneCount}/{epic.totalCount}
+                              {isComplete && " \u2713"}
+                            </span>
+                          </button>
+                          <div className="epic-progress-bar">
+                            <div
+                              className="epic-progress-fill"
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </div>
+                          {isExpanded && (
+                            <div className="epic-children">
+                              {epic.children.map((child) => {
+                                const isDone = child.status === "done";
+                                return (
+                                  <button
+                                    key={child.id}
+                                    type="button"
+                                    className={`epic-child ${isDone ? "done" : "pending"}`}
+                                    onClick={() => setSelectedId(child.id)}
+                                  >
+                                    <span
+                                      className={`epic-child-dot ${isDone ? "done" : "pending"}`}
+                                    />
+                                    <span className="epic-child-title">
+                                      {child.title ?? child.raw_text}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

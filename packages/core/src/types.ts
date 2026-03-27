@@ -1,20 +1,6 @@
 export const ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"] as const;
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-export const ALLOWED_RESULT_FILE_EXTENSIONS = [
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "webp",
-  "pdf",
-  "txt",
-  "md",
-  "csv",
-  "json",
-] as const;
-export const MAX_RESULT_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-
 export const ENTRY_TYPES = ["task", "note", "wish", "trash"] as const;
 export type EntryType = (typeof ENTRY_TYPES)[number];
 
@@ -47,9 +33,19 @@ export interface Entry extends RawEntry {
   delegatable: boolean;
   image_path: string | null;
   result: string | null;
-  result_file: string | null;
   result_seen: boolean;
   completed_at: string | null;
+  reopen_count: number;
+}
+
+export interface ReopenCycle {
+  id: string;
+  entry_id: string;
+  result: string;
+  result_type: string | null;
+  feedback: string;
+  completed_at: string;
+  reopened_at: string;
 }
 
 export interface CreateEntryInput {
@@ -77,7 +73,6 @@ export interface UpdateEntryInput {
   type?: EntryType;
   delegatable?: boolean;
   result?: string;
-  result_file?: string | null;
   result_seen?: boolean;
 }
 

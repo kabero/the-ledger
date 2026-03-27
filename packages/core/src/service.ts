@@ -5,18 +5,16 @@ import { v4 as uuidv4 } from "uuid";
 import type { EntryRepository } from "./repository.js";
 import {
   ALLOWED_IMAGE_EXTENSIONS,
-  ALLOWED_RESULT_FILE_EXTENSIONS,
   type CreateEntryInput,
   type Entry,
   type ListEntriesFilter,
   MAX_IMAGE_SIZE,
-  MAX_RESULT_FILE_SIZE,
+  type ReopenCycle,
   type SubmitProcessedInput,
   type UpdateEntryInput,
 } from "./types.js";
 
 const IMAGES_DIR = path.join(os.homedir(), ".theledger", "images");
-const RESULTS_DIR = path.join(os.homedir(), ".theledger", "results");
 
 export class EntryService {
   constructor(private repository: EntryRepository) {}
@@ -73,40 +71,34 @@ export class EntryService {
     return filePath;
   }
 
-  saveResultFile(data: Buffer, entryId: string, originalName: string): string {
-    const ext = path.extname(originalName).slice(1).toLowerCase();
-    if (
-      !ALLOWED_RESULT_FILE_EXTENSIONS.includes(
-        ext as (typeof ALLOWED_RESULT_FILE_EXTENSIONS)[number],
-      )
-    ) {
-      throw new Error(
-        `Unsupported result file format: ${ext}. Allowed: ${ALLOWED_RESULT_FILE_EXTENSIONS.join(", ")}`,
-      );
+  reopenTask(id: string, feedback: string): Entry {
+    const entry = this.repository.getById(id);
+    if (!entry) {
+      throw new Error(`Entry not found: ${id}`);
     }
-    if (data.length > MAX_RESULT_FILE_SIZE) {
-      throw new Error(
-        `Result file too large: ${(data.length / 1024 / 1024).toFixed(1)}MB. Max: 50MB`,
-      );
-    }
-    if (!fs.existsSync(RESULTS_DIR)) {
-      fs.mkdirSync(RESULTS_DIR, { recursive: true });
-    }
-    const sanitizedName = path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filename = `${entryId}_${sanitizedName}`;
-    const filePath = path.join(RESULTS_DIR, filename);
-    fs.writeFileSync(filePath, data);
-    return filePath;
+
+    // Snapshot current result into entry_history
+    this.repository.addHistoryEntry({
+      entry_id: id,
+      result: entry.result ?? "",
+      result_type: null,
+      feedback,
+      completed_at: entry.completed_at ?? new Date().toISOString(),
+      reopened_at: new Date().toISOString(),
+    });
+
+    // Reset entry status and increment reopen_count
+    const title = entry.title?.startsWith("[再オープン]")
+      ? entry.title
+      : `[再オープン] ${entry.title ?? ""}`;
+
+    this.repository.resetForReopen(id, title);
+
+    return this.repository.getById(id)!;
   }
 
-  copyResultFile(sourcePath: string, entryId: string): string {
-    const resolvedSource = path.resolve(sourcePath);
-    if (!fs.existsSync(resolvedSource)) {
-      throw new Error(`Source file not found: ${resolvedSource}`);
-    }
-    const originalName = path.basename(resolvedSource);
-    const data = fs.readFileSync(resolvedSource);
-    return this.saveResultFile(data, entryId, originalName);
+  getEntryHistory(entryId: string): ReopenCycle[] {
+    return this.repository.getHistory(entryId);
   }
 
   createEntryWithImage(rawText: string, imageData: Buffer, ext: string): Entry {

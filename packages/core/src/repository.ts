@@ -4,6 +4,7 @@ import type {
   CreateEntryInput,
   Entry,
   ListEntriesFilter,
+  ReopenCycle,
   SubmitProcessedInput,
   UpdateEntryInput,
 } from "./types.js";
@@ -21,10 +22,10 @@ interface EntryRow {
   delegatable: number;
   image_path: string | null;
   result: string | null;
-  result_file: string | null;
   result_seen: number;
   updated_at: string | null;
   completed_at: string | null;
+  reopen_count: number;
 }
 
 export class EntryRepository {
@@ -168,10 +169,6 @@ export class EntryRepository {
       params.push(input.result);
       sets.push("result_seen = 0");
     }
-    if (input.result_file !== undefined) {
-      sets.push("result_file = ?");
-      params.push(input.result_file);
-    }
     if (input.result_seen !== undefined) {
       sets.push("result_seen = ?");
       params.push(input.result_seen ? 1 : 0);
@@ -262,9 +259,9 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
-      result_file: row.result_file ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
+      reopen_count: row.reopen_count ?? 0,
     }));
   }
 
@@ -287,9 +284,42 @@ export class EntryRepository {
       delegatable: row.delegatable === 1,
       image_path: row.image_path ?? null,
       result: row.result ?? null,
-      result_file: row.result_file ?? null,
       result_seen: row.result_seen === 1,
       completed_at: row.completed_at ?? null,
+      reopen_count: row.reopen_count ?? 0,
     };
+  }
+
+  resetForReopen(id: string, title: string): void {
+    this.db
+      .prepare(
+        `UPDATE entries SET title = ?, status = 'pending', result = NULL, result_seen = 0, completed_at = NULL, reopen_count = reopen_count + 1, updated_at = datetime('now') WHERE id = ?`,
+      )
+      .run(title, id);
+  }
+
+  addHistoryEntry(cycle: Omit<ReopenCycle, "id">): ReopenCycle {
+    const id = uuidv4();
+    this.db
+      .prepare(
+        `INSERT INTO entry_history (id, entry_id, result, result_type, feedback, completed_at, reopened_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        cycle.entry_id,
+        cycle.result,
+        cycle.result_type,
+        cycle.feedback,
+        cycle.completed_at,
+        cycle.reopened_at,
+      );
+    return { id, ...cycle };
+  }
+
+  getHistory(entryId: string): ReopenCycle[] {
+    return this.db
+      .prepare(`SELECT * FROM entry_history WHERE entry_id = ? ORDER BY reopened_at ASC`)
+      .all(entryId) as ReopenCycle[];
   }
 }

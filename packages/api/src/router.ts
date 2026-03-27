@@ -217,6 +217,10 @@ export const appRouter = t.router({
   getEntryHistory: t.procedure.input(z.object({ entry_id: z.string() })).query(({ input, ctx }) => {
     return ctx.service.getEntryHistory(input.entry_id);
   }),
+
+  getDashboardData: t.procedure.query(({ ctx }) => {
+    return ctx.service.getDashboardData();
+  }),
 });
 
 export type AppRouter = typeof appRouter;

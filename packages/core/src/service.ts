@@ -239,17 +239,13 @@ export class EntryService {
     ext: string,
     input: Omit<CreateEntryInput, "image_path"> = { raw_text: "(画像)" },
   ): Entry {
-    // 1. Create entry first (gets real ID)
-    const entry = this.repository.create({
+    const tempId = uuidv4();
+    const imagePath = this.saveImage(imageData, tempId, ext);
+    return this.repository.create({
       ...input,
       raw_text: input.raw_text || "(画像)",
+      image_path: imagePath,
     });
-    // 2. Save image using the real entry.id
-    const imagePath = this.saveImage(imageData, entry.id, ext);
-    // 3. Update entry with image_path
-    this.repository.update({ id: entry.id, image_path: imagePath });
-    // biome-ignore lint/style/noNonNullAssertion: entry was just created
-    return this.repository.getById(entry.id)!;
   }
 
   private ensureScheduledTaskRepo(): ScheduledTaskRepository {
@@ -485,6 +481,32 @@ export class EntryService {
 
   getStats() {
     return this.repository.getStats();
+  }
+
+  /**
+   * Aggregated dashboard data — replaces 7 separate queries from AiFeed.
+   */
+  getDashboardData(): {
+    inProgress: Entry[];
+    completed: { entries: Entry[]; nextCursor: string | null };
+    completedCount: number;
+    unprocessed: Entry[];
+    humanTasks: Entry[];
+    pendingDecisions: Entry[];
+  } {
+    return {
+      inProgress: this.listEntries({ delegatable: true, status: "pending", limit: 50 }),
+      completed: this.listEntriesWithCursor({
+        delegatable: true,
+        status: "done",
+        sort: "completed_at",
+        limit: 50,
+      }),
+      completedCount: this.countEntries({ delegatable: true, status: "done" }),
+      unprocessed: this.getUnprocessed(20),
+      humanTasks: this.listEntries({ type: "task", status: "pending", limit: 50 }),
+      pendingDecisions: this.listEntries({ delegatable: false, limit: 100 }),
+    };
   }
 
   /**

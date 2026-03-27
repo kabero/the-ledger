@@ -11,6 +11,7 @@ import {
   EntryService,
   MAX_IMAGE_SIZE,
 } from "@theledger/core";
+import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Context } from "./router.js";
@@ -22,7 +23,51 @@ const service = new EntryService(repository);
 
 const app = new Hono();
 
-app.use("/*", cors());
+// --- CORS: restrict to known dev origins ---
+app.use(
+  "/*",
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:3000"],
+  }),
+);
+
+// --- Simple in-memory rate limiter ---
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 120; // requests per window
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+const rateLimiter: MiddlewareHandler = async (c, next) => {
+  const ip = c.req.header("x-forwarded-for") || "unknown";
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+  } else {
+    entry.count++;
+    if (entry.count > RATE_LIMIT_MAX) {
+      return c.json({ error: "Too many requests" }, 429);
+    }
+  }
+  await next();
+};
+
+app.use("/*", rateLimiter);
+
+// --- API key auth middleware for mutating endpoints ---
+const API_KEY = process.env.LEDGER_API_KEY;
+
+const requireApiKey: MiddlewareHandler = async (c, next) => {
+  if (!API_KEY) {
+    // No key configured — skip auth (local dev without key set)
+    await next();
+    return;
+  }
+  const provided = c.req.header("x-api-key") || c.req.query("apiKey");
+  if (provided !== API_KEY) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  await next();
+};
 
 app.use(
   "/trpc/*",
@@ -104,7 +149,7 @@ function validateAndCreateEntryFromImage(
   return svc.createEntryWithImage(imageData, normalizedExt, { raw_text: rawText });
 }
 
-app.post("/upload", async (c) => {
+app.post("/upload", requireApiKey, async (c) => {
   try {
     const body = await c.req.parseBody();
     const rawText = (body.raw_text as string) || "";
@@ -126,7 +171,7 @@ app.post("/upload", async (c) => {
 });
 
 // Simple JSON endpoint for iOS Shortcuts (base64 image)
-app.post("/api/quick-add", async (c) => {
+app.post("/api/quick-add", requireApiKey, async (c) => {
   try {
     const body = (await c.req.json()) as { raw_text?: string; image?: string; image_ext?: string };
     const rawText = body.raw_text || "";

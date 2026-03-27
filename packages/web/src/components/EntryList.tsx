@@ -113,8 +113,15 @@ export function EntryList({ tab }: EntryListProps) {
     });
   }, [items, searchQuery]);
 
+  const emptyMessages: Record<string, string> = {
+    task: "まだ何もない。上の入力欄からタスクを追加しよう",
+    llm: "おつかいリストは空です。買い物やお使いを追加しよう",
+    note: "メモはまだありません。思いついたことを書き留めよう",
+    wish: "ほしいものリストは空です。欲しいものを追加しよう",
+  };
+
   if (items.length === 0) {
-    return <div className="unprocessed-text">まだ何もない。</div>;
+    return <div className="unprocessed-text">{emptyMessages[tab] ?? "まだ何もない。"}</div>;
   }
 
   return (
@@ -206,8 +213,11 @@ export function EntryList({ tab }: EntryListProps) {
               <div className="entry-title">
                 <div>
                   {entry.image_path && (
-                    <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">
-                      [IMG]
+                    <span
+                      style={{ marginRight: 4, opacity: 0.7, fontSize: "0.85em" }}
+                      title="画像あり"
+                    >
+                      🖼️
                     </span>
                   )}
                   {entry.result ? (

@@ -1540,4 +1540,12 @@
   .activity-timeline-relative {
     font-size: 8px;
   }
+
+  .ai-pipe-num {
+    font-size: 20px;
+  }
+
+  .ai-pipe-label {
+    font-size: 10px;
+  }
 }

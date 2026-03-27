@@ -10,6 +10,19 @@ import { ConfirmModal } from "./ConfirmModal";
 import { DashFeed } from "./DashFeed";
 import { EntryInput } from "./EntryInput";
 
+function formatRelativeTime(isoTime: string): string {
+  const now = Date.now();
+  const then = new Date(`${isoTime}Z`).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "たった今";
+  if (diffMin < 60) return `${diffMin}分前`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}時間前`;
+  const diffDay = Math.floor(diffHour / 24);
+  return `${diffDay}日前`;
+}
+
 const COMPLETED_PAGE_SIZE = 50;
 
 interface AiFeedProps {
@@ -447,25 +460,39 @@ export function AiFeed({ onClose }: AiFeedProps) {
               {activityTimeline.length > 0 && (
                 <div className="activity-timeline">
                   <div className="activity-timeline-title">
-                    {"\u2500\u2500\u2500"} {"\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3"}{" "}
-                    {"\u2500\u2500\u2500"}
+                    <span className="activity-timeline-title-line" />
+                    <span className="activity-timeline-title-text">
+                      {"\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3"}
+                    </span>
+                    <span className="activity-timeline-title-line" />
                   </div>
-                  {activityTimeline.map((item) => {
-                    const d = new Date(`${item.time}Z`);
-                    const hh = String(d.getHours()).padStart(2, "0");
-                    const mm = String(d.getMinutes()).padStart(2, "0");
-                    return (
-                      <div key={item.id} className="activity-timeline-row">
-                        <span className="activity-timeline-time">
-                          {hh}:{mm}
-                        </span>
-                        <span className={`activity-timeline-icon ${item.status}`}>
-                          {item.status === "done" ? "\u2705" : "\uD83D\uDD04"}
-                        </span>
-                        <span className="activity-timeline-label">{item.title}</span>
-                      </div>
-                    );
-                  })}
+                  <div className="activity-timeline-items">
+                    {activityTimeline.map((item) => {
+                      const d = new Date(`${item.time}Z`);
+                      const hh = String(d.getHours()).padStart(2, "0");
+                      const mm = String(d.getMinutes()).padStart(2, "0");
+                      const relative = formatRelativeTime(item.time);
+                      return (
+                        <div key={item.id} className="activity-timeline-row">
+                          <div className="activity-timeline-rail">
+                            <span className="activity-timeline-time">
+                              {hh}:{mm}
+                            </span>
+                            <span className="activity-timeline-relative">{relative}</span>
+                          </div>
+                          <div className="activity-timeline-track">
+                            <span className={`activity-timeline-dot ${item.status}`} />
+                          </div>
+                          <div className="activity-timeline-card">
+                            <span className="activity-timeline-label">{item.title}</span>
+                            <span className={`activity-timeline-status ${item.status}`}>
+                              {item.status === "done" ? "\u5B8C\u4E86" : "\u9032\u884C\u4E2D"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>

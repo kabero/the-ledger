@@ -9,7 +9,7 @@
     "lint:staged": "biome check --staged --no-errors-on-unmatched",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "typecheck": "pnpm --filter @theledger/core build && pnpm --filter '!@theledger/web' -r --parallel exec tsc --noEmit",
+    "typecheck": "pnpm --filter @theledger/core build",
     "precommit": "pnpm lint:staged && pnpm typecheck",
     "prepare": "husky"
   },

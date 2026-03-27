@@ -147,24 +147,9 @@ server.tool(
       .describe(
         "Markdown-formatted summary of completed work. Use headings, lists, bold for structure. Written when completing a delegatable task.",
       ),
-    result_file: z
-      .string()
-      .nullable()
-      .optional()
-      .describe("Server file path for an attached result file (set via complete_task)"),
   },
-  async ({ id, title, tags, urgent, due_date, status, type, result, result_file }) => {
-    const entry = service.updateEntry({
-      id,
-      title,
-      tags,
-      urgent,
-      due_date,
-      status,
-      type,
-      result,
-      result_file,
-    });
+  async ({ id, title, tags, urgent, due_date, status, type, result }) => {
+    const entry = service.updateEntry({ id, title, tags, urgent, due_date, status, type, result });
     return {
       content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
     };
@@ -200,51 +185,30 @@ server.tool(
 );
 
 server.tool(
-  "complete_task",
-  "Complete a delegatable task: mark as done, write result summary, and optionally attach a result file.",
+  "get_entry_history",
+  "Get the reopen/feedback history for an entry. Returns an array of ReopenCycle records.",
   {
-    id: z.string().describe("Entry ID of the task to complete"),
-    result: z
-      .string()
-      .describe(
-        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure.",
-      ),
-    result_file: z
-      .string()
-      .optional()
-      .describe(
-        "Absolute path to a local file to attach as the task result (e.g. generated report, image). Allowed extensions: png, jpg, jpeg, gif, webp, pdf, txt, md, csv, json. Max 50MB.",
-      ),
+    entry_id: z.string().describe("Entry ID to get history for"),
   },
-  async ({ id, result, result_file }) => {
-    const entry = service.getEntry(id);
-    if (!entry) {
-      return { content: [{ type: "text", text: "Entry not found" }] };
-    }
-
-    let resultFilePath: string | null = null;
-    if (result_file) {
-      try {
-        resultFilePath = service.copyResultFile(result_file, id);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        return {
-          content: [{ type: "text", text: `Failed to attach result file: ${message}` }],
-        };
-      }
-    }
-
-    const updated = service.updateEntry({
-      id,
-      status: "done",
-      result,
-      result_file: resultFilePath,
-    });
-
+  async ({ entry_id }) => {
+    const history = service.getEntryHistory(entry_id);
     return {
-      content: [
-        { type: "text", text: updated ? JSON.stringify(updated, null, 2) : "Entry not found" },
-      ],
+      content: [{ type: "text", text: JSON.stringify(history, null, 2) }],
+    };
+  },
+);
+
+server.tool(
+  "reopen_task",
+  "Reopen a completed task with optional feedback. Resets status to 'open' and records the reopen cycle.",
+  {
+    id: z.string().describe("Entry ID of the task to reopen"),
+    feedback: z.string().optional().describe("Feedback explaining why the task is being reopened"),
+  },
+  async ({ id, feedback }) => {
+    const entry = service.reopenTask(id, feedback);
+    return {
+      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
     };
   },
 );

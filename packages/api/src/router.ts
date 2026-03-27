@@ -91,7 +91,6 @@ export const appRouter = t.router({
         type: entryTypeEnum.optional(),
         delegatable: z.boolean().optional(),
         result: z.string().optional(),
-        result_file: z.string().nullable().optional(),
         result_seen: z.boolean().optional(),
       }),
     )
@@ -108,6 +107,14 @@ export const appRouter = t.router({
     .query(({ input, ctx }) => {
       return ctx.service.getTodayTasks(input?.limit);
     }),
+
+  getEntryHistory: t.procedure
+    .input(z.object({ entry_id: z.string() }))
+    .query(({ input, ctx }) => ctx.service.getEntryHistory(input.entry_id)),
+
+  reopenTask: t.procedure
+    .input(z.object({ id: z.string(), feedback: z.string().optional() }))
+    .mutation(({ input, ctx }) => ctx.service.reopenTask(input.id, input.feedback)),
 });
 
 export type AppRouter = typeof appRouter;

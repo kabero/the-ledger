@@ -113,6 +113,21 @@ export function EntryList({ tab }: EntryListProps) {
     });
   }, [items, searchQuery]);
 
+  if (entries.isError) {
+    return (
+      <div className="unprocessed-text">
+        読み込みエラー
+        <button
+          type="button"
+          onClick={() => entries.refetch()}
+          style={{ marginLeft: 8, cursor: "pointer" }}
+        >
+          再試行
+        </button>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
   }
@@ -133,7 +148,7 @@ export function EntryList({ tab }: EntryListProps) {
           onClose={() => setModalEntry(null)}
         />
       )}
-      <div aria-live="polite">
+      <div>
         {items.length > 3 && (
           <div className="search-bar">
             <span className="search-bar-icon" aria-hidden="true">

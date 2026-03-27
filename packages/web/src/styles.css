@@ -2954,6 +2954,35 @@
   color: var(--fg);
 }
 
+/* ─── Entry metadata chips ─────────────────────────── */
+.entry-meta-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.entry-due-label {
+  font-size: 10px;
+  color: var(--dim);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.entry-tag-chip {
+  font-size: 9px;
+  color: var(--fg-dim-readable);
+  background: var(--border-subtle);
+  opacity: 0.7;
+  padding: 0 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.entry-tag-chip::before {
+  content: "#";
+  opacity: 0.4;
+}
+
 /* ─── Inspector fixes ─────────────────────────── */
 
 /* Desktop: card-style entry separation */

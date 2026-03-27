@@ -4931,3 +4931,76 @@ body {
   font-style: italic;
   line-height: 1.5;
 }
+
+/* ─── Reopen Chat (chat-style history) ─────────────────────────── */
+.reopen-chat {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #333;
+}
+.reopen-chat-header {
+  color: #b48eff;
+  font-size: 11px;
+  text-align: center;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+.reopen-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reopen-chat-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.reopen-chat-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+.reopen-chat-ai {
+  align-self: flex-start;
+}
+.reopen-chat-user {
+  align-self: flex-end;
+}
+.reopen-chat-sender {
+  font-size: 10px;
+  color: var(--dim);
+  margin-bottom: 2px;
+}
+.reopen-chat-user .reopen-chat-sender {
+  text-align: right;
+}
+.reopen-chat-time {
+  font-size: 9px;
+  color: var(--dim);
+  opacity: 0.6;
+  margin-left: 6px;
+}
+.reopen-chat-bubble {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.reopen-chat-bubble.ai {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-top-left-radius: 2px;
+  color: var(--fg);
+}
+.reopen-chat-bubble.ai p {
+  margin-bottom: 4px;
+}
+.reopen-chat-bubble.ai p:last-child {
+  margin-bottom: 0;
+}
+.reopen-chat-bubble.user {
+  background: #1e2a1e;
+  border: 1px solid #2a3a2a;
+  border-top-right-radius: 2px;
+  color: var(--fg);
+}

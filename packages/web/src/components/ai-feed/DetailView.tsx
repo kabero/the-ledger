@@ -251,7 +251,7 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
             <div className="ai-detail-result">{resultMarkdown}</div>
             <DetailReopenHistory
               entryId={entry.id}
-              reopenCount={(entry as any).reopen_count ?? 0}
+              reopenCount={(entry as unknown as { reopen_count?: number }).reopen_count ?? 0}
             />
             {entry.status === "done" &&
               entry.delegatable &&
@@ -348,8 +348,6 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
 }
 
 function DetailReopenHistory({ entryId, reopenCount }: { entryId: string; reopenCount: number }) {
-  const [expandedCycles, setExpandedCycles] = useState<Set<number>>(() => new Set([0]));
-
   const historyQuery = trpc.getEntryHistory.useQuery(
     { entry_id: entryId },
     { enabled: reopenCount > 0 },
@@ -366,56 +364,46 @@ function DetailReopenHistory({ entryId, reopenCount }: { entryId: string; reopen
   if (reopenCount === 0 || historyQuery.isLoading) return null;
   if (cycles.length === 0) return null;
 
-  const toggleCycle = (i: number) => {
-    setExpandedCycles((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
+  // Reverse to show oldest first (chat chronological order)
+  const chronological = [...cycles].reverse();
+
+  const formatTime = (ts: string) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString("ja-JP", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   return (
-    <div className="reopen-history">
-      <div className="reopen-history-header">─── 履歴 ({reopenCount}回再オープン) ───</div>
-      {cycles.map((cycle, i) => {
-        const isExpanded = expandedCycles.has(i);
-        const d = new Date(cycle.reopened_at);
-        const dateStr = d.toLocaleDateString("ja-JP", {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        return (
-          <div key={cycle.id} className={`reopen-cycle ${i > 0 ? "reopen-cycle-old" : ""}`}>
-            <button type="button" className="reopen-cycle-toggle" onClick={() => toggleCycle(i)}>
-              <span>
-                {isExpanded ? "▼" : "▶"} サイクル {cycles.length - i}
-              </span>
-              <span className="reopen-cycle-date">{dateStr}</span>
-            </button>
-            {isExpanded && (
-              <div className="reopen-cycle-body">
-                <div className="reopen-cycle-section">
-                  <span className="reopen-cycle-label">結果:</span>
-                  <div className="reopen-cycle-content">
-                    <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                      {cycle.result}
-                    </Markdown>
-                  </div>
+    <div className="reopen-chat">
+      <div className="reopen-chat-header">過去のやりとり ({reopenCount}回)</div>
+      <div className="reopen-chat-messages">
+        {chronological.map((cycle) => (
+          <div key={cycle.id} className="reopen-chat-pair">
+            <div className="reopen-chat-msg reopen-chat-ai">
+              <div className="reopen-chat-sender">
+                AI <span className="reopen-chat-time">{formatTime(cycle.completed_at)}</span>
+              </div>
+              <div className="reopen-chat-bubble ai">
+                <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                  {cycle.result}
+                </Markdown>
+              </div>
+            </div>
+            {cycle.feedback && (
+              <div className="reopen-chat-msg reopen-chat-user">
+                <div className="reopen-chat-sender">
+                  あなた <span className="reopen-chat-time">{formatTime(cycle.reopened_at)}</span>
                 </div>
-                {cycle.feedback && (
-                  <div className="reopen-cycle-section">
-                    <span className="reopen-cycle-label">フィードバック:</span>
-                    <div className="reopen-cycle-feedback">{cycle.feedback}</div>
-                  </div>
-                )}
+                <div className="reopen-chat-bubble user">{cycle.feedback}</div>
               </div>
             )}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }

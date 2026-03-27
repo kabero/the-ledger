@@ -81,7 +81,7 @@ export function EntryList({ tab }: EntryListProps) {
       if (tab === "task" && e.delegatable) return false;
       if (tab === "task" && e.status === "done") {
         if (!e.completed_at) return false;
-        return now - new Date(e.completed_at + "Z").getTime() < DAY_MS;
+        return now - new Date(`${e.completed_at}Z`).getTime() < DAY_MS;
       }
       if (tab !== "done" && tab !== "task" && e.status === "done") return false;
       return true;
@@ -209,7 +209,7 @@ export function EntryList({ tab }: EntryListProps) {
                 )}
                 {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
                   <span className="completed-at">
-                    {new Date(entry.completed_at + "Z").toLocaleDateString("ja-JP", {
+                    {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
                       month: "short",
                       day: "numeric",
                       hour: "2-digit",

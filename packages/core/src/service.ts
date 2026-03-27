@@ -373,6 +373,7 @@ export class EntryService {
     return this.repository.getById(id)!;
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: returns raw DB rows
   getEntryHistory(entryId: string): any[] {
     const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
       (this.repository as any).db;

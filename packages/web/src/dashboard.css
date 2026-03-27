@@ -1360,10 +1360,11 @@
 
 .activity-timeline-title-text {
   font-size: 11px;
-  color: var(--dim);
-  letter-spacing: 3px;
+  color: #b48eff;
+  letter-spacing: 2px;
   text-transform: uppercase;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .activity-timeline-items {

@@ -2945,6 +2945,18 @@
     background: #0d0d0d;
     border-radius: 6px;
     margin-bottom: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .entry:last-child {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .note-body {
+    font-size: 12.5px;
+    margin-top: 6px;
+    line-height: 1.5;
   }
 }
 

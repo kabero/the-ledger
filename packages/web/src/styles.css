@@ -2930,6 +2930,23 @@
 .reopen-chat-bubble.ai p:last-child {
   margin-bottom: 0;
 }
+.reopen-chat-bubble.ai ul,
+.reopen-chat-bubble.ai ol {
+  padding-left: 18px;
+  margin: 4px 0;
+}
+.reopen-chat-bubble.ai li {
+  margin-bottom: 2px;
+}
+.reopen-chat-bubble.ai strong {
+  color: #b48eff;
+}
+.reopen-chat-bubble.ai code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 11px;
+}
 .reopen-chat-bubble.user {
   background: #1e2a1e;
   border: 1px solid #2a3a2a;

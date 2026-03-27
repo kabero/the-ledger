@@ -28,6 +28,7 @@ export type {
   ListEntriesFilter,
   ProcessedFields,
   RawEntry,
+  ReopenCycle,
   ScheduledTask,
   ScheduleFrequency,
   SubmitProcessedInput,

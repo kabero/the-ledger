@@ -31,6 +31,9 @@ interface EntryRow {
   decision_comment: string | null;
   archived_at: string | null;
   parent_id: string | null;
+  result_type: string | null;
+  result_file: string | null;
+  reopen_count: number;
 }
 
 function parseDecisionOptions(raw: string | null): string[] | null {
@@ -850,6 +853,9 @@ export class EntryRepository {
       decision_comment: row.decision_comment ?? null,
       archived_at: row.archived_at ?? null,
       parent_id: row.parent_id ?? null,
+      result_type: row.result_type ?? null,
+      result_file: row.result_file ?? null,
+      reopen_count: row.reopen_count ?? 0,
     }));
   }
 
@@ -881,6 +887,9 @@ export class EntryRepository {
       decision_comment: row.decision_comment ?? null,
       archived_at: row.archived_at ?? null,
       parent_id: row.parent_id ?? null,
+      result_type: row.result_type ?? null,
+      result_file: row.result_file ?? null,
+      reopen_count: row.reopen_count ?? 0,
     };
   }
 }

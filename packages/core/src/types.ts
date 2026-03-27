@@ -42,6 +42,19 @@ export interface Entry extends RawEntry {
   decision_comment: string | null;
   archived_at: string | null;
   parent_id: string | null;
+  result_type: string | null;
+  result_file: string | null;
+  reopen_count: number;
+}
+
+export interface ReopenCycle {
+  id: string;
+  entry_id: string;
+  result: string;
+  result_type: string | null;
+  feedback: string;
+  completed_at: string;
+  reopened_at: string;
 }
 
 export interface CreateEntryInput {

@@ -137,6 +137,26 @@ function runMigrations(db: Database.Database): void {
   if (!hasCol("parent_id")) {
     db.exec("ALTER TABLE entries ADD COLUMN parent_id TEXT REFERENCES entries(id)");
   }
+  if (!hasCol("result_type")) {
+    db.exec("ALTER TABLE entries ADD COLUMN result_type TEXT");
+  }
+  if (!hasCol("result_file")) {
+    db.exec("ALTER TABLE entries ADD COLUMN result_file TEXT");
+  }
+  if (!hasCol("reopen_count")) {
+    db.exec("ALTER TABLE entries ADD COLUMN reopen_count INTEGER NOT NULL DEFAULT 0");
+  }
+  // Create entry_history table if not exists
+  db.exec(`CREATE TABLE IF NOT EXISTS entry_history (
+    id TEXT PRIMARY KEY,
+    entry_id TEXT NOT NULL,
+    result TEXT NOT NULL,
+    result_type TEXT,
+    feedback TEXT NOT NULL,
+    completed_at TEXT NOT NULL,
+    reopened_at TEXT NOT NULL,
+    FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE
+  )`);
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {
     db.exec(

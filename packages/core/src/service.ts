@@ -330,20 +330,56 @@ export class EntryService {
       throw new Error(`Entry is not done (status=${entry.status}), cannot reopen`);
     }
 
-    const updatedResult = feedback
-      ? `${entry.result ?? ""}\n\n---\n**Feedback (reopen):** ${feedback}`.trim()
-      : entry.result;
+    // Snapshot current result into entry_history
+    if (entry.result) {
+      const { v4: uuidv4 } = require("uuid");
+      const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
+        (this.repository as any).db;
+      db.prepare(
+        "INSERT INTO entry_history (id, entry_id, result, result_type, feedback, completed_at, reopened_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ).run(
+        uuidv4(),
+        id,
+        entry.result,
+        entry.result_type ?? null,
+        feedback ?? "",
+        entry.completed_at ?? new Date().toISOString(),
+        new Date().toISOString(),
+      );
+    }
+
+    // Reset entry and increment reopen_count
+    const newTitle = entry.title?.startsWith("[再オープン]")
+      ? entry.title
+      : `[再オープン] ${entry.title ?? ""}`;
 
     const updated = this.repository.update({
       id,
       status: "pending",
-      result: updatedResult ?? undefined,
-      result_seen: true, // mark old result as seen since we're reopening
+      title: newTitle,
+      result_seen: true,
     });
+
+    // Increment reopen_count and clear completed_at
+    const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
+      (this.repository as any).db;
+    db.prepare(
+      "UPDATE entries SET reopen_count = reopen_count + 1, completed_at = NULL WHERE id = ?",
+    ).run(id);
+
     if (!updated) {
       throw new Error(`Failed to reopen entry: ${id}`);
     }
-    return updated;
+    // biome-ignore lint/style/noNonNullAssertion: entry was just updated
+    return this.repository.getById(id)!;
+  }
+
+  getEntryHistory(entryId: string): any[] {
+    const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
+      (this.repository as any).db;
+    return db
+      .prepare("SELECT * FROM entry_history WHERE entry_id = ? ORDER BY reopened_at DESC")
+      .all(entryId);
   }
 
   /**

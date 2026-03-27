@@ -5,7 +5,7 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 // サイズ上限は @theledger/core の MAX_IMAGE_SIZE と同期すること
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-function getExtFromMime(mime: string): string {
+function _getExtFromMime(mime: string): string {
   const map: Record<string, string> = {
     "image/png": "png",
     "image/jpeg": "jpg",
@@ -92,7 +92,7 @@ export function EntryInput() {
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
     e.target.style.height = "auto";
-    e.target.style.height = e.target.scrollHeight + "px";
+    e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {

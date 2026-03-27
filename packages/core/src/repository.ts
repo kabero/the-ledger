@@ -33,10 +33,14 @@ export class EntryRepository {
     const id = uuidv4();
     if (input.image_path) {
       this.db
-        .prepare(`INSERT INTO entries (id, raw_text, image_path, updated_at) VALUES (?, ?, ?, datetime('now'))`)
+        .prepare(
+          `INSERT INTO entries (id, raw_text, image_path, updated_at) VALUES (?, ?, ?, datetime('now'))`,
+        )
         .run(id, input.raw_text, input.image_path);
     } else {
-      this.db.prepare(`INSERT INTO entries (id, raw_text, updated_at) VALUES (?, ?, datetime('now'))`).run(id, input.raw_text);
+      this.db
+        .prepare(`INSERT INTO entries (id, raw_text, updated_at) VALUES (?, ?, datetime('now'))`)
+        .run(id, input.raw_text);
     }
 
     return this.getById(id)!;
@@ -84,7 +88,12 @@ export class EntryRepository {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = filter.limit ?? 100;
     const offset = filter.offset ?? 0;
-    const sortCol = filter.sort === "completed_at" ? "e.completed_at" : filter.sort === "updated_at" ? "e.updated_at" : "e.created_at";
+    const sortCol =
+      filter.sort === "completed_at"
+        ? "e.completed_at"
+        : filter.sort === "updated_at"
+          ? "e.updated_at"
+          : "e.created_at";
 
     const rows = this.db
       .prepare(`SELECT e.* FROM entries e ${where} ORDER BY ${sortCol} DESC LIMIT ? OFFSET ?`)

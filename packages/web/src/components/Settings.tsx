@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { trpc } from "../trpc";
 
 const FONTS = [
   { key: "DotGothic16", label: "DotGothic16", import: "DotGothic16" },
@@ -35,6 +36,58 @@ export function applyFont(fontKey?: string): void {
   document.documentElement.style.setProperty("--font", `"${font.key}", monospace`);
 }
 
+const SCHEDULE_TIMEOUT_MS = 5_000;
+
+function ScheduleErrands() {
+  const errands = trpc.listEntries.useQuery(
+    { delegatable: true, status: "pending" as const, limit: 20 },
+    { refetchInterval: 30_000 },
+  );
+  const [timedOut, setTimedOut] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (errands.isLoading) {
+      timerRef.current = setTimeout(() => setTimedOut(true), SCHEDULE_TIMEOUT_MS);
+    } else {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setTimedOut(false);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [errands.isLoading]);
+
+  return (
+    <div className="settings-schedule">
+      <div className="settings-section-title">スケジュールおつかい</div>
+      {errands.isLoading && !timedOut && <div className="unprocessed-text">読み込み中...</div>}
+      {errands.isLoading && timedOut && <div className="unprocessed-text">データがありません</div>}
+      {errands.isError && <div className="unprocessed-text">データがありません</div>}
+      {errands.isSuccess && (errands.data ?? []).length === 0 && (
+        <div className="unprocessed-text">データがありません</div>
+      )}
+      {errands.isSuccess && (errands.data ?? []).length > 0 && (
+        <div className="settings-schedule-list">
+          {(errands.data ?? []).map((e) => (
+            <div key={e.id} className="settings-schedule-item">
+              <span>{e.title ?? e.raw_text}</span>
+              {e.due_date && (
+                <span className="completed-at">
+                  {new Date(e.due_date).toLocaleDateString("ja-JP", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface SettingsProps {
   onClose: () => void;
 }
@@ -60,7 +113,9 @@ export function Settings({ onClose }: SettingsProps) {
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, []);
 
   const handleSelect = (key: string) => {
@@ -74,15 +129,21 @@ export function Settings({ onClose }: SettingsProps) {
       className="result-overlay"
       role="dialog"
       onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-      <div className="result-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="result-modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="result-modal-close" onClick={onClose}>
           x
         </button>
-        <div className="result-modal-title">フォント設定</div>
+        <div className="result-modal-title">設定</div>
+
+        <ScheduleErrands />
+
+        <div className="settings-section-title">フォント</div>
         <div className="settings-font-list">
           {FONTS.map((font) => (
             <button

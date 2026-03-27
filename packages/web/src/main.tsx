@@ -7,6 +7,7 @@ import "./styles.css";
 
 const queryClient = new QueryClient();
 
+// biome-ignore lint/style/noNonNullAssertion: root element guaranteed to exist
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <trpc.Provider client={trpcClient} queryClient={queryClient}>

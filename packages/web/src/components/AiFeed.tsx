@@ -457,46 +457,6 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   ))}
                 </div>
               )}
-
-              {/* Activity timeline */}
-              {activityTimeline.length > 0 && (
-                <div className="activity-timeline">
-                  <div className="activity-timeline-title">
-                    <span className="activity-timeline-title-line" />
-                    <span className="activity-timeline-title-text">
-                      {"\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3"}
-                    </span>
-                    <span className="activity-timeline-title-line" />
-                  </div>
-                  <div className="activity-timeline-items">
-                    {activityTimeline.map((item) => {
-                      const d = new Date(`${item.time}Z`);
-                      const hh = String(d.getHours()).padStart(2, "0");
-                      const mm = String(d.getMinutes()).padStart(2, "0");
-                      const relative = formatRelativeTime(item.time);
-                      return (
-                        <div key={item.id} className="activity-timeline-row">
-                          <div className="activity-timeline-rail">
-                            <span className="activity-timeline-time">
-                              {hh}:{mm}
-                            </span>
-                            <span className="activity-timeline-relative">{relative}</span>
-                          </div>
-                          <div className="activity-timeline-track">
-                            <span className={`activity-timeline-dot ${item.status}`} />
-                          </div>
-                          <div className="activity-timeline-card">
-                            <span className="activity-timeline-label">{item.title}</span>
-                            <span className={`activity-timeline-status ${item.status}`}>
-                              {item.status === "done" ? "\u5B8C\u4E86" : "\u9032\u884C\u4E2D"}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
             <div className="ai-dash-body">
               <div className="ai-dash-main">
@@ -865,8 +825,46 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   )}
               </div>
 
-              {/* Sidebar: Feed */}
+              {/* Sidebar: Activity + Feed */}
               <div className="ai-dash-sidebar">
+                {activityTimeline.length > 0 && (
+                  <div className="activity-timeline">
+                    <div className="activity-timeline-title">
+                      <span className="activity-timeline-title-line" />
+                      <span className="activity-timeline-title-text">
+                        {"\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3"}
+                      </span>
+                      <span className="activity-timeline-title-line" />
+                    </div>
+                    <div className="activity-timeline-items">
+                      {activityTimeline.map((item) => {
+                        const d = new Date(`${item.time}Z`);
+                        const hh = String(d.getHours()).padStart(2, "0");
+                        const mm = String(d.getMinutes()).padStart(2, "0");
+                        const relative = formatRelativeTime(item.time);
+                        return (
+                          <div key={item.id} className="activity-timeline-row">
+                            <div className="activity-timeline-rail">
+                              <span className="activity-timeline-time">
+                                {hh}:{mm}
+                              </span>
+                              <span className="activity-timeline-relative">{relative}</span>
+                            </div>
+                            <div className="activity-timeline-track">
+                              <span className={`activity-timeline-dot ${item.status}`} />
+                            </div>
+                            <div className="activity-timeline-card">
+                              <span className="activity-timeline-label">{item.title}</span>
+                              <span className={`activity-timeline-status ${item.status}`}>
+                                {item.status === "done" ? "\u5B8C\u4E86" : "\u9032\u884C\u4E2D"}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <DashFeed onSelectEntry={setSelectedId} />
               </div>
             </div>

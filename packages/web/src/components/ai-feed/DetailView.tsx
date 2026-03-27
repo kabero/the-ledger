@@ -400,7 +400,7 @@ function DetailReopenHistory({
               </div>
               <div className="reopen-chat-bubble ai">
                 <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                  {cycle.result}
+                  {cycle.result.replace(/\\n/g, "\n")}
                 </Markdown>
               </div>
             </div>
@@ -422,7 +422,7 @@ function DetailReopenHistory({
               </div>
               <div className="reopen-chat-bubble ai">
                 <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
-                  {currentResult}
+                  {currentResult?.replace(/\\n/g, "\n") ?? ""}
                 </Markdown>
               </div>
             </div>

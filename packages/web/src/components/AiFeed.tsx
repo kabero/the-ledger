@@ -644,11 +644,11 @@ export function AiFeed({ onClose }: AiFeedProps) {
             <div className="ai-dash-body">
               <div className="ai-dash-main">
                 {/* Unprocessed — top priority */}
-                {unprocessedItems.length > 0 && (
-                  <div className="ai-section">
-                    <div className="ai-section-title">
-                      <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
-                    </div>
+                <div className="ai-section">
+                  <div className="ai-section-title">
+                    <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
+                  </div>
+                  {unprocessedItems.length > 0 && (
                     <div className="ai-mini-cards">
                       {unprocessedItems.slice(0, 6).map((e) => (
                         <div key={e.id} className="ai-mini unprocessed">
@@ -667,8 +667,8 @@ export function AiFeed({ onClose }: AiFeedProps) {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Pending Decisions — human judgment needed */}
                 {pendingDecisions.length > 0 && (
@@ -853,11 +853,11 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 )}
 
                 {/* In Progress */}
-                {inProgress.length > 0 && (
-                  <div className="ai-section">
-                    <div className="ai-section-title">
-                      <span className="ai-dot progress" /> 進行中
-                    </div>
+                <div className="ai-section">
+                  <div className="ai-section-title">
+                    <span className="ai-dot progress" /> 進行中 ({inProgress.length})
+                  </div>
+                  {inProgress.length > 0 && (
                     <div className="ai-mini-cards">
                       {inProgress.map((e) => (
                         <MiniCard
@@ -868,29 +868,29 @@ export function AiFeed({ onClose }: AiFeedProps) {
                         />
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Recent completions — paginated */}
-                {completed.length > 0 && (
-                  <div className="ai-section">
-                    <div className="ai-section-title">
-                      <span className="ai-dot done" /> 最近の完了
-                      {totalCompletedCount > completed.length && (
-                        <span className="ai-section-count">
-                          {completed.length} / {totalCompletedCount}件
-                        </span>
-                      )}
-                      {newResults > 0 && (
-                        <button
-                          type="button"
-                          className="ai-mark-all-seen"
-                          onClick={() => markAllSeen.mutate()}
-                        >
-                          すべて既読
-                        </button>
-                      )}
-                    </div>
+                <div className="ai-section">
+                  <div className="ai-section-title">
+                    <span className="ai-dot done" /> 最近の完了
+                    {totalCompletedCount > completed.length && (
+                      <span className="ai-section-count">
+                        {completed.length} / {totalCompletedCount}件
+                      </span>
+                    )}
+                    {newResults > 0 && (
+                      <button
+                        type="button"
+                        className="ai-mark-all-seen"
+                        onClick={() => markAllSeen.mutate()}
+                      >
+                        すべて既読
+                      </button>
+                    )}
+                  </div>
+                  {completed.length > 0 && (
                     <div className="ai-mini-cards">
                       {completed.slice(0, completedVisible).map((e) => (
                         <MiniCard
@@ -903,29 +903,29 @@ export function AiFeed({ onClose }: AiFeedProps) {
                         />
                       ))}
                     </div>
-                    {completedVisible < completed.length && (
-                      <button
-                        type="button"
-                        className="ai-show-more"
-                        onClick={() => setCompletedVisible((v) => v + 12)}
-                      >
-                        もっと見る ({completed.length - completedVisible}件)
-                      </button>
-                    )}
-                    {completedVisible >= completed.length && completedHasMore && (
-                      <button
-                        type="button"
-                        className="ai-show-more"
-                        onClick={handleLoadMoreCompleted}
-                        disabled={isLoadingMore}
-                      >
-                        {isLoadingMore
-                          ? "読み込み中..."
-                          : `もっと読み込む${remainingCompleted > 0 ? ` (残り${remainingCompleted}件)` : ""}`}
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {completedVisible < completed.length && (
+                    <button
+                      type="button"
+                      className="ai-show-more"
+                      onClick={() => setCompletedVisible((v) => v + 12)}
+                    >
+                      もっと見る ({completed.length - completedVisible}件)
+                    </button>
+                  )}
+                  {completedVisible >= completed.length && completedHasMore && (
+                    <button
+                      type="button"
+                      className="ai-show-more"
+                      onClick={handleLoadMoreCompleted}
+                      disabled={isLoadingMore}
+                    >
+                      {isLoadingMore
+                        ? "読み込み中..."
+                        : `もっと読み込む${remainingCompleted > 0 ? ` (残り${remainingCompleted}件)` : ""}`}
+                    </button>
+                  )}
+                </div>
 
                 {/* Human pending tasks */}
                 {humanPending.length > 0 && (

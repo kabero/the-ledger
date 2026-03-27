@@ -603,137 +603,103 @@ body {
   border-color: var(--danger);
 }
 
-/* Epic Tree */
-.epic-tree {
-  margin-top: 16px;
+/* Reopen History */
+.reopen-history {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #333;
 }
 
-.epic-tree-items {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.epic-node {
-  border: 1px solid #222;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.epic-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  color: var(--fg);
-  font-family: var(--font);
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.1s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.epic-row:hover {
-  background: #111;
-}
-
-.epic-row.complete {
-  opacity: 0.7;
-}
-
-.epic-toggle {
-  font-size: 10px;
+.reopen-history-header {
   color: #b48eff;
-  flex-shrink: 0;
-  width: 14px;
-}
-
-.epic-title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.epic-count {
   font-size: 12px;
-  color: #b48eff;
-  flex-shrink: 0;
-  white-space: nowrap;
+  text-align: center;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
 }
 
-.epic-progress-bar {
-  height: 3px;
-  background: #222;
-  margin: 0 12px 4px;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.epic-progress-fill {
-  height: 100%;
-  background: #b48eff;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.epic-children {
-  display: flex;
-  flex-direction: column;
-  padding: 0 12px 8px 32px;
-  gap: 2px;
-}
-
-.epic-child {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  background: transparent;
-  border: none;
-  color: var(--fg);
-  font-family: var(--font);
-  font-size: 12px;
-  cursor: pointer;
-  text-align: left;
-  border-radius: 4px;
-  transition: background 0.1s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.epic-child:hover {
-  background: #111;
-}
-
-.epic-child-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.epic-child-dot.done {
-  background: #b48eff;
-}
-
-.epic-child-dot.pending {
-  background: #f0ad4e;
-}
-
-.epic-child.done .epic-child-title {
+.reopen-history-loading,
+.reopen-history-empty {
   color: var(--dim);
-  text-decoration: line-through;
+  font-size: 11px;
+  text-align: center;
+  padding: 8px 0;
 }
 
-.epic-child-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.reopen-cycle {
+  margin-bottom: 4px;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+}
+
+.reopen-cycle-old {
+  opacity: 0.6;
+}
+
+.reopen-cycle-old:hover {
+  opacity: 0.85;
+}
+
+.reopen-cycle-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: #b48eff;
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 8px 10px;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reopen-cycle-toggle:hover {
+  background: #111;
+}
+
+.reopen-cycle-date {
+  color: var(--dim);
+  font-size: 10px;
+}
+
+.reopen-cycle-body {
+  padding: 8px 12px 12px;
+  border-top: 1px solid #222;
+}
+
+.reopen-cycle-section {
+  margin-bottom: 8px;
+}
+
+.reopen-cycle-section:last-child {
+  margin-bottom: 0;
+}
+
+.reopen-cycle-label {
+  color: var(--dim);
+  font-size: 10px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.reopen-cycle-content {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fg);
+}
+
+.reopen-cycle-content p {
+  margin-bottom: 4px;
+}
+
+.reopen-cycle-feedback {
+  font-size: 11px;
+  color: var(--accent);
+  font-style: italic;
+  line-height: 1.5;
 }
 
 /* Mobile */

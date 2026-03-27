@@ -254,7 +254,9 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
             <DetailReopenHistory
               entryId={entry.id}
               reopenCount={(entry as unknown as { reopen_count?: number }).reopen_count ?? 0}
-              currentResult={entry.result ? normalizeResult(entry.result) : undefined}
+              currentResult={
+                entry.status === "done" && entry.result ? normalizeResult(entry.result) : undefined
+              }
             />
             {entry.status === "done" &&
               entry.delegatable &&

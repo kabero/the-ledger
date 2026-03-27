@@ -6,8 +6,12 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "biome check .",
+    "lint:staged": "biome check --staged --no-errors-on-unmatched",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "typecheck": "pnpm --filter @theledger/core build && pnpm --filter '!@theledger/web' -r --parallel exec tsc --noEmit",
+    "precommit": "pnpm lint:staged && pnpm typecheck",
+    "prepare": "husky"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -17,8 +21,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.8",
-    "@playwright/test": "^1.58.2",
-    "turbo": "^2",
-    "vitest": "^4.1.1"
+    "husky": "^9",
+    "turbo": "^2"
   }
 }

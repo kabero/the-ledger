@@ -1,6 +1,23 @@
 export const ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"] as const;
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+export const TAG_RECOMMENDED_MIN = 3;
+export const TAG_RECOMMENDED_MAX = 5;
+export const TAG_HARD_MAX = 8;
+
+export const TAG_PRESETS = {
+  scope: ["core", "web", "api", "mcp", "ai-dashboard"],
+  work_type: ["bug", "feature", "refactor", "cleanup", "testing", "docs"],
+  quality: ["accessibility", "performance", "security", "ux"],
+  platform: ["mobile", "desktop"],
+  lifestyle: ["lifestyle", "shopping", "cooking", "hobby", "health", "finance"],
+  process: ["decision", "review", "summary", "report"],
+} as const;
+
+export type TagPresetCategory = keyof typeof TAG_PRESETS;
+
+export const ALL_PRESET_TAGS = Object.values(TAG_PRESETS).flat();
+
 export const ENTRY_TYPES = ["task", "note", "wish", "trash"] as const;
 export type EntryType = (typeof ENTRY_TYPES)[number];
 

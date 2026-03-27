@@ -465,7 +465,7 @@ body {
 }
 
 .result-modal-title {
-  color: var(--accent);
+  color: #b48eff;
   font-size: 14px;
   margin: 0 16px 16px;
   padding-bottom: 8px;
@@ -484,7 +484,7 @@ body {
 }
 
 .result-modal-body strong {
-  color: var(--accent);
+  color: #b48eff;
 }
 
 .result-modal-body ul,
@@ -533,7 +533,7 @@ body {
 
 .result-modal-body th {
   background: var(--bg-table-header);
-  color: var(--accent);
+  color: #b48eff;
   font-weight: normal;
 }
 
@@ -3445,7 +3445,7 @@ body {
 .ai-detail-result h3,
 .ai-detail-result h4 {
   margin: 12px 0 6px;
-  color: var(--accent);
+  color: #b48eff;
 }
 
 .ai-detail-result ul,
@@ -3454,7 +3454,7 @@ body {
 }
 
 .ai-detail-result strong {
-  color: var(--accent);
+  color: #b48eff;
 }
 
 .ai-detail-result table {
@@ -3473,7 +3473,7 @@ body {
 
 .ai-detail-result th {
   background: var(--border-card);
-  color: var(--accent);
+  color: #b48eff;
 }
 
 .ai-detail-result code {
@@ -4364,12 +4364,14 @@ body {
 }
 
 .sf-type-badge {
-  font-size: 10px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  font-size: 9px;
+  color: var(--dim);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
   border-radius: 3px;
-  padding: 1px 6px;
-  font-weight: 600;
+  padding: 0 5px;
+  font-weight: 400;
+  opacity: 0.7;
 }
 
 .sf-tag {

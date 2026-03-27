@@ -51,12 +51,7 @@ export function EntryList({ tab }: EntryListProps) {
     }
   }
 
-  const [modalEntry, setModalEntry] = useState<{
-    title: string;
-    result: string;
-    entry_id: string;
-    reopen_count: number;
-  } | null>(null);
+  const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ message: string; onOk: () => void } | null>(
     null,
   );
@@ -107,6 +102,17 @@ export function EntryList({ tab }: EntryListProps) {
     });
   }, [entries.data, localStatus, tab]);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const visibleItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.trim().toLowerCase();
+    return items.filter((e) => {
+      const text = (e.title ?? e.raw_text).toLowerCase();
+      return text.includes(q);
+    });
+  }, [items, searchQuery]);
+
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
   }
@@ -124,216 +130,147 @@ export function EntryList({ tab }: EntryListProps) {
         <ResultModal
           title={modalEntry.title}
           result={modalEntry.result}
-          entryId={modalEntry.entry_id}
-          reopenCount={modalEntry.reopen_count}
           onClose={() => setModalEntry(null)}
         />
       )}
       <div>
-        {items.map((entry) => (
-          <div
-            key={entry.id}
-            className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}
-          >
-            {entry.type === "task" && (
+        {items.length > 3 && (
+          <div className="search-bar">
+            <span className="search-bar-icon" aria-hidden="true">
+              {"\uD83D\uDD0D"}
+            </span>
+            <input
+              type="text"
+              className="search-bar-input"
+              placeholder="検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="エントリを検索"
+            />
+            {searchQuery && (
               <button
                 type="button"
-                className="checkbox"
-                onClick={() => {
-                  const newStatus = entry.status === "done" ? "pending" : "done";
-                  if (tab === "llm" && newStatus === "pending") {
-                    setConfirmAction({
-                      message: "おつかいの成果があるけど、未完了に戻しますか？",
-                      onOk: () => {
-                        setLocalStatus((prev) => ({
-                          ...prev,
-                          [entry.id]: { status: "pending", completed_at: null },
-                        }));
-                        updateEntry.mutate({ id: entry.id, status: "pending" });
-                        setConfirmAction(null);
-                      },
-                    });
-                    return;
-                  }
-                  setLocalStatus((prev) => ({
-                    ...prev,
-                    [entry.id]: {
-                      status: newStatus,
-                      completed_at:
-                        newStatus === "done"
-                          ? new Date().toISOString().replace("T", " ").slice(0, 19)
-                          : null,
-                    },
-                  }));
-                  updateEntry.mutate({ id: entry.id, status: newStatus });
-                }}
+                className="search-bar-clear"
+                onClick={() => setSearchQuery("")}
+                aria-label="検索をクリア"
               >
-                {entry.status === "done" ? "\u2713" : ""}
+                {"\u2715"}
               </button>
             )}
-            <div className="entry-title">
-              <div>
-                {entry.image_path && (
-                  <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">
-                    [IMG]
-                  </span>
-                )}
-                {entry.result ? (
-                  <button
-                    type="button"
-                    className="btn-result-title"
-                    onClick={() => {
-                      setModalEntry({
-                        title: entry.title ?? entry.raw_text,
-                        result: entry.result as string,
-                        entry_id: entry.id,
-                        reopen_count: (entry as { reopen_count?: number }).reopen_count ?? 0,
-                      });
-                      if (!entry.result_seen) {
-                        updateEntry.mutate({ id: entry.id, result_seen: true });
-                      }
-                    }}
-                  >
-                    {!entry.result_seen && <span className="badge-new">NEW</span>}
-                    {entry.title ?? entry.raw_text}
-                  </button>
-                ) : (
-                  (entry.title ?? entry.raw_text)
-                )}
-              </div>
-              <div className="entry-tags">
-                {entry.type && tab === "all" && (
-                  <span className="priority" style={{ marginLeft: 4 }}>
-                    [{entry.type}]
-                  </span>
-                )}
-                {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
-                  <span className="completed-at">
-                    {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                )}
-              </div>
-            </div>
-            <button
-              type="button"
-              className="btn-del"
-              onClick={() => deleteEntry.mutate({ id: entry.id })}
-            >
-              x
-            </button>
           </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-interface ReopenCycle {
-  id: string;
-  entry_id: string;
-  result: string;
-  result_type: string;
-  feedback: string;
-  completed_at: string;
-  reopened_at: string;
-}
-
-function ReopenHistory({ entryId, reopenCount }: { entryId: string; reopenCount: number }) {
-  const [expandedCycles, setExpandedCycles] = useState<Set<number>>(() => new Set([0]));
-
-  const historyQuery = trpc.getEntryHistory.useQuery({ entry_id: entryId });
-  const cycles: ReopenCycle[] = (historyQuery.data as ReopenCycle[] | undefined) ?? [];
-  const isLoading = historyQuery.isLoading;
-
-  if (isLoading) {
-    return <div className="reopen-history-loading">履歴を読み込み中...</div>;
-  }
-
-  const toggleCycle = (index: number) => {
-    setExpandedCycles((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  };
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr.endsWith("Z") ? dateStr : `${dateStr}Z`);
-    return d.toLocaleDateString("ja-JP", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  return (
-    <div className="reopen-history">
-      <div className="reopen-history-header">─── 履歴 ({reopenCount}回再オープン) ───</div>
-      {cycles.length === 0 ? (
-        <div className="reopen-history-empty">履歴データは準備中です</div>
-      ) : (
-        cycles.map((cycle, index) => {
-          const isExpanded = expandedCycles.has(index);
-          const cycleNum = cycles.length - index;
-          const isLatest = index === 0;
-          return (
-            <div key={cycle.id} className={`reopen-cycle ${isLatest ? "" : "reopen-cycle-old"}`}>
-              <button
-                type="button"
-                className="reopen-cycle-toggle"
-                onClick={() => toggleCycle(index)}
-              >
-                <span>
-                  {isExpanded ? "▼" : "▶"} サイクル {cycleNum}
-                  {isLatest ? " (最新)" : ""}
-                </span>
-                <span className="reopen-cycle-date">{formatDate(cycle.completed_at)}</span>
-              </button>
-              {isExpanded && (
-                <div className="reopen-cycle-body">
-                  <div className="reopen-cycle-section">
-                    <span className="reopen-cycle-label">結果:</span>
-                    <div className="reopen-cycle-content">
-                      <Markdown remarkPlugins={[remarkGfm]}>{cycle.result}</Markdown>
-                    </div>
-                  </div>
-                  {cycle.feedback && (
-                    <div className="reopen-cycle-section">
-                      <span className="reopen-cycle-label">フィードバック:</span>
-                      <div className="reopen-cycle-feedback">"{cycle.feedback}"</div>
-                    </div>
+        )}
+        {visibleItems.length === 0 && searchQuery ? (
+          <div className="unprocessed-text">見つからない。</div>
+        ) : (
+          visibleItems.map((entry) => (
+            <div
+              key={entry.id}
+              className={`entry ${entry.status === "done" ? "done" : ""} ${entry.urgent ? "urgent" : ""}`}
+            >
+              {entry.type === "task" && (
+                <button
+                  type="button"
+                  className="checkbox"
+                  onClick={() => {
+                    const newStatus = entry.status === "done" ? "pending" : "done";
+                    if (tab === "llm" && newStatus === "pending") {
+                      setConfirmAction({
+                        message: "おつかいの成果があるけど、未完了に戻しますか？",
+                        onOk: () => {
+                          setLocalStatus((prev) => ({
+                            ...prev,
+                            [entry.id]: { status: "pending", completed_at: null },
+                          }));
+                          updateEntry.mutate({ id: entry.id, status: "pending" });
+                          setConfirmAction(null);
+                        },
+                      });
+                      return;
+                    }
+                    setLocalStatus((prev) => ({
+                      ...prev,
+                      [entry.id]: {
+                        status: newStatus,
+                        completed_at:
+                          newStatus === "done"
+                            ? new Date().toISOString().replace("T", " ").slice(0, 19)
+                            : null,
+                      },
+                    }));
+                    updateEntry.mutate({ id: entry.id, status: newStatus });
+                  }}
+                >
+                  {entry.status === "done" ? "\u2713" : ""}
+                </button>
+              )}
+              <div className="entry-title">
+                <div>
+                  {entry.image_path && (
+                    <span style={{ marginRight: 4, opacity: 0.7 }} title="画像あり">
+                      [IMG]
+                    </span>
+                  )}
+                  {entry.result ? (
+                    <button
+                      type="button"
+                      className="btn-result-title"
+                      onClick={() => {
+                        setModalEntry({
+                          title: entry.title ?? entry.raw_text,
+                          result: entry.result as string,
+                        });
+                        if (!entry.result_seen) {
+                          updateEntry.mutate({ id: entry.id, result_seen: true });
+                        }
+                      }}
+                    >
+                      {!entry.result_seen && <span className="badge-new">NEW</span>}
+                      {entry.title ?? entry.raw_text}
+                    </button>
+                  ) : (
+                    (entry.title ?? entry.raw_text)
                   )}
                 </div>
-              )}
+                <div className="entry-tags">
+                  {entry.type && tab === "all" && (
+                    <span className="priority" style={{ marginLeft: 4 }}>
+                      [{entry.type}]
+                    </span>
+                  )}
+                  {entry.completed_at && (tab === "done" || tab === "llm" || tab === "task") && (
+                    <span className="completed-at">
+                      {new Date(`${entry.completed_at}Z`).toLocaleDateString("ja-JP", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-del"
+                onClick={() => deleteEntry.mutate({ id: entry.id })}
+              >
+                x
+              </button>
             </div>
-          );
-        })
-      )}
-    </div>
+          ))
+        )}
+      </div>
+    </>
   );
 }
 
 function ResultModal({
   title,
   result,
-  entryId,
-  reopenCount,
   onClose,
 }: {
   title: string;
   result: string;
-  entryId: string;
-  reopenCount: number;
   onClose: () => void;
 }) {
   return (
@@ -355,7 +292,6 @@ function ResultModal({
         <div className="result-modal-body">
           <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>
         </div>
-        {reopenCount > 0 && <ReopenHistory entryId={entryId} reopenCount={reopenCount} />}
       </div>
     </div>
   );

@@ -2966,3 +2966,50 @@
     font-size: 12px;
   }
 }
+
+/* ─── Search Bar (inline filter) ─────────────────────────── */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #111;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-bottom: 10px;
+}
+.search-bar-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.search-bar-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.6;
+  outline: none;
+  padding: 2px 0;
+}
+.search-bar-input::placeholder {
+  color: #444;
+}
+.search-bar-input:focus {
+  color: var(--fg);
+}
+.search-bar-clear {
+  background: transparent;
+  border: none;
+  color: #444;
+  font-family: var(--font);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.search-bar-clear:hover {
+  color: var(--fg);
+}

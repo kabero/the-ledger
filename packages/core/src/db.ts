@@ -71,18 +71,6 @@ function migrate(db: Database.Database): void {
       INSERT INTO entries_fts(rowid, raw_text, title)
       VALUES (new.rowid, new.raw_text, new.title);
     END;
-
-    CREATE TABLE IF NOT EXISTS scheduled_tasks (
-      id TEXT PRIMARY KEY,
-      raw_text TEXT NOT NULL,
-      frequency TEXT NOT NULL,
-      day_of_week INTEGER,
-      day_of_month INTEGER,
-      hour INTEGER NOT NULL DEFAULT 8,
-      enabled INTEGER NOT NULL DEFAULT 1,
-      last_run_at TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
   `);
 }
 
@@ -110,32 +98,14 @@ function runMigrations(db: Database.Database): void {
     db.exec("ALTER TABLE entries ADD COLUMN result_seen INTEGER NOT NULL DEFAULT 0");
     db.exec("UPDATE entries SET result_seen = 1 WHERE result IS NOT NULL");
   }
+  if (!hasCol("result_type")) {
+    db.exec("ALTER TABLE entries ADD COLUMN result_type TEXT");
+  }
   if (!hasCol("completed_at")) {
     db.exec("ALTER TABLE entries ADD COLUMN completed_at TEXT");
     db.exec(
       "UPDATE entries SET completed_at = updated_at WHERE status = 'done' AND completed_at IS NULL",
     );
-  }
-  if (!hasCol("source")) {
-    db.exec("ALTER TABLE entries ADD COLUMN source TEXT");
-  }
-  if (!hasCol("result_url")) {
-    db.exec("ALTER TABLE entries ADD COLUMN result_url TEXT");
-  }
-  if (!hasCol("decision_options")) {
-    db.exec("ALTER TABLE entries ADD COLUMN decision_options TEXT"); // JSON array of strings
-  }
-  if (!hasCol("decision_selected")) {
-    db.exec("ALTER TABLE entries ADD COLUMN decision_selected INTEGER"); // index into decision_options
-  }
-  if (!hasCol("decision_comment")) {
-    db.exec("ALTER TABLE entries ADD COLUMN decision_comment TEXT"); // free-form human comment
-  }
-  if (!hasCol("archived_at")) {
-    db.exec("ALTER TABLE entries ADD COLUMN archived_at TEXT"); // soft-delete timestamp
-  }
-  if (!hasCol("parent_id")) {
-    db.exec("ALTER TABLE entries ADD COLUMN parent_id TEXT REFERENCES entries(id)");
   }
   // migrate priority -> urgent (if priority column still exists)
   if (hasCol("priority")) {
@@ -143,17 +113,4 @@ function runMigrations(db: Database.Database): void {
       "UPDATE entries SET urgent = CASE WHEN priority >= 4 THEN 1 ELSE 0 END WHERE priority IS NOT NULL",
     );
   }
-
-  // --- Indexes for common query patterns ---
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_entries_status ON entries(status);
-    CREATE INDEX IF NOT EXISTS idx_entries_processed ON entries(processed);
-    CREATE INDEX IF NOT EXISTS idx_entries_type_status ON entries(type, status);
-    CREATE INDEX IF NOT EXISTS idx_entries_delegatable ON entries(delegatable);
-    CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at);
-    CREATE INDEX IF NOT EXISTS idx_entries_completed_at ON entries(completed_at);
-    CREATE INDEX IF NOT EXISTS idx_entries_source ON entries(source);
-    CREATE INDEX IF NOT EXISTS idx_entry_tags_tag ON entry_tags(tag);
-    CREATE INDEX IF NOT EXISTS idx_entries_parent_id ON entries(parent_id);
-  `);
 }

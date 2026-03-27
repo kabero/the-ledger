@@ -8,124 +8,44 @@ import {
   type Entry,
   EntryRepository,
   EntryService,
-  ScheduledTaskRepository,
+  RESULT_TYPES,
   TASK_STATUSES,
 } from "@theledger/core";
 import { z } from "zod";
 
 const db = createDatabase();
 const repository = new EntryRepository(db);
-const scheduledTaskRepository = new ScheduledTaskRepository(db);
-const service = new EntryService(repository, scheduledTaskRepository);
+const service = new EntryService(repository);
 
 const server = new McpServer({
   name: "theledger",
   version: "0.0.1",
 });
 
-function errorResponse(err: unknown) {
-  const message = err instanceof Error ? err.message : String(err);
-  return {
-    content: [{ type: "text" as const, text: `Error: ${message}` }],
-    isError: true,
-  };
-}
-
 // --- Tools ---
 
 server.tool(
   "add_entry",
-  "Add a new entry to The Ledger. Provide just raw_text for quick capture (will need processing later), or include type + title to add a pre-classified entry that skips the processing queue. For tasks that require human action (physical tasks, phone calls, in-person meetings), set delegatable=false. For tasks an LLM can handle autonomously, set delegatable=true.",
+  "Add a new raw entry to The Ledger. Just throw in whatever you're thinking. Optionally attach an image.",
   {
     raw_text: z.string().describe("The raw text of the thought, idea, task, etc."),
-    type: z
-      .enum(ENTRY_TYPES)
-      .optional()
-      .describe(
-        "Pre-classify: task (action items, feature requests, things to do), note (information, questions, references), wish (physical items the user wants to buy/own — NOT feature requests or things to do), or trash",
-      ),
-    title: z.string().optional().describe("Short title (required if type is provided)"),
-    tags: z.array(z.string()).optional().describe("Tags for categorization"),
-    urgent: z.boolean().optional().describe("Whether this is urgent"),
-    due_date: z.string().nullable().optional().describe("ISO date string for deadline"),
-    delegatable: z.boolean().optional().describe("Whether this task can be delegated to an LLM"),
-    source: z
-      .string()
-      .optional()
-      .describe("Origin of the entry: slack, email, calendar, web, etc."),
-    result: z
-      .string()
-      .optional()
-      .describe("Markdown-formatted content body (e.g. summary, research results)"),
-    result_url: z
-      .string()
-      .optional()
-      .describe("URL to external result (e.g. GitHub PR, deployed page, document)"),
-    decision_options: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "Choice options for human decision (e.g. ['Option A', 'Option B']). Creates a decision-type entry that appears in the human's judgment queue.",
-      ),
     image: z.string().optional().describe("Base64-encoded image data (optional)"),
     image_ext: z
       .string()
       .optional()
       .describe("Image file extension: png, jpg, jpeg, gif, webp (optional)"),
   },
-  async ({
-    raw_text,
-    type,
-    title,
-    tags,
-    urgent,
-    due_date,
-    delegatable,
-    source,
-    result,
-    result_url,
-    decision_options,
-    image,
-    image_ext,
-  }) => {
-    try {
-      let entry: Entry;
-      if (image && image_ext) {
-        const imageData = Buffer.from(image, "base64");
-        entry = service.createEntryWithImage(imageData, image_ext, {
-          raw_text,
-          type,
-          title,
-          tags,
-          urgent,
-          due_date,
-          delegatable,
-          source,
-          result,
-          result_url,
-          decision_options,
-        });
-      } else {
-        entry = service.createEntry({
-          raw_text,
-          type,
-          title,
-          tags,
-          urgent,
-          due_date,
-          delegatable,
-          source,
-          result,
-          result_url,
-          decision_options,
-        });
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
+  async ({ raw_text, image, image_ext }) => {
+    let entry: Entry;
+    if (image && image_ext) {
+      const imageData = Buffer.from(image, "base64");
+      entry = service.createEntryWithImage(raw_text, imageData, image_ext);
+    } else {
+      entry = service.createEntry({ raw_text });
     }
+    return {
+      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+    };
   },
 );
 
@@ -136,329 +56,127 @@ server.tool(
     limit: z.number().int().positive().max(50).default(20).describe("Max entries to return"),
   },
   async ({ limit }) => {
-    try {
-      const entries = service.getUnprocessed(limit);
-      const content: Array<
-        { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
-      > = [{ type: "text", text: JSON.stringify(entries, null, 2) }];
-      for (const entry of entries) {
-        if (entry.image_path && fs.existsSync(entry.image_path)) {
-          const ext = path.extname(entry.image_path).slice(1).toLowerCase();
-          const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
-          const data = fs.readFileSync(entry.image_path).toString("base64");
-          content.push({
-            type: "image",
-            data,
-            mimeType,
-          });
-        }
+    const entries = service.getUnprocessed(limit);
+    const content: Array<
+      { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
+    > = [{ type: "text", text: JSON.stringify(entries, null, 2) }];
+    for (const entry of entries) {
+      if (entry.image_path && fs.existsSync(entry.image_path)) {
+        const ext = path.extname(entry.image_path).slice(1).toLowerCase();
+        const mimeType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
+        const data = fs.readFileSync(entry.image_path).toString("base64");
+        content.push({
+          type: "image",
+          data,
+          mimeType,
+        });
       }
-      return { content };
-    } catch (err) {
-      return errorResponse(err);
     }
+    return { content };
   },
 );
-
-const TAG_PRESETS = [
-  "work",
-  "personal",
-  "health",
-  "finance",
-  "learning",
-  "shopping",
-  "home",
-  "communication",
-  "automation",
-  "research",
-];
-const MIN_VOCABULARY_SIZE = 10;
-const MAX_TAG_LENGTH = 20;
-
-server.tool(
-  "get_tag_vocabulary",
-  "Get existing tags with usage counts, plus presets if vocabulary is small. Call this before classifying entries to maintain consistent tagging. Tags should be lowercase, max 20 chars.",
-  {},
-  async () => {
-    try {
-      const existing = service.getTagVocabulary();
-      const existingTags = new Set(existing.map((t) => t.tag));
-      const presets =
-        existing.length < MIN_VOCABULARY_SIZE
-          ? TAG_PRESETS.filter((t) => !existingTags.has(t)).map((tag) => ({ tag, count: 0 }))
-          : [];
-
-      // Detect dominant language from existing tags
-      const jaCount = existing.filter((t) => /[\u3000-\u9fff\uff00-\uffef]/.test(t.tag)).length;
-      const enCount = existing.filter((t) => /^[a-z0-9-]+$/.test(t.tag)).length;
-      const dominantLang = jaCount > enCount ? "ja" : enCount > jaCount ? "en" : "mixed";
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              {
-                existing,
-                presets,
-                rules: {
-                  max_length: MAX_TAG_LENGTH,
-                  dominant_language: dominantLang,
-                  style:
-                    dominantLang === "ja"
-                      ? "日本語タグ優先、既存タグを再利用、最大20文字"
-                      : dominantLang === "en"
-                        ? "lowercase english, no spaces (use hyphens), reuse existing tags"
-                        : "match language of existing tags in same category, max 20 chars",
-                },
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-const processedEntrySchema = z.object({
-  id: z.string().describe("Entry ID"),
-  type: z
-    .enum(ENTRY_TYPES)
-    .describe(
-      "Classified type: task (action items, feature requests, things to do), note (information, questions), wish (physical items to buy/own — NOT feature requests), or trash",
-    ),
-  title: z.string().describe("Short title summarizing the entry"),
-  tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
-  urgent: z.boolean().default(false).describe("Whether this is urgent"),
-  due_date: z
-    .string()
-    .nullable()
-    .describe("ISO date string for deadline (tasks/events, null otherwise)"),
-  delegatable: z.boolean().default(false).describe("Whether this task can be delegated to an LLM"),
-});
 
 server.tool(
   "submit_processed",
-  "Submit LLM processing results for entries. Accepts a single entry or a batch of entries.",
+  "Submit LLM processing results for an entry: type, title, tags, urgent, delegatable.",
   {
-    entries: z.array(processedEntrySchema).describe("Array of processed entries to submit"),
-  },
-  async ({ entries }) => {
-    try {
-      const results = entries.map((e) => service.submitProcessed(e));
-      return {
-        content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "get_delegatable_tasks",
-  "Get pending tasks that can be delegated to an LLM. Use this to find work you can do.",
-  {
-    limit: z.number().int().positive().max(50).default(10).describe("Max tasks to return"),
-  },
-  async ({ limit }) => {
-    try {
-      const entries = service.listEntries({
-        type: "task",
-        status: "pending",
-        delegatable: true,
-        limit,
-        offset: 0,
-      });
-      return {
-        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "search_entries",
-  "Search and filter entries. Use for finding related context, building summaries, or reviewing past work. By default only searches processed entries; set include_unprocessed=true to also search unprocessed entries.",
-  {
-    query: z.string().optional().describe("Full-text search query"),
-    type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
-    status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
-    tag: z.string().optional().describe("Filter by tag"),
-    source: z
+    id: z.string().describe("Entry ID"),
+    type: z.enum(ENTRY_TYPES).describe("Classified type: task, event, note, or wish"),
+    title: z.string().describe("Short title summarizing the entry"),
+    tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
+    urgent: z.boolean().default(false).describe("Whether this is urgent"),
+    due_date: z
       .string()
-      .optional()
-      .describe(
-        'Filter by source (e.g. "slack", "auto-summary"). Use "any" to match all sourced entries',
-      ),
-    since: z.string().optional().describe("ISO date — only entries created on or after this date"),
-    until: z.string().optional().describe("ISO date — only entries created before this date"),
-    include_unprocessed: z
+      .nullable()
+      .describe("ISO date string for deadline (tasks/events, null otherwise)"),
+    delegatable: z
       .boolean()
-      .optional()
       .default(false)
-      .describe("Include unprocessed entries in search results (default: false)"),
-    limit: z.number().int().positive().max(100).default(20).describe("Max results"),
+      .describe("Whether this task can be delegated to an LLM"),
   },
-  async ({ query, type, status, tag, source, since, until, include_unprocessed, limit }) => {
-    try {
-      const entries = service.listEntries({
-        query,
-        type,
-        status,
-        tag,
-        source,
-        since,
-        until,
-        processed: include_unprocessed ? undefined : true,
-        limit,
-        offset: 0,
-      });
-      return {
-        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
+  async ({ id, type, title, tags, urgent, due_date, delegatable }) => {
+    const entry = service.submitProcessed({
+      id,
+      type,
+      title,
+      tags,
+      urgent,
+      due_date,
+      delegatable,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+    };
   },
 );
 
 server.tool(
-  "search_entries_paginated",
-  "Search entries with cursor-based pagination. Returns entries and a nextCursor for the next page. Use this for iterating through large result sets without missing or duplicating entries.",
+  "list_entries",
+  "List entries with optional filters: type, status, tag, text search query.",
   {
-    query: z.string().optional().describe("Full-text search query"),
     type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
-    status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
+    status: z.enum(TASK_STATUSES).optional().describe("Filter by task status"),
     tag: z.string().optional().describe("Filter by tag"),
-    source: z.string().optional().describe("Filter by source"),
-    since: z.string().optional().describe("ISO date — only entries created on or after this date"),
-    until: z.string().optional().describe("ISO date — only entries created before this date"),
-    limit: z.number().int().positive().max(100).default(20).describe("Max results per page"),
-    cursor: z
-      .string()
-      .optional()
-      .describe("Cursor from previous response's nextCursor for next page"),
+    query: z.string().optional().describe("Full-text search query"),
+    processed: z.boolean().optional().describe("Filter by processed status"),
+    delegatable: z.boolean().optional().describe("Filter by LLM-delegatable tasks"),
+    limit: z.number().int().positive().max(100).default(20).describe("Max results"),
+    offset: z.number().int().nonnegative().default(0).describe("Offset for pagination"),
   },
-  async ({ query, type, status, tag, source, since, until, limit, cursor }) => {
-    try {
-      const result = service.listEntriesWithCursor({
-        query,
-        type,
-        status,
-        tag,
-        source,
-        since,
-        until,
-        processed: true,
-        limit,
-        cursor,
-      });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              { entries: result.entries, nextCursor: result.nextCursor },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
+  async (params) => {
+    const entries = service.listEntries(params);
+    return {
+      content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
+    };
   },
 );
 
 server.tool(
   "update_entry",
-  "Update an existing entry's fields. Use this for partial updates like tags, urgency, due dates, type, status, delegatable flag, etc. Note: setting result automatically resets result_seen to false. For completing delegated tasks, prefer complete_task instead.",
+  "Update an entry's fields: title, tags, urgent, due_date, status, type, result.",
   {
-    id: z.string().describe("Entry ID to update"),
-    type: z
-      .enum(ENTRY_TYPES)
+    id: z.string().describe("Entry ID"),
+    title: z.string().optional().describe("New title"),
+    tags: z.array(z.string()).optional().describe("Replace tags"),
+    urgent: z.boolean().optional().describe("Whether this is urgent"),
+    due_date: z.string().nullable().optional().describe("New due date"),
+    status: z.enum(TASK_STATUSES).optional().describe("New status (tasks only)"),
+    type: z.enum(ENTRY_TYPES).optional().describe("Change type"),
+    result: z
+      .string()
       .optional()
       .describe(
-        "Change type: task (action items, feature requests), note (info, questions), wish (physical items to buy — NOT feature requests), or trash",
+        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure. Written when completing a delegatable task.",
       ),
-    title: z.string().optional().describe("Update title"),
-    status: z.enum(TASK_STATUSES).optional().describe("Change status: pending or done"),
-    tags: z.array(z.string()).optional().describe("Replace tags"),
-    urgent: z.boolean().optional().describe("Set urgency"),
-    due_date: z.string().nullable().optional().describe("Set or clear deadline (ISO date string)"),
-    delegatable: z.boolean().optional().describe("Set whether task can be delegated to an LLM"),
-    result: z.string().optional().describe("Set result content (markdown)"),
-    result_url: z.string().optional().describe("Set result URL"),
-    result_seen: z.boolean().optional().describe("Mark result as seen/unseen"),
-    decision_selected: z
-      .number()
-      .int()
+    result_type: z
+      .enum(RESULT_TYPES)
       .nullable()
       .optional()
-      .describe("Index of selected decision option (0-based)"),
-    decision_comment: z
-      .string()
-      .nullable()
-      .optional()
-      .describe("Human's free-form comment on the decision"),
+      .describe(
+        "Result classification: url, research, summary, or generic. Auto-detected from result content if not provided.",
+      ),
   },
-  async ({
-    id,
-    type,
-    title,
-    status,
-    tags,
-    urgent,
-    due_date,
-    delegatable,
-    result,
-    result_url,
-    result_seen,
-    decision_selected,
-    decision_comment,
-  }) => {
-    try {
-      const entry = service.updateEntry({
-        id,
-        type,
-        title,
-        status,
-        tags,
-        urgent,
-        due_date,
-        delegatable,
-        result,
-        result_url,
-        result_seen,
-        decision_selected,
-        decision_comment,
-      });
-      if (!entry) {
-        return {
-          content: [{ type: "text", text: `Entry not found: ${id}` }],
-          isError: true,
-        };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
+  async ({ id, title, tags, urgent, due_date, status, type, result, result_type }) => {
+    const entry = service.updateEntry({
+      id,
+      title,
+      tags,
+      urgent,
+      due_date,
+      status,
+      type,
+      result,
+      result_type,
+    });
+    return {
+      content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
+    };
   },
 );
 
 server.tool(
   "complete_task",
-  "Complete a delegatable task by writing the result. Automatically sets status to done and resets result_seen to false (so the user sees the new result). Prefer this over update_entry when finishing delegated work, as it handles the done+result flow in one call.",
+  "Mark a task as done and record the result. Automatically classifies result_type if not provided.",
   {
     id: z.string().describe("Entry ID of the task to complete"),
     result: z
@@ -466,406 +184,47 @@ server.tool(
       .describe(
         "Markdown-formatted summary of completed work. Use headings, lists, bold for structure.",
       ),
-    result_url: z
-      .string()
-      .optional()
-      .describe("URL to external result (e.g. GitHub PR, deployed page, document)"),
-  },
-  async ({ id, result, result_url }) => {
-    try {
-      const entry = service.updateEntry({ id, status: "done", result, result_url });
-      if (!entry) {
-        return {
-          content: [{ type: "text", text: `Entry not found: ${id}` }],
-          isError: true,
-        };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "get_recent_activity",
-  "Get a timeline of recent activity across all entry types: newly created, completed, and decision entries. Useful for understanding what happened recently.",
-  {
-    limit: z.number().int().positive().max(100).default(20).describe("Max entries to return"),
-  },
-  async ({ limit }) => {
-    try {
-      const entries = service.getRecentActivity(limit);
-      return {
-        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "get_overdue_tasks",
-  "Get pending tasks whose due date has passed. Useful for generating reminders or escalating forgotten work.",
-  {
-    before_date: z
-      .string()
+    result_type: z
+      .enum(RESULT_TYPES)
+      .nullable()
       .optional()
       .describe(
-        "ISO date (YYYY-MM-DD) cutoff. Tasks due before this date are returned. Defaults to today.",
+        "Result classification: url, research, summary, or generic. Auto-detected if omitted.",
       ),
   },
-  async ({ before_date }) => {
-    try {
-      const entries = service.getOverdueTasks(before_date);
-      return {
-        content: [{ type: "text", text: JSON.stringify(entries, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "purge_trash",
-  "Permanently delete all entries classified as trash. Returns the number of entries deleted. Use after reviewing trash to free up space.",
-  {},
-  async () => {
-    try {
-      const count = service.purgeTrash();
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ deleted: count }, null, 2),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
+  async ({ id, result, result_type }) => {
+    const entry = service.completeTask(id, result, result_type);
+    return {
+      content: [{ type: "text", text: entry ? JSON.stringify(entry, null, 2) : "Entry not found" }],
+    };
   },
 );
 
 server.tool(
   "delete_entry",
-  "Soft-delete an entry. The entry is archived (hidden from default views) but can be restored later with restore_entry.",
+  "Delete an entry permanently.",
   {
     id: z.string().describe("Entry ID to delete"),
   },
   async ({ id }) => {
-    try {
-      const success = service.deleteEntry(id);
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ deleted: success, id }, null, 2),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
+    const deleted = service.deleteEntry(id);
+    return {
+      content: [{ type: "text", text: deleted ? "Deleted" : "Entry not found" }],
+    };
   },
 );
 
 server.tool(
-  "restore_entry",
-  "Restore a previously soft-deleted (archived) entry, making it visible again in default views.",
+  "get_today_tasks",
+  "Get today's top tasks ranked by priority, urgency, and freshness. Default: top 3.",
   {
-    id: z.string().describe("Entry ID to restore"),
+    limit: z.number().int().positive().max(10).default(3).describe("Number of tasks to return"),
   },
-  async ({ id }) => {
-    try {
-      const success = service.restoreEntry(id);
-      if (!success) {
-        return {
-          content: [{ type: "text", text: `Entry not found or not archived: ${id}` }],
-          isError: true,
-        };
-      }
-      const entry = service.getEntry(id);
-      return {
-        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "reopen_task",
-  "Reopen a completed task, resetting it to pending. Appends a reason suffix to the title (e.g. [再調査], [やり直し]). Optionally provide feedback explaining what was wrong so the next worker can see it and retry. The feedback is appended to the existing result.",
-  {
-    id: z.string().describe("Entry ID of the completed task to reopen"),
-    feedback: z
-      .string()
-      .optional()
-      .describe(
-        "Explanation of what was wrong or what to do differently. Appended to existing result.",
-      ),
-    reopen_reason: z
-      .string()
-      .optional()
-      .describe(
-        "Reason for reopening, appended as [reason] suffix to the title. Defaults to 再オープン. Suggested: 再調査, やり直し, 再オープン.",
-      ),
-  },
-  async ({ id, feedback, reopen_reason }) => {
-    try {
-      const entry = service.reopenTask(id, feedback, reopen_reason);
-      return {
-        content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "bulk_tag_rename",
-  "Rename a tag across all entries. Entries that already have the new tag will have the old tag removed (no duplicates). Returns the number of entries affected.",
-  {
-    old_tag: z.string().describe("The tag to rename (will be removed)"),
-    new_tag: z.string().describe("The replacement tag"),
-  },
-  async ({ old_tag, new_tag }) => {
-    try {
-      const count = service.bulkTagRename(old_tag, new_tag);
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ old_tag, new_tag, entries_affected: count }, null, 2),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "merge_tags",
-  "Merge multiple source tags into a single target tag. All entries with any of the source tags will have those tags replaced with the target. Useful for consolidating synonymous or inconsistent tags.",
-  {
-    source_tags: z.array(z.string()).min(1).describe("Tags to merge from (will be removed)"),
-    target_tag: z.string().describe("The tag to merge into"),
-  },
-  async ({ source_tags, target_tag }) => {
-    try {
-      const count = service.mergeTags(source_tags, target_tag);
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ source_tags, target_tag, entries_affected: count }, null, 2),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "export_entries",
-  "Export entries matching a filter as JSON. Useful for backup, migration, or analysis. Returns up to 10,000 entries by default.",
-  {
-    type: z.enum(ENTRY_TYPES).optional().describe("Filter by type"),
-    status: z.enum(TASK_STATUSES).optional().describe("Filter by status"),
-    tag: z.string().optional().describe("Filter by tag"),
-    query: z.string().optional().describe("Full-text search query"),
-    since: z.string().optional().describe("ISO date — only entries created on or after this date"),
-    until: z.string().optional().describe("ISO date — only entries created before this date"),
-    limit: z.number().int().positive().max(10000).default(10000).describe("Max entries to export"),
-  },
-  async ({ type, status, tag, query, since, until, limit }) => {
-    try {
-      const entries = service.exportEntries({
-        type,
-        status,
-        tag,
-        query,
-        since,
-        until,
-        limit,
-        processed: true,
-      });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              { count: entries.length, exported_at: new Date().toISOString(), entries },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "add_subtasks",
-  "Break down a parent task into smaller subtasks. Each subtask is created as a task entry linked to the parent. Useful for ADHD-friendly task decomposition — split overwhelming tasks into concrete, actionable steps. Nesting is limited to one level (no sub-subtasks).",
-  {
-    parent_id: z.string().describe("ID of the parent entry to add subtasks to"),
-    subtasks: z
-      .array(
-        z.object({
-          raw_text: z.string().describe("Description of the subtask"),
-          title: z.string().optional().describe("Short title (defaults to raw_text truncated)"),
-          tags: z.array(z.string()).optional().describe("Tags for the subtask"),
-          urgent: z.boolean().optional().describe("Whether this subtask is urgent"),
-          due_date: z.string().nullable().optional().describe("ISO date deadline for the subtask"),
-          delegatable: z
-            .boolean()
-            .optional()
-            .describe("Whether this subtask can be delegated to an LLM"),
-        }),
-      )
-      .min(1)
-      .max(50)
-      .describe("Array of subtasks to create"),
-  },
-  async ({ parent_id, subtasks }) => {
-    try {
-      const created = service.addSubtasks(parent_id, subtasks);
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              { parent_id, subtasks_created: created.length, subtasks: created },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "get_subtasks",
-  "Get all subtasks of a parent entry. Returns subtasks ordered by creation time (oldest first).",
-  {
-    parent_id: z.string().describe("ID of the parent entry"),
-  },
-  async ({ parent_id }) => {
-    try {
-      const subtasks = service.getSubtasks(parent_id);
-      const doneCount = subtasks.filter((s) => s.status === "done").length;
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              {
-                parent_id,
-                total: subtasks.length,
-                done: doneCount,
-                pending: subtasks.length - doneCount,
-                subtasks,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "get_today_briefing_data",
-  "Get today's AI briefing data: overdue tasks, tasks due today, urgent pending tasks, and tasks completed yesterday. Designed for a morning briefing to present 3-5 actionable items for the day.",
-  {
-    today: z
-      .string()
-      .optional()
-      .describe("ISO date (YYYY-MM-DD) for today. Defaults to current date."),
-  },
-  async ({ today }) => {
-    try {
-      const data = service.getTodayBriefingData(today);
-      const summary = {
-        generated_at: new Date().toISOString(),
-        today: today ?? new Date().toISOString().slice(0, 10),
-        counts: {
-          overdue: data.overdue.length,
-          due_today: data.dueToday.length,
-          urgent: data.urgent.length,
-          completed_yesterday: data.completedYesterday.length,
-        },
-        overdue: data.overdue,
-        due_today: data.dueToday,
-        urgent: data.urgent,
-        completed_yesterday: data.completedYesterday,
-      };
-      return {
-        content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
-  },
-);
-
-server.tool(
-  "get_weekly_report_data",
-  "Get weekly report data for AI-powered review generation. Returns completed tasks, newly added entries, stale pending tasks (older than 7 days), tag breakdown of completions, and overall stats. Use this to generate a weekly summary or retrospective.",
-  {
-    as_of_date: z
-      .string()
-      .optional()
-      .describe(
-        "ISO date-time string for the end of the report period. Defaults to now. The report covers the 7 days before this date.",
-      ),
-  },
-  async ({ as_of_date }) => {
-    try {
-      const data = service.getWeeklyReportData(as_of_date);
-      const summary = {
-        generated_at: new Date().toISOString(),
-        period: data.period,
-        counts: {
-          completed: data.completedThisWeek.length,
-          added: data.addedThisWeek.length,
-          stale_pending: data.stillPending.length,
-        },
-        completedThisWeek: data.completedThisWeek,
-        addedThisWeek: data.addedThisWeek,
-        stillPending: data.stillPending,
-        tagBreakdown: data.tagBreakdown,
-        stats: data.stats,
-      };
-      return {
-        content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-      };
-    } catch (err) {
-      return errorResponse(err);
-    }
+  async ({ limit }) => {
+    const tasks = service.getTodayTasks(limit);
+    return {
+      content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
+    };
   },
 );
 

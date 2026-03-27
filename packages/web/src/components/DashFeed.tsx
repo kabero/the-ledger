@@ -5,11 +5,12 @@ import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import type { EntryItem } from "./ai-feed/types";
 import { normalizeResult } from "./ai-feed/utils";
+import sfStyles from "./SideFeed.module.css";
 
 /** Classify the result type for badge display. */
 function getResultBadge(entry: EntryItem): { label: string; className: string } | null {
   if (entry.result_url) {
-    return { label: "URL", className: "sf-type-url" };
+    return { label: "URL", className: sfStyles["sf-type-url"] };
   }
   if (!entry.result) return null;
 
@@ -23,7 +24,7 @@ function getResultBadge(entry: EntryItem): { label: string; className: string } 
     lower.includes("分析") ||
     lower.includes("検証")
   ) {
-    return { label: "調査", className: "sf-type-research" };
+    return { label: "調査", className: sfStyles["sf-type-research"] };
   }
 
   if (
@@ -33,10 +34,10 @@ function getResultBadge(entry: EntryItem): { label: string; className: string } 
     lower.includes("summary") ||
     lower.includes("概要")
   ) {
-    return { label: "サマリ", className: "sf-type-summary" };
+    return { label: "サマリ", className: sfStyles["sf-type-summary"] };
   }
 
-  return { label: "結果あり", className: "sf-type-generic" };
+  return { label: "結果あり", className: sfStyles["sf-type-generic"] };
 }
 
 interface DashFeedCardProps {
@@ -65,17 +66,19 @@ const DashFeedCard = memo(function DashFeedCard({
 
   return (
     <div
-      className={`sf-card ${isUnread ? "sf-card-unread" : ""} ${isExpanded ? "sf-card-expanded" : ""}`}
+      className={`${sfStyles["sf-card"]} ${isUnread ? sfStyles["sf-card-unread"] : ""} ${isExpanded ? sfStyles["sf-card-expanded"] : ""}`}
     >
-      <button type="button" className="sf-card-header" onClick={handleClick}>
-        <div className="sf-card-title">{entry.title ?? entry.raw_text}</div>
-        {badge && <span className={`sf-type-badge ${badge.className}`}>{badge.label}</span>}
+      <button type="button" className={sfStyles["sf-card-header"]} onClick={handleClick}>
+        <div className={sfStyles["sf-card-title"]}>{entry.title ?? entry.raw_text}</div>
+        {badge && (
+          <span className={`${sfStyles["sf-type-badge"]} ${badge.className}`}>{badge.label}</span>
+        )}
       </button>
 
       {isExpanded && (
-        <div className="sf-card-body">
+        <div className={sfStyles["sf-card-body"]}>
           {resultText && (
-            <div className="sf-card-result">
+            <div className={sfStyles["sf-card-result"]}>
               <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
                 {resultText}
               </Markdown>
@@ -86,7 +89,7 @@ const DashFeedCard = memo(function DashFeedCard({
               href={entry.result_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="sf-action-link"
+              className={sfStyles["sf-action-link"]}
             >
               {entry.result_url}
             </a>
@@ -126,7 +129,7 @@ export function DashFeed({ onSelectEntry }: DashFeedProps) {
     const all = feedQuery.data?.entries ?? [];
     return all.filter((e) => {
       const badge = getResultBadge(e);
-      return badge && badge.className !== "sf-type-generic";
+      return badge && badge.className !== sfStyles["sf-type-generic"];
     });
   }, [feedQuery.data]);
 
@@ -151,7 +154,9 @@ export function DashFeed({ onSelectEntry }: DashFeedProps) {
     <div className="ai-section dash-feed-section">
       <div className="ai-section-title">
         <span className="ai-dot done" /> フィード
-        {entries.some((e) => e.result && !e.result_seen) && <span className="sf-header-dot" />}
+        {entries.some((e) => e.result && !e.result_seen) && (
+          <span className={sfStyles["sf-header-dot"]} />
+        )}
       </div>
       <div className="dash-feed-list">
         {entries.slice(0, visibleCount).map((entry) => (

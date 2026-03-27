@@ -6,7 +6,6 @@ import { trpc, trpcClient } from "./trpc";
 import "./base.css";
 import "./styles.css";
 import "./dashboard.css";
-import "./sidefeed.css";
 import "./enhancements.css";
 
 const queryClient = new QueryClient();

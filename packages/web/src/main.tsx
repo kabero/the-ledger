@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { trpc, trpcClient } from "./trpc";
+import "./base.css";
 import "./styles.css";
 import "./enhancements.css";
 

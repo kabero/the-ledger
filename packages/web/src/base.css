@@ -1,0 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #000;
+  --fg: #fff;
+  --border: #aaa;
+  --accent: #ff0;
+  --dim: #666;
+  --done: #0f0;
+  --danger: #f00;
+  --font: "DotGothic16", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.8;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+}

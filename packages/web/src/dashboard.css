@@ -4,7 +4,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-fullscreen);
-  background: var(--bg);
+  background: #0d0d0d;
   display: flex;
   flex-direction: column;
   font-family: var(--font);
@@ -1500,7 +1500,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
 }
 

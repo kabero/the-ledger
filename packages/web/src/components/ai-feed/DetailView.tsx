@@ -248,7 +248,9 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
         )}
         {resultMarkdown ? (
           <>
-            <div className="ai-detail-result">{resultMarkdown}</div>
+            {((entry as unknown as { reopen_count?: number }).reopen_count ?? 0) === 0 && (
+              <div className="ai-detail-result">{resultMarkdown}</div>
+            )}
             <DetailReopenHistory
               entryId={entry.id}
               reopenCount={(entry as unknown as { reopen_count?: number }).reopen_count ?? 0}

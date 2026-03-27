@@ -24,6 +24,7 @@ export function ModalOverlay({
     <div
       className={className}
       role="dialog"
+      aria-modal="true"
       aria-label={ariaLabel}
       onClick={(e) => {
         // Only close when clicking directly on the overlay backdrop,

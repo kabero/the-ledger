@@ -113,19 +113,6 @@ export function EntryList({ tab }: EntryListProps) {
     });
   }, [items, searchQuery]);
 
-  if (entries.isLoading) {
-    return (
-      <div className="skeleton-list">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="skeleton-entry">
-            <div className="skeleton-line skeleton-line-title" />
-            <div className="skeleton-line skeleton-line-sub" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
   }
@@ -146,7 +133,7 @@ export function EntryList({ tab }: EntryListProps) {
           onClose={() => setModalEntry(null)}
         />
       )}
-      <div>
+      <div aria-live="polite">
         {items.length > 3 && (
           <div className="search-bar">
             <span className="search-bar-icon" aria-hidden="true">

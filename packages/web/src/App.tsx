@@ -254,7 +254,7 @@ export function App() {
         </div>
 
         {overdueCount > 0 && !overdueDismissed && (
-          <div className="overdue-banner">
+          <div className="overdue-banner" role="alert" aria-live="assertive">
             <span className="overdue-banner-text">
               {overdueCount}件のタスクが期限超過しています
             </span>

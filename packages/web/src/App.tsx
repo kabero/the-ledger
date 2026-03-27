@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { AiFeed } from "./components/AiFeed";
 import { EntryInput } from "./components/EntryInput";
 import { EntryList } from "./components/EntryList";
 import { FocusMode } from "./components/FocusMode";
-import { Gallery } from "./components/Gallery";
 import { ModalOverlay } from "./components/ModalOverlay";
+
+const Gallery = lazy(() => import("./components/Gallery").then((m) => ({ default: m.Gallery })));
+
 import { applyFont, applyTheme, Settings } from "./components/Settings";
+import { SideFeed } from "./components/SideFeed";
 import { SourcedList } from "./components/SourcedList";
 import { useOverdueDetection } from "./hooks/useOverdueDetection";
 import { useSwipe } from "./hooks/useSwipe";
@@ -135,7 +138,11 @@ export function App() {
     return <FocusMode onClose={() => setShowFocusMode(false)} />;
   }
   if (showGallery) {
-    return <Gallery onClose={() => setShowGallery(false)} />;
+    return (
+      <Suspense fallback={<div className="gallery-loading">...</div>}>
+        <Gallery onClose={() => setShowGallery(false)} />
+      </Suspense>
+    );
   }
   if (showAiFeed) {
     return <AiFeed onClose={() => setShowAiFeed(false)} />;
@@ -370,11 +377,9 @@ export function App() {
           </ModalOverlay>
         )}
       </div>
-      {(recentSummaries.length > 0 || recentSourced.length > 0) && (
-        <aside className="sidebar-sourced">
-          <SourcedList summaries={recentSummaries} sourced={recentSourced} variant="sidebar" />
-        </aside>
-      )}
+      <div className="sidebar-sourced">
+        <SideFeed />
+      </div>
     </div>
   );
 }

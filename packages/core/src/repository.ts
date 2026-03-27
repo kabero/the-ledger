@@ -794,6 +794,35 @@ export class EntryRepository {
     })();
   }
 
+  addHistoryEntry(
+    entryId: string,
+    result: string,
+    resultType: string | null,
+    feedback: string,
+    completedAt: string,
+  ): void {
+    this.db
+      .prepare(
+        "INSERT INTO entry_history (id, entry_id, result, result_type, feedback, completed_at, reopened_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .run(uuidv4(), entryId, result, resultType, feedback, completedAt, new Date().toISOString());
+  }
+
+  incrementReopenCount(id: string): void {
+    this.db
+      .prepare(
+        "UPDATE entries SET reopen_count = reopen_count + 1, completed_at = NULL WHERE id = ?",
+      )
+      .run(id);
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: returns raw DB rows
+  getEntryHistory(entryId: string): any[] {
+    return this.db
+      .prepare("SELECT * FROM entry_history WHERE entry_id = ? ORDER BY reopened_at DESC")
+      .all(entryId);
+  }
+
   private replaceTags(entryId: string, tags: string[]): void {
     this.db.prepare(`DELETE FROM entry_tags WHERE entry_id = ?`).run(entryId);
     const insertTag = this.db.prepare(`INSERT INTO entry_tags (entry_id, tag) VALUES (?, ?)`);

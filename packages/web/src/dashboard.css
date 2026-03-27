@@ -102,7 +102,16 @@
   }
 
   .ai-dash-sidebar {
-    width: 260px;
+    width: 240px;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+  }
+
+  .ai-dash-activity {
+    width: 280px;
     position: sticky;
     top: 0;
     align-self: flex-start;

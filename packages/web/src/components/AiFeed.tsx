@@ -825,9 +825,14 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   )}
               </div>
 
-              {/* Sidebar: Activity + Feed */}
+              {/* Feed (middle column) */}
               <div className="ai-dash-sidebar">
-                {activityTimeline.length > 0 && (
+                <DashFeed onSelectEntry={setSelectedId} />
+              </div>
+
+              {/* Activity (right column) */}
+              <div className="ai-dash-activity">
+                {activityTimeline.length > 0 ? (
                   <div className="activity-timeline">
                     <div className="activity-timeline-title">
                       <span className="activity-timeline-title-line" />
@@ -864,8 +869,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
                       })}
                     </div>
                   </div>
+                ) : (
+                  <div className="unprocessed-text">アクティビティはまだありません</div>
                 )}
-                <DashFeed onSelectEntry={setSelectedId} />
               </div>
             </div>
           </>

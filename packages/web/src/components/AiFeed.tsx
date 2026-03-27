@@ -96,6 +96,35 @@ export function AiFeed({ onClose }: AiFeedProps) {
     { delegatable: false, limit: 100 },
     { refetchInterval: POLL.pendingDecisions },
   );
+  // --- Tag cluster progress queries ---
+  const TAG_CATEGORIES = [
+    "bug",
+    "feature",
+    "ux",
+    "css",
+    "mobile",
+    "performance",
+    "accessibility",
+  ] as const;
+
+  const tagTotalQueries = TAG_CATEGORIES.map((tag) =>
+    // biome-ignore lint: hooks in map is stable because TAG_CATEGORIES is constant
+    trpc.countEntries.useQuery({ tag }, { refetchInterval: POLL.delegatable }),
+  );
+  const tagDoneQueries = TAG_CATEGORIES.map((tag) =>
+    // biome-ignore lint: hooks in map is stable because TAG_CATEGORIES is constant
+    trpc.countEntries.useQuery({ tag, status: "done" }, { refetchInterval: POLL.delegatable }),
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: query arrays are stable per TAG_CATEGORIES constant
+  const tagProgress = useMemo(() => {
+    return TAG_CATEGORIES.map((tag, i) => {
+      const total = tagTotalQueries[i].data?.count ?? 0;
+      const done = tagDoneQueries[i].data?.count ?? 0;
+      return { tag, total, done };
+    }).filter((t) => t.total > 0);
+  }, [tagTotalQueries, tagDoneQueries]);
+
   const utils = trpc.useUtils();
   const invalidateAll = () => {
     utils.listEntries.invalidate();
@@ -417,6 +446,29 @@ export function AiFeed({ onClose }: AiFeedProps) {
                       <span className="ai-source-count">{count}</span>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Tag cluster progress */}
+              {tagProgress.length > 0 && (
+                <div className="tag-cluster-progress">
+                  <div className="tag-cluster-title">
+                    {"\u2500\u2500\u2500"} 分野別進捗 {"\u2500\u2500\u2500"}
+                  </div>
+                  {tagProgress.map(({ tag, total, done }) => {
+                    const pct = total > 0 ? (done / total) * 100 : 0;
+                    return (
+                      <div key={tag} className="tag-progress-row">
+                        <span className="tag-progress-name">{tag}</span>
+                        <div className="tag-progress-bar">
+                          <div className="tag-progress-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="tag-progress-count">
+                          {done}/{total}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -89,7 +89,11 @@ export function SideFeed() {
 
   const entries = useMemo(() => {
     const all = feedQuery.data?.entries ?? [];
-    return all.filter((e) => e.result || e.result_url);
+    return all.filter((e) => {
+      const badge = getResultBadge(e);
+      // Only show research, summary, or URL results — skip generic "結果あり"
+      return badge && badge.className !== "sf-type-generic";
+    });
   }, [feedQuery.data]);
 
   const handleMarkSeen = useCallback((id: string) => {

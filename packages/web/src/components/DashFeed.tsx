@@ -124,7 +124,10 @@ export function DashFeed({ onSelectEntry }: DashFeedProps) {
 
   const entries = useMemo(() => {
     const all = feedQuery.data?.entries ?? [];
-    return all.filter((e) => e.result || e.result_url);
+    return all.filter((e) => {
+      const badge = getResultBadge(e);
+      return badge && badge.className !== "sf-type-generic";
+    });
   }, [feedQuery.data]);
 
   const handleToggle = useCallback(

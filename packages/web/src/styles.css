@@ -3086,7 +3086,7 @@ body {
 .ai-hover-modal h3,
 .ai-hover-modal h4 {
   margin: 8px 0 4px;
-  color: var(--accent);
+  color: #b48eff;
 }
 
 .ai-hover-modal ul,
@@ -3095,7 +3095,7 @@ body {
 }
 
 .ai-hover-modal strong {
-  color: var(--accent);
+  color: #b48eff;
 }
 
 .ai-hover-modal table {
@@ -4426,6 +4426,61 @@ body {
   overflow-x: auto;
   font-size: 11px;
   margin: 6px 0;
+}
+
+/* Tag cluster progress bars */
+.tag-cluster-progress {
+  margin-top: 12px;
+  padding: 12px 0;
+}
+
+.tag-cluster-title {
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+.tag-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.tag-progress-name {
+  width: 100px;
+  text-align: right;
+  color: var(--fg);
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-progress-bar {
+  flex: 1;
+  height: 10px;
+  background: #222;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tag-progress-fill {
+  height: 100%;
+  background: #b48eff;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.tag-progress-count {
+  width: 48px;
+  text-align: right;
+  color: var(--dim);
+  flex-shrink: 0;
+  font-size: 11px;
 }
 
 .sf-card-result code {

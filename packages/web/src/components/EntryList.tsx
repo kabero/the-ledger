@@ -246,11 +246,9 @@ interface ReopenCycle {
 function ReopenHistory({ entryId, reopenCount }: { entryId: string; reopenCount: number }) {
   const [expandedCycles, setExpandedCycles] = useState<Set<number>>(() => new Set([0]));
 
-  // TODO: Wire up trpc.getEntryHistory.useQuery({ entry_id: entryId }) once the endpoint is available
-  const _entryId = entryId; // suppress unused lint
-  void _entryId;
-  const cycles: ReopenCycle[] = [];
-  const isLoading = false;
+  const historyQuery = trpc.getEntryHistory.useQuery({ entry_id: entryId });
+  const cycles: ReopenCycle[] = (historyQuery.data as ReopenCycle[] | undefined) ?? [];
+  const isLoading = historyQuery.isLoading;
 
   if (isLoading) {
     return <div className="reopen-history-loading">履歴を読み込み中...</div>;

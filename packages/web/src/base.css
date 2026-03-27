@@ -6,6 +6,18 @@
   box-sizing: border-box;
 }
 
+/* Focus ring for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Remove focus ring for mouse/touch users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 :root {
   --bg: #000;
   --fg: #fff;
@@ -15,6 +27,101 @@
   --done: #0f0;
   --danger: #f00;
   --font: "DotGothic16", monospace;
+
+  /* surface & border palette */
+  --surface: #111;
+  --bg-card: #0a0a0a;
+  --bg-elevated: #111;
+  --bg-pre: #0f0f0f;
+  --bg-table-header: #181818;
+  --bg-table-stripe: #0d0d0d;
+  --border-subtle: #222;
+  --border-card: #1a1a1a;
+  --border-muted: #333;
+  --border-hover: #444;
+
+  /* foreground shades */
+  --fg-muted: #444;
+  --fg-subtle: #555;
+  --fg-dim-readable: #999;
+
+  /* semantic colors */
+  --link: #4af;
+  --link-bright: #3b82f6;
+  --warning: #f80;
+  --human: #88f;
+  --danger-light: #f66;
+  --done-light: #4f4;
+
+  /* tinted backgrounds */
+  --bg-done-tint: #001a00;
+  --bg-done-badge: #1a3a1a;
+  --bg-danger-badge: #3a1a1a;
+  --bg-accent-tint: #2a2a00;
+  --bg-accent-badge: #1a1a00;
+  --bg-accent-card: #0d0b00;
+  --border-accent-tint: #332b00;
+  --bg-link: #0a1520;
+  --bg-link-hover: #102030;
+  --border-link: #1a2a3a;
+
+  /* z-index scale */
+  --z-tab: 1;
+  --z-sticky: 10;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-fullscreen: 100;
+  --z-fullscreen-close: 101;
+  --z-tooltip: 200;
+  --z-toast: 45;
+
+  color-scheme: dark;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg: #f5f5f0;
+  --fg: #1a1a1a;
+  --border: #888;
+  --accent: #b8860b;
+  --dim: #888;
+  --done: #2a8a2a;
+  --danger: #cc0000;
+
+  --surface: #ebe8e0;
+  --bg-card: #f0ede5;
+  --bg-elevated: #ebe8e0;
+  --bg-pre: #e8e5dd;
+  --bg-table-header: #ddd8d0;
+  --bg-table-stripe: #edeae2;
+  --border-subtle: #d0ccc4;
+  --border-card: #d8d4cc;
+  --border-muted: #bbb8b0;
+  --border-hover: #999690;
+
+  --fg-muted: #999;
+  --fg-subtle: #777;
+  --fg-dim-readable: #666;
+
+  --link: #1a6dd4;
+  --link-bright: #2563eb;
+  --warning: #cc6600;
+  --human: #5555cc;
+  --danger-light: #dd4444;
+  --done-light: #2a8a2a;
+
+  --bg-done-tint: #e8f5e8;
+  --bg-done-badge: #c8e8c8;
+  --bg-danger-badge: #f5d8d8;
+  --bg-accent-tint: #f5edd8;
+  --bg-accent-badge: #ede0b8;
+  --bg-accent-card: #f8f2e0;
+  --border-accent-tint: #d4c088;
+  --bg-link: #e0eef8;
+  --bg-link-hover: #d0e4f4;
+  --border-link: #a0c4e4;
+
+  color-scheme: light;
 }
 
 body {

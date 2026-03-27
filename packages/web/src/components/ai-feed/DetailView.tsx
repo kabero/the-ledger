@@ -252,6 +252,7 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
             <DetailReopenHistory
               entryId={entry.id}
               reopenCount={(entry as unknown as { reopen_count?: number }).reopen_count ?? 0}
+              currentResult={entry.result ? normalizeResult(entry.result) : undefined}
             />
             {entry.status === "done" &&
               entry.delegatable &&
@@ -347,7 +348,15 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
   );
 }
 
-function DetailReopenHistory({ entryId, reopenCount }: { entryId: string; reopenCount: number }) {
+function DetailReopenHistory({
+  entryId,
+  reopenCount,
+  currentResult,
+}: {
+  entryId: string;
+  reopenCount: number;
+  currentResult?: string;
+}) {
   const historyQuery = trpc.getEntryHistory.useQuery(
     { entry_id: entryId },
     { enabled: reopenCount > 0 },
@@ -403,6 +412,20 @@ function DetailReopenHistory({ entryId, reopenCount }: { entryId: string; reopen
             )}
           </div>
         ))}
+        {currentResult && (
+          <div className="reopen-chat-pair">
+            <div className="reopen-chat-msg reopen-chat-ai">
+              <div className="reopen-chat-sender">
+                AI <span className="reopen-chat-time">最新</span>
+              </div>
+              <div className="reopen-chat-bubble ai">
+                <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
+                  {currentResult}
+                </Markdown>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

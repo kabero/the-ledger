@@ -601,7 +601,7 @@ server.tool(
 
 server.tool(
   "reopen_task",
-  "Reopen a completed task, resetting it to pending. Optionally provide feedback explaining what was wrong so the next worker can see it and retry. The feedback is appended to the existing result.",
+  "Reopen a completed task, resetting it to pending. Appends a reason suffix to the title (e.g. [再調査], [やり直し]). Optionally provide feedback explaining what was wrong so the next worker can see it and retry. The feedback is appended to the existing result.",
   {
     id: z.string().describe("Entry ID of the completed task to reopen"),
     feedback: z
@@ -610,10 +610,16 @@ server.tool(
       .describe(
         "Explanation of what was wrong or what to do differently. Appended to existing result.",
       ),
+    reopen_reason: z
+      .string()
+      .optional()
+      .describe(
+        "Reason for reopening, appended as [reason] suffix to the title. Defaults to 再オープン. Suggested: 再調査, やり直し, 再オープン.",
+      ),
   },
-  async ({ id, feedback }) => {
+  async ({ id, feedback, reopen_reason }) => {
     try {
-      const entry = service.reopenTask(id, feedback);
+      const entry = service.reopenTask(id, feedback, reopen_reason);
       return {
         content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
       };

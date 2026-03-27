@@ -320,8 +320,9 @@ export class EntryService {
    * Reopen a completed task, resetting status to pending.
    * Optionally append feedback text to the result field so the next worker
    * can see what was wrong and retry.
+   * Appends a reopen reason suffix to the title (defaults to "再オープン").
    */
-  reopenTask(id: string, feedback?: string): Entry {
+  reopenTask(id: string, feedback?: string, reopenReason?: string): Entry {
     const entry = this.repository.getById(id);
     if (!entry) {
       throw new Error(`Entry not found: ${id}`);
@@ -334,9 +335,13 @@ export class EntryService {
       ? `${entry.result ?? ""}\n\n---\n**Feedback (reopen):** ${feedback}`.trim()
       : entry.result;
 
+    const suffix = `[${reopenReason ?? "再オープン"}]`;
+    const updatedTitle = `${entry.title} ${suffix}`;
+
     const updated = this.repository.update({
       id,
       status: "pending",
+      title: updatedTitle,
       result: updatedResult ?? undefined,
       result_seen: true, // mark old result as seen since we're reopening
     });

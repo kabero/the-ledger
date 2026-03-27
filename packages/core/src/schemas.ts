@@ -97,9 +97,19 @@ export const listEntriesFilterSchema = z.object({
 
 // ─── ReopenTaskInput ────────────────────────────────────────────
 
+export const REOPEN_REASONS = ["再調査", "やり直し", "再オープン"] as const;
+/** Kept for backward compat; reopen_reason now accepts any string. */
+export type ReopenReason = string;
+
 export const reopenTaskInputSchema = z.object({
   id: z.string(),
   feedback: z.string().max(10_000, "feedback too long").optional(),
+  reopen_reason: z
+    .string()
+    .optional()
+    .describe(
+      `Reason for reopening. Appended as [reason] suffix to title. Defaults to 再オープン. Suggested values: ${REOPEN_REASONS.join(", ")}`,
+    ),
 });
 
 // ─── BulkTagRenameInput ─────────────────────────────────────────

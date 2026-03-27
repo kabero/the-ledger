@@ -149,6 +149,7 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
           ref={textareaRef}
           className="input-box"
           placeholder={placeholder}
+          aria-label="エントリ入力"
           value={text}
           onChange={handleInput}
           onKeyDown={handleKeyDown}

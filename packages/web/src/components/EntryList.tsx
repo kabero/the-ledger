@@ -4,12 +4,11 @@ import { remarkPlugins, safeUrlTransform } from "../markdown";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import type { Tab } from "../types";
+import type { EntryItem } from "./ai-feed/types";
 import { ConfirmModal } from "./ConfirmModal";
 import { ResultModal } from "./ResultModal";
 
-type EntryRow = ReturnType<typeof trpc.listEntries.useQuery>["data"] extends (infer T)[] | undefined
-  ? T & { status: string | null; completed_at: string | null }
-  : never;
+type EntryRow = EntryItem;
 
 interface EntryListProps {
   tab: Tab;
@@ -903,7 +902,7 @@ function DonePageGroups({
                   pointerEvents: "none",
                 }}
               >
-                {TYPE_LABELS[entry.type] ?? entry.type}
+                {(entry.type && TYPE_LABELS[entry.type]) ?? entry.type}
               </span>
               {entry.type === "task" && entry.delegatable && (
                 <button

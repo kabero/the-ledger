@@ -2154,10 +2154,11 @@ body {
   }
 
   .tag {
-    min-height: 44px;
+    min-height: 24px;
+    font-size: 12px;
     display: inline-flex;
     align-items: center;
-    padding: 4px 8px;
+    padding: 2px 8px;
   }
 
   .tab {

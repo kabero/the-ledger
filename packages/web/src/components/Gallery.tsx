@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -11,7 +11,8 @@ import {
 } from "recharts";
 import { useEscapeKey } from "../hooks/useEscapeKey";
 import { trpc } from "../trpc";
-import { GraphView } from "./GraphView";
+
+const GraphView = lazy(() => import("./GraphView").then((m) => ({ default: m.GraphView })));
 
 type GalleryTab = "graph" | "stats";
 
@@ -197,7 +198,13 @@ export function Gallery({ onClose }: GalleryProps) {
         </button>
       </div>
       <div className="gallery-body">
-        {tab === "graph" ? <GraphView fullscreen /> : <StatsView />}
+        {tab === "graph" ? (
+          <Suspense fallback={<div className="gallery-loading">...</div>}>
+            <GraphView fullscreen />
+          </Suspense>
+        ) : (
+          <StatsView />
+        )}
       </div>
     </div>
   );

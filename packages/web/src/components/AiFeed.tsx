@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
-import { ActivityChart } from "./ai-feed/ActivityChart";
 import { DetailView } from "./ai-feed/DetailView";
 import { MiniCard } from "./ai-feed/MiniCard";
 import { PromptCopy } from "./ai-feed/PromptCopy";
 import type { EntryItem } from "./ai-feed/types";
 import { formatTime } from "./ai-feed/utils";
 import { ConfirmModal } from "./ConfirmModal";
+import { DashFeed } from "./DashFeed";
 import { EntryInput } from "./EntryInput";
 
 const COMPLETED_PAGE_SIZE = 50;
@@ -17,6 +17,22 @@ interface AiFeedProps {
 }
 
 export function AiFeed({ onClose }: AiFeedProps) {
+  // --- Search state ---
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const isSearching = debouncedQuery.length > 0;
+
+  const searchResults = trpc.listEntries.useQuery(
+    { query: debouncedQuery, limit: 50 },
+    { enabled: isSearching, refetchInterval: false },
+  );
+
   // --- Pagination state for completed tasks ---
   const [completedCursor, setCompletedCursor] = useState<string | null>(null);
   const [accumulatedCompleted, setAccumulatedCompleted] = useState<EntryItem[]>([]);
@@ -237,9 +253,10 @@ export function AiFeed({ onClose }: AiFeedProps) {
       allInProgressItems.find((e) => e.id === selectedId) ??
       awaitingItems.find((e) => e.id === selectedId) ??
       humanPending.find((e) => e.id === selectedId) ??
+      (searchResults.data ?? []).find((e) => e.id === selectedId) ??
       null
     );
-  }, [selectedId, allAi, allInProgressItems, awaitingItems, humanPending]);
+  }, [selectedId, allAi, allInProgressItems, awaitingItems, humanPending, searchResults.data]);
 
   const mutateRef = useRef(updateEntry.mutate);
   mutateRef.current = updateEntry.mutate;
@@ -298,437 +315,485 @@ export function AiFeed({ onClose }: AiFeedProps) {
           x
         </button>
       </div>
+      <div className="ai-feed-search">
+        <input
+          type="text"
+          className="ai-feed-search-input"
+          placeholder="検索..."
+          aria-label="エントリ検索"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            className="ai-feed-search-clear"
+            onClick={() => setSearchQuery("")}
+            aria-label="検索をクリア"
+          >
+            {"\u2715"}
+          </button>
+        )}
+      </div>
       <div className="ai-feed-input">
         <EntryInput />
       </div>
 
       <div className="ai-dash">
-        <div className="ai-dash-top">
-          {/* Pipeline */}
-          <div className="ai-pipeline">
-            <div className="ai-pipe-stage">
-              <div className={`ai-pipe-num ${unprocessedItems.length > 0 ? "danger" : "dim"}`}>
-                {unprocessedItems.length}
+        {isSearching ? (
+          <div className="ai-search-results">
+            <div className="ai-section-title">
+              検索結果
+              {searchResults.data && (
+                <span className="ai-section-count">{searchResults.data.length}件</span>
+              )}
+            </div>
+            {searchResults.isLoading && <div className="ai-search-loading">検索中...</div>}
+            {searchResults.data && searchResults.data.length === 0 && (
+              <div className="ai-search-empty">該当するエントリがありません</div>
+            )}
+            {searchResults.data && searchResults.data.length > 0 && (
+              <div className="ai-mini-cards">
+                {searchResults.data.map((e) => (
+                  <MiniCard
+                    key={e.id}
+                    entry={e}
+                    className={e.status === "done" ? "done" : e.delegatable ? "" : "human"}
+                    onClick={() => setSelectedId(e.id)}
+                  />
+                ))}
               </div>
-              <div className="ai-pipe-label">未処理</div>
-            </div>
-            <div className="ai-pipe-arrow">{"\u2192"}</div>
-            <div className="ai-pipe-stage">
-              <div className="ai-pipe-num accent">{inProgress.length}</div>
-              <div className="ai-pipe-label">AI進行中</div>
-            </div>
-            <div className="ai-pipe-arrow">{"\u2192"}</div>
-            <div className="ai-pipe-stage">
-              <div className="ai-pipe-num done">{totalCompletedCount}</div>
-              <div className="ai-pipe-label">AI完了</div>
-            </div>
-            <div className="ai-pipe-sep" />
-            {pendingDecisions.length > 0 && (
-              <>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="ai-dash-top">
+              {/* Pipeline */}
+              <div className="ai-pipeline">
                 <div className="ai-pipe-stage">
-                  <div className="ai-pipe-num danger">{pendingDecisions.length}</div>
-                  <div className="ai-pipe-label">判断待ち</div>
+                  <div className={`ai-pipe-num ${unprocessedItems.length > 0 ? "danger" : "dim"}`}>
+                    {unprocessedItems.length}
+                  </div>
+                  <div className="ai-pipe-label">未処理</div>
+                </div>
+                <div className="ai-pipe-arrow">{"\u2192"}</div>
+                <div className="ai-pipe-stage">
+                  <div className="ai-pipe-num accent">{inProgress.length}</div>
+                  <div className="ai-pipe-label">AI進行中</div>
+                </div>
+                <div className="ai-pipe-arrow">{"\u2192"}</div>
+                <div className="ai-pipe-stage">
+                  <div className="ai-pipe-num done">{totalCompletedCount}</div>
+                  <div className="ai-pipe-label">AI完了</div>
                 </div>
                 <div className="ai-pipe-sep" />
-              </>
-            )}
-            <div className="ai-pipe-stage">
-              <div className="ai-pipe-num human">{humanPending.length}</div>
-              <div className="ai-pipe-label">人間タスク</div>
-            </div>
-            <div className="ai-pipe-stage">
-              <div className={`ai-pipe-num ${newResults > 0 ? "new" : "dim"}`}>{newResults}</div>
-              <div className="ai-pipe-label">未読</div>
-            </div>
-          </div>
+                {pendingDecisions.length > 0 && (
+                  <>
+                    <div className="ai-pipe-stage">
+                      <div className="ai-pipe-num danger">{pendingDecisions.length}</div>
+                      <div className="ai-pipe-label">判断待ち</div>
+                    </div>
+                    <div className="ai-pipe-sep" />
+                  </>
+                )}
+                <div className="ai-pipe-stage">
+                  <div className="ai-pipe-num human">{humanPending.length}</div>
+                  <div className="ai-pipe-label">人間タスク</div>
+                </div>
+                <div className="ai-pipe-stage">
+                  <div className={`ai-pipe-num ${newResults > 0 ? "new" : "dim"}`}>
+                    {newResults}
+                  </div>
+                  <div className="ai-pipe-label">未読</div>
+                </div>
+              </div>
 
-          {/* Sources */}
-          {sources.length > 0 && (
-            <div className="ai-sources">
-              {sources.map(([name, count]) => (
-                <div key={name} className="ai-source-chip">
-                  <span className="ai-source-name">{name}</span>
-                  <span className="ai-source-count">{count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <ActivityChart completed={completed} />
-        <div className="ai-dash-body">
-          <div className="ai-dash-main">
-            {/* Unprocessed — top priority */}
-            {unprocessedItems.length > 0 && (
-              <div className="ai-section">
-                <div className="ai-section-title">
-                  <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
-                </div>
-                <div className="ai-mini-cards">
-                  {unprocessedItems.slice(0, 6).map((e) => (
-                    <div key={e.id} className="ai-mini unprocessed">
-                      <div className="ai-mini-title">{e.raw_text}</div>
-                      <div className="ai-mini-meta">
-                        <span className="ai-mini-time">{formatTime(e.created_at)}</span>
-                        <button
-                          type="button"
-                          className="ai-action trash"
-                          onClick={() => setConfirmDelete({ id: e.id, label: e.raw_text })}
-                          title="削除"
-                        >
-                          {"\u2715"}
-                        </button>
-                      </div>
+              {/* Sources */}
+              {sources.length > 0 && (
+                <div className="ai-sources">
+                  {sources.map(([name, count]) => (
+                    <div key={name} className="ai-source-chip">
+                      <span className="ai-source-name">{name}</span>
+                      <span className="ai-source-count">{count}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Pending Decisions — human judgment needed */}
-            {pendingDecisions.length > 0 && (
-              <div className="ai-section">
-                <div className="ai-section-title">
-                  <span className="ai-dot decision" /> 判断待ち ({pendingDecisions.length})
-                </div>
-                <div className="ai-decision-cards">
-                  {pendingDecisions.map((e) => {
-                    const hasOptions = e.decision_options && e.decision_options.length > 0;
-                    const selected = decisionSelected[e.id] ?? null;
-                    const isExpanded = expandedDecisionId === e.id;
-                    const isBinary =
-                      hasOptions && e.decision_options && e.decision_options.length === 2;
-                    return (
-                      <div
-                        key={e.id}
-                        className={`ai-decision-card ${isExpanded ? "expanded" : "compact"}`}
-                      >
-                        <button
-                          type="button"
-                          className="ai-decision-compact-row"
-                          onClick={() => setExpandedDecisionId(isExpanded ? null : e.id)}
-                        >
-                          <span className="ai-decision-compact-title">{e.title ?? e.raw_text}</span>
-                          {e.tags.length > 0 && (
-                            <span className="ai-decision-compact-tags">
-                              {e.tags.map((t) => (
-                                <span key={t} className="tag">
-                                  {t}
-                                </span>
-                              ))}
-                            </span>
-                          )}
-                          <span className="ai-mini-time">{formatTime(e.created_at)}</span>
-                          <span className="ai-decision-chevron">
-                            {isExpanded ? "\u25B2" : "\u25BC"}
-                          </span>
-                        </button>
-                        {/* One-click inline buttons for binary decisions */}
-                        {isBinary && !isExpanded && (
-                          <div className="ai-decision-inline-actions">
-                            {(e.decision_options ?? []).map((opt, idx) => (
-                              <button
-                                key={opt}
-                                type="button"
-                                className="ai-decision-inline-btn"
-                                onClick={(ev) => {
-                                  ev.stopPropagation();
-                                  updateEntry.mutate({
-                                    id: e.id,
-                                    delegatable: true,
-                                    decision_selected: idx,
-                                    decision_comment: null,
-                                  });
-                                }}
-                                title={opt}
-                              >
-                                {opt}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          className="ai-action trash ai-decision-delete"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            setConfirmDelete({ id: e.id, label: e.title ?? e.raw_text });
-                          }}
-                          title="削除"
-                        >
-                          {"\u2715"}
-                        </button>
-                        {isExpanded && (
-                          <div className="ai-decision-expanded">
+              )}
+            </div>
+            <div className="ai-dash-body">
+              <div className="ai-dash-main">
+                {/* Unprocessed — top priority */}
+                {unprocessedItems.length > 0 && (
+                  <div className="ai-section">
+                    <div className="ai-section-title">
+                      <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
+                    </div>
+                    <div className="ai-mini-cards">
+                      {unprocessedItems.slice(0, 6).map((e) => (
+                        <div key={e.id} className="ai-mini unprocessed">
+                          <div className="ai-mini-title">{e.raw_text}</div>
+                          <div className="ai-mini-meta">
+                            <span className="ai-mini-time">{formatTime(e.created_at)}</span>
                             <button
                               type="button"
-                              className="ai-decision-detail-link"
-                              onMouseDown={(ev) => ev.stopPropagation()}
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                setSelectedId(e.id);
-                              }}
+                              className="ai-action trash"
+                              onClick={() => setConfirmDelete({ id: e.id, label: e.raw_text })}
+                              title="削除"
                             >
-                              詳細を見る
+                              {"\u2715"}
                             </button>
-                            {hasOptions && (
-                              <div className="ai-decision-options">
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending Decisions — human judgment needed */}
+                {pendingDecisions.length > 0 && (
+                  <div className="ai-section">
+                    <div className="ai-section-title">
+                      <span className="ai-dot decision" /> 判断待ち ({pendingDecisions.length})
+                    </div>
+                    <div className="ai-decision-cards">
+                      {pendingDecisions.map((e) => {
+                        const hasOptions = e.decision_options && e.decision_options.length > 0;
+                        const selected = decisionSelected[e.id] ?? null;
+                        const isExpanded = expandedDecisionId === e.id;
+                        const isBinary =
+                          hasOptions && e.decision_options && e.decision_options.length === 2;
+                        return (
+                          <div
+                            key={e.id}
+                            className={`ai-decision-card ${isExpanded ? "expanded" : "compact"}`}
+                          >
+                            <button
+                              type="button"
+                              className="ai-decision-compact-row"
+                              onClick={() => setExpandedDecisionId(isExpanded ? null : e.id)}
+                            >
+                              <span className="ai-decision-compact-title">
+                                {e.title ?? e.raw_text}
+                              </span>
+                              {e.tags.length > 0 && (
+                                <span className="ai-decision-compact-tags">
+                                  {e.tags.map((t) => (
+                                    <span key={t} className="tag">
+                                      {t}
+                                    </span>
+                                  ))}
+                                </span>
+                              )}
+                              <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                              <span className="ai-decision-chevron">
+                                {isExpanded ? "\u25B2" : "\u25BC"}
+                              </span>
+                            </button>
+                            {/* One-click inline buttons for binary decisions */}
+                            {isBinary && !isExpanded && (
+                              <div className="ai-decision-inline-actions">
                                 {(e.decision_options ?? []).map((opt, idx) => (
                                   <button
                                     key={opt}
                                     type="button"
-                                    className={`ai-decision-opt ${selected === idx ? "selected" : ""}`}
-                                    onMouseDown={(ev) => ev.stopPropagation()}
+                                    className="ai-decision-inline-btn"
                                     onClick={(ev) => {
                                       ev.stopPropagation();
-                                      setDecisionSelected((prev) => ({
-                                        ...prev,
-                                        [e.id]: prev[e.id] === idx ? null : idx,
-                                      }));
+                                      updateEntry.mutate({
+                                        id: e.id,
+                                        delegatable: true,
+                                        decision_selected: idx,
+                                        decision_comment: null,
+                                      });
                                     }}
+                                    title={opt}
                                   >
                                     {opt}
                                   </button>
                                 ))}
                               </div>
                             )}
-                            <input
-                              type="text"
-                              className="ai-decision-comment"
-                              placeholder="コメント（任意）"
-                              aria-label="判断コメント"
-                              value={decisionComment[e.id] ?? ""}
-                              onMouseDown={(ev) => ev.stopPropagation()}
-                              onClick={(ev) => ev.stopPropagation()}
-                              onChange={(ev) =>
-                                setDecisionComment((prev) => ({
-                                  ...prev,
-                                  [e.id]: ev.target.value,
-                                }))
-                              }
-                            />
-                            <div className="ai-decision-footer">
-                              <button
-                                type="button"
-                                className="ai-decision-delegate-btn"
-                                onMouseDown={(ev) => ev.stopPropagation()}
-                                onClick={(ev) => {
-                                  ev.stopPropagation();
-                                  updateEntry.mutate({
-                                    id: e.id,
-                                    delegatable: true,
-                                    ...(selected != null ? { decision_selected: selected } : {}),
-                                    decision_comment: decisionComment[e.id] || null,
-                                  });
-                                  setDecisionSelected((prev) => {
-                                    const next = { ...prev };
-                                    delete next[e.id];
-                                    return next;
-                                  });
-                                  setDecisionComment((prev) => {
-                                    const next = { ...prev };
-                                    delete next[e.id];
-                                    return next;
-                                  });
-                                  setExpandedDecisionId(null);
-                                }}
-                              >
-                                {hasOptions && selected != null
-                                  ? `「${(e.decision_options ?? [])[selected]}」で決定して委譲`
-                                  : "決定して委譲"}
-                              </button>
-                              <button
-                                type="button"
-                                className="ai-decision-delegate-btn"
-                                onMouseDown={(ev) => ev.stopPropagation()}
-                                onClick={(ev) => {
-                                  ev.stopPropagation();
-                                  updateEntry.mutate({
-                                    id: e.id,
-                                    delegatable: false,
-                                    type: "task",
-                                  });
-                                  setExpandedDecisionId(null);
-                                }}
-                              >
-                                人間タスクに変更
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              className="ai-action trash ai-decision-delete"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                setConfirmDelete({ id: e.id, label: e.title ?? e.raw_text });
+                              }}
+                              title="削除"
+                            >
+                              {"\u2715"}
+                            </button>
+                            {isExpanded && (
+                              <div className="ai-decision-expanded">
+                                <button
+                                  type="button"
+                                  className="ai-decision-detail-link"
+                                  onMouseDown={(ev) => ev.stopPropagation()}
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    setSelectedId(e.id);
+                                  }}
+                                >
+                                  詳細を見る
+                                </button>
+                                {hasOptions && (
+                                  <div className="ai-decision-options">
+                                    {(e.decision_options ?? []).map((opt, idx) => (
+                                      <button
+                                        key={opt}
+                                        type="button"
+                                        className={`ai-decision-opt ${selected === idx ? "selected" : ""}`}
+                                        onMouseDown={(ev) => ev.stopPropagation()}
+                                        onClick={(ev) => {
+                                          ev.stopPropagation();
+                                          setDecisionSelected((prev) => ({
+                                            ...prev,
+                                            [e.id]: prev[e.id] === idx ? null : idx,
+                                          }));
+                                        }}
+                                      >
+                                        {opt}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                <input
+                                  type="text"
+                                  className="ai-decision-comment"
+                                  placeholder="コメント（任意）"
+                                  aria-label="判断コメント"
+                                  value={decisionComment[e.id] ?? ""}
+                                  onMouseDown={(ev) => ev.stopPropagation()}
+                                  onClick={(ev) => ev.stopPropagation()}
+                                  onChange={(ev) =>
+                                    setDecisionComment((prev) => ({
+                                      ...prev,
+                                      [e.id]: ev.target.value,
+                                    }))
+                                  }
+                                />
+                                <div className="ai-decision-footer">
+                                  <button
+                                    type="button"
+                                    className="ai-decision-delegate-btn"
+                                    onMouseDown={(ev) => ev.stopPropagation()}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      updateEntry.mutate({
+                                        id: e.id,
+                                        delegatable: true,
+                                        ...(selected != null
+                                          ? { decision_selected: selected }
+                                          : {}),
+                                        decision_comment: decisionComment[e.id] || null,
+                                      });
+                                      setDecisionSelected((prev) => {
+                                        const next = { ...prev };
+                                        delete next[e.id];
+                                        return next;
+                                      });
+                                      setDecisionComment((prev) => {
+                                        const next = { ...prev };
+                                        delete next[e.id];
+                                        return next;
+                                      });
+                                      setExpandedDecisionId(null);
+                                    }}
+                                  >
+                                    {hasOptions && selected != null
+                                      ? `「${(e.decision_options ?? [])[selected]}」で決定して委譲`
+                                      : "決定して委譲"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="ai-decision-delegate-btn"
+                                    onMouseDown={(ev) => ev.stopPropagation()}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      updateEntry.mutate({
+                                        id: e.id,
+                                        delegatable: false,
+                                        type: "task",
+                                      });
+                                      setExpandedDecisionId(null);
+                                    }}
+                                  >
+                                    人間タスクに変更
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* In Progress */}
-            {inProgress.length > 0 && (
-              <div className="ai-section">
-                <div className="ai-section-title">
-                  <span className="ai-dot progress" /> 進行中
-                </div>
-                <div className="ai-mini-cards">
-                  {inProgress.map((e) => (
-                    <MiniCard
-                      key={e.id}
-                      entry={e}
-                      className={e.urgent ? "urgent" : ""}
-                      onClick={() => setSelectedId(e.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Recent completions — paginated */}
-            {completed.length > 0 && (
-              <div className="ai-section">
-                <div className="ai-section-title">
-                  <span className="ai-dot done" /> 最近の完了
-                  {totalCompletedCount > completed.length && (
-                    <span className="ai-section-count">
-                      {completed.length} / {totalCompletedCount}件
-                    </span>
-                  )}
-                  {newResults > 0 && (
-                    <button
-                      type="button"
-                      className="ai-mark-all-seen"
-                      onClick={() => markAllSeen.mutate()}
-                    >
-                      すべて既読
-                    </button>
-                  )}
-                </div>
-                <div className="ai-mini-cards">
-                  {completed.slice(0, completedVisible).map((e) => (
-                    <MiniCard
-                      key={e.id}
-                      entry={e}
-                      className={`done ${e.result && !e.result_seen ? "has-new" : ""}`}
-                      onClick={() => setSelectedId(e.id)}
-                      showNew={!!(e.result && !e.result_seen)}
-                      timeField="completed_at"
-                    />
-                  ))}
-                </div>
-                {completedVisible < completed.length && (
-                  <button
-                    type="button"
-                    className="ai-show-more"
-                    onClick={() => setCompletedVisible((v) => v + 12)}
-                  >
-                    もっと見る ({completed.length - completedVisible}件)
-                  </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
-                {completedVisible >= completed.length && completedHasMore && (
-                  <button
-                    type="button"
-                    className="ai-show-more"
-                    onClick={handleLoadMoreCompleted}
-                    disabled={isLoadingMore}
-                  >
-                    {isLoadingMore
-                      ? "読み込み中..."
-                      : `もっと読み込む${remainingCompleted > 0 ? ` (残り${remainingCompleted}件)` : ""}`}
-                  </button>
-                )}
-              </div>
-            )}
 
-            {/* Human pending tasks */}
-            {humanPending.length > 0 && (
-              <div className="ai-section">
-                <div className="ai-section-title">
-                  <span className="ai-dot human" /> 人間タスク ({humanPending.length})
-                </div>
-                <div className="ai-mini-cards">
-                  {(showAllHumanTasks ? humanPending : humanPending.slice(0, 6)).map((e) => (
-                    <button
-                      type="button"
-                      key={e.id}
-                      className={`ai-mini human ${e.urgent ? "urgent" : ""}`}
-                      onClick={() => setSelectedId(e.id)}
-                    >
-                      <div className="ai-mini-title">{e.title ?? e.raw_text}</div>
-                      {e.tags.length > 0 && (
-                        <div className="ai-card-tags">
-                          {e.tags.map((t) => (
-                            <span key={t} className="tag">
-                              {t}
-                            </span>
-                          ))}
-                        </div>
+                {/* In Progress */}
+                {inProgress.length > 0 && (
+                  <div className="ai-section">
+                    <div className="ai-section-title">
+                      <span className="ai-dot progress" /> 進行中
+                    </div>
+                    <div className="ai-mini-cards">
+                      {inProgress.map((e) => (
+                        <MiniCard
+                          key={e.id}
+                          entry={e}
+                          className={e.urgent ? "urgent" : ""}
+                          onClick={() => setSelectedId(e.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent completions — paginated */}
+                {completed.length > 0 && (
+                  <div className="ai-section">
+                    <div className="ai-section-title">
+                      <span className="ai-dot done" /> 最近の完了
+                      {totalCompletedCount > completed.length && (
+                        <span className="ai-section-count">
+                          {completed.length} / {totalCompletedCount}件
+                        </span>
                       )}
-                      <div className="ai-mini-meta">
-                        {e.due_date && <span className="ai-badge type">{e.due_date}</span>}
-                        {e.urgent && <span className="ai-badge urgent">!</span>}
-                        <span className="ai-mini-time">{formatTime(e.created_at)}</span>
-                      </div>
-                      <div className="ai-actions">
+                      {newResults > 0 && (
                         <button
                           type="button"
-                          className="ai-action done"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            updateEntry.mutate({ id: e.id, status: "done" });
-                          }}
-                          title="完了"
+                          className="ai-mark-all-seen"
+                          onClick={() => markAllSeen.mutate()}
                         >
-                          {"\u2713"}
+                          すべて既読
                         </button>
-                        <button
-                          type="button"
-                          className="ai-action delegate"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            updateEntry.mutate({ id: e.id, delegatable: true });
-                          }}
-                          title="AIに任せる"
-                        >
-                          AI
-                        </button>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                {humanPending.length > 6 && (
-                  <button
-                    type="button"
-                    className="ai-show-more"
-                    onClick={() => setShowAllHumanTasks(!showAllHumanTasks)}
-                  >
-                    {showAllHumanTasks ? "閉じる" : `もっと見る (${humanPending.length - 6}件)`}
-                  </button>
+                      )}
+                    </div>
+                    <div className="ai-mini-cards">
+                      {completed.slice(0, completedVisible).map((e) => (
+                        <MiniCard
+                          key={e.id}
+                          entry={e}
+                          className={`done ${e.result && !e.result_seen ? "has-new" : ""}`}
+                          onClick={() => setSelectedId(e.id)}
+                          showNew={!!(e.result && !e.result_seen)}
+                          timeField="completed_at"
+                        />
+                      ))}
+                    </div>
+                    {completedVisible < completed.length && (
+                      <button
+                        type="button"
+                        className="ai-show-more"
+                        onClick={() => setCompletedVisible((v) => v + 12)}
+                      >
+                        もっと見る ({completed.length - completedVisible}件)
+                      </button>
+                    )}
+                    {completedVisible >= completed.length && completedHasMore && (
+                      <button
+                        type="button"
+                        className="ai-show-more"
+                        onClick={handleLoadMoreCompleted}
+                        disabled={isLoadingMore}
+                      >
+                        {isLoadingMore
+                          ? "読み込み中..."
+                          : `もっと読み込む${remainingCompleted > 0 ? ` (残り${remainingCompleted}件)` : ""}`}
+                      </button>
+                    )}
+                  </div>
                 )}
+
+                {/* Human pending tasks */}
+                {humanPending.length > 0 && (
+                  <div className="ai-section">
+                    <div className="ai-section-title">
+                      <span className="ai-dot human" /> 人間タスク ({humanPending.length})
+                    </div>
+                    <div className="ai-mini-cards">
+                      {(showAllHumanTasks ? humanPending : humanPending.slice(0, 6)).map((e) => (
+                        <div key={e.id} className="ai-human-card-wrap">
+                          <MiniCard
+                            entry={e}
+                            className={`human ${e.urgent ? "urgent" : ""}`}
+                            onClick={() => setSelectedId(e.id)}
+                          />
+                          <div className="ai-human-actions">
+                            <button
+                              type="button"
+                              className="ai-action done"
+                              onClick={() => updateEntry.mutate({ id: e.id, status: "done" })}
+                              title="完了"
+                            >
+                              {"\u2713"}
+                            </button>
+                            <button
+                              type="button"
+                              className="ai-action delegate"
+                              onClick={() => updateEntry.mutate({ id: e.id, delegatable: true })}
+                              title="AIに任せる"
+                            >
+                              AI
+                            </button>
+                            <button
+                              type="button"
+                              className="ai-action trash"
+                              onClick={() =>
+                                setConfirmDelete({ id: e.id, label: e.title ?? e.raw_text })
+                              }
+                              title="削除"
+                            >
+                              {"\u2715"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {humanPending.length > 6 && (
+                      <button
+                        type="button"
+                        className="ai-show-more"
+                        onClick={() => setShowAllHumanTasks(!showAllHumanTasks)}
+                      >
+                        {showAllHumanTasks ? "閉じる" : `もっと見る (${humanPending.length - 6}件)`}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* External inputs (sourced entries) */}
+                {recentSourced.length > 0 && (
+                  <div className="ai-section">
+                    <div className="ai-section-title">
+                      <span className="ai-dot source" /> 外部入力
+                    </div>
+                    <div className="ai-mini-cards">
+                      {recentSourced.map((e) => (
+                        <MiniCard key={e.id} entry={e} onClick={() => setSelectedId(e.id)} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Development prompts for Agent teams */}
+                <PromptCopy />
+
+                {allAi.length === 0 &&
+                  unprocessedItems.length === 0 &&
+                  humanPending.length === 0 && (
+                    <div className="unprocessed-text">アクティビティはまだありません</div>
+                  )}
               </div>
-            )}
 
-            {/* Development prompts for Agent teams */}
-            <PromptCopy />
-
-            {allAi.length === 0 && unprocessedItems.length === 0 && humanPending.length === 0 && (
-              <div className="unprocessed-text">アクティビティはまだありません</div>
-            )}
-          </div>
-
-          {/* Sidebar: Recent external inputs */}
-          {recentSourced.length > 0 && (
-            <div className="ai-dash-sidebar">
-              <div className="ai-section">
-                <div className="ai-section-title">
-                  <span className="ai-dot source" /> 外部入力
-                </div>
-                <div className="ai-sidebar-cards">
-                  {recentSourced.map((e) => (
-                    <MiniCard key={e.id} entry={e} onClick={() => setSelectedId(e.id)} />
-                  ))}
-                </div>
+              {/* Sidebar: Feed */}
+              <div className="ai-dash-sidebar">
+                <DashFeed onSelectEntry={setSelectedId} />
               </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

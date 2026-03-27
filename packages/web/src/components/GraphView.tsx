@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 // @ts-expect-error no type definitions for react-force-graph-2d
 import ForceGraph2D from "react-force-graph-2d";
-import { POLL } from "../poll";
 import { trpc } from "../trpc";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -13,6 +12,7 @@ const TYPE_COLORS: Record<string, string> = {
 interface GraphNode {
   id: string;
   label: string;
+  fullLabel: string;
   type: string;
   color: string;
 }
@@ -31,7 +31,7 @@ export function GraphView({ fullscreen }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 400, height: 400 });
 
-  const entries = trpc.listEntries.useQuery({ processed: true }, { refetchInterval: POLL.entries });
+  const entries = trpc.listEntries.useQuery({ processed: true }, { refetchInterval: 10_000 });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -40,7 +40,8 @@ export function GraphView({ fullscreen }: GraphViewProps) {
       if (fullscreen) {
         setSize({ width: window.innerWidth, height: window.innerHeight });
       } else {
-        setSize({ width: el.clientWidth, height: Math.max(400, el.clientWidth * 0.8) });
+        const w = el.clientWidth || el.getBoundingClientRect().width || 300;
+        setSize({ width: w, height: Math.max(400, w * 0.8) });
       }
     };
     update();
@@ -53,15 +54,21 @@ export function GraphView({ fullscreen }: GraphViewProps) {
     };
   }, [fullscreen]);
 
+  const isLoading = entries.isLoading;
   const items = (entries.data ?? []).filter((e) => e.type !== "trash" && e.status !== "done");
 
   // Build graph data
-  const nodes: GraphNode[] = items.map((e) => ({
-    id: e.id,
-    label: (e.title ?? e.raw_text ?? "").slice(0, 20),
-    type: e.type ?? "note",
-    color: TYPE_COLORS[e.type ?? "note"] ?? "#fff",
-  }));
+  const MAX_LABEL_CHARS = 24;
+  const nodes: GraphNode[] = items.map((e) => {
+    const full = (e.title ?? e.raw_text ?? "").replace(/\n/g, " ");
+    return {
+      id: e.id,
+      label: full.length > MAX_LABEL_CHARS ? `${full.slice(0, MAX_LABEL_CHARS)}…` : full,
+      fullLabel: full,
+      type: e.type ?? "note",
+      color: TYPE_COLORS[e.type ?? "note"] ?? "#fff",
+    };
+  });
 
   // Tag frequency map and tag -> entry ids index (single pass)
   const tagCount: Record<string, number> = {};
@@ -74,16 +81,13 @@ export function GraphView({ fullscreen }: GraphViewProps) {
     }
   }
 
-  // Build edges from shared tags (skip overly popular tags to avoid O(n^2) blowup)
-  const MAX_TAG_ENTRIES = 30;
+  // Build edges from shared tags
   const linkMap = new Map<string, number>();
   for (const [tag, ids] of Object.entries(tagEntries)) {
-    // Skip tags that appear on too many entries — they create noise, not signal
-    if (ids.length > MAX_TAG_ENTRIES) continue;
     const rarity = 1 / (tagCount[tag] ?? 1);
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
-        const key = ids[i] < ids[j] ? `${ids[i]}--${ids[j]}` : `${ids[j]}--${ids[i]}`;
+        const key = [ids[i], ids[j]].sort().join("--");
         linkMap.set(key, (linkMap.get(key) ?? 0) + rarity);
       }
     }
@@ -99,12 +103,6 @@ export function GraphView({ fullscreen }: GraphViewProps) {
   const nodeSize = fullscreen ? 4 : 3;
   const fontSize = fullscreen ? 4 : 3;
 
-  // biome-ignore lint/suspicious/noExplicitAny: untyped library
-  const fgRef = useRef<any>(null);
-  const onEngineStop = useCallback(() => {
-    fgRef.current?.zoomToFit(300, 60);
-  }, []);
-
   return (
     <div
       ref={containerRef}
@@ -114,11 +112,12 @@ export function GraphView({ fullscreen }: GraphViewProps) {
         minHeight: fullscreen ? undefined : 400,
       }}
     >
-      {nodes.length === 0 ? (
+      {isLoading ? (
+        <div className="unprocessed-text">読み込み中…</div>
+      ) : nodes.length === 0 ? (
         <div className="unprocessed-text">グラフに表示するエントリがありません。</div>
       ) : (
         <ForceGraph2D
-          ref={fgRef}
           graphData={graphData}
           width={size.width}
           height={size.height}
@@ -132,14 +131,24 @@ export function GraphView({ fullscreen }: GraphViewProps) {
             ctx.fillStyle = node.color;
             ctx.fill();
 
-            const fontFamily =
-              getComputedStyle(document.documentElement).getPropertyValue("--font").trim() ||
-              "'DotGothic16', monospace";
-            ctx.font = `${fontSize}px ${fontFamily}`;
+            ctx.font = `${fontSize}px 'DotGothic16', monospace`;
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
             ctx.fillStyle = "rgba(255,255,255,0.8)";
-            ctx.fillText(node.label, node.x, node.y + nodeSize + 1);
+
+            // Truncate label with ellipsis if it exceeds max pixel width
+            const maxLabelWidth = nodeSize * 12;
+            let displayLabel = node.label;
+            if (ctx.measureText(displayLabel).width > maxLabelWidth) {
+              while (
+                displayLabel.length > 1 &&
+                ctx.measureText(`${displayLabel}…`).width > maxLabelWidth
+              ) {
+                displayLabel = displayLabel.slice(0, -1);
+              }
+              displayLabel = `${displayLabel}…`;
+            }
+            ctx.fillText(displayLabel, node.x, node.y + nodeSize + 1);
           }}
           nodePointerAreaPaint={(
             node: GraphNode & { x: number; y: number },
@@ -151,10 +160,10 @@ export function GraphView({ fullscreen }: GraphViewProps) {
             ctx.fillStyle = color;
             ctx.fill();
           }}
+          nodeLabel={(node: GraphNode) => node.fullLabel}
           linkColor={() => "rgba(255,255,255,0.15)"}
           linkWidth={(link: GraphLink) => Math.min(link.value * 2, 4)}
           cooldownTicks={100}
-          onEngineStop={onEngineStop}
           enableZoomInteraction={true}
           enablePanInteraction={true}
         />

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { remarkPlugins, safeUrlTransform } from "../../markdown";
 import type { EntryItem } from "./types";
@@ -22,28 +22,50 @@ export const MiniCard = memo(function MiniCard({
   timeField = "created_at",
 }: MiniCardProps) {
   const time = timeField === "completed_at" ? entry.completed_at : entry.created_at;
-  const hoverContent = entry.result ?? (entry.raw_text !== entry.title ? entry.raw_text : null);
+  const isImageOnly = !!(entry.image_path && entry.raw_text === "(画像)");
+  const hoverContent =
+    entry.result ?? (entry.raw_text !== entry.title && !isImageOnly ? entry.raw_text : null);
+  const hasTooltip = !!(hoverContent || entry.image_path);
+
+  // Defer hover modal rendering until first hover to reduce DOM count
+  const [hovered, setHovered] = useState(false);
+  const handleMouseEnter = useCallback(() => setHovered(true), []);
 
   const tooltipMarkdown = useMemo(
     () =>
-      hoverContent ? (
+      hovered && hoverContent ? (
         <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
           {normalizeResult(hoverContent)}
         </Markdown>
       ) : null,
-    [hoverContent],
+    [hovered, hoverContent],
   );
 
   return (
-    <div className={`ai-mini-wrap ${hoverContent ? "has-tooltip" : ""}`}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover tooltip wrapper, no keyboard interaction needed
+    <div
+      className={`ai-mini-wrap ${hasTooltip ? "has-tooltip" : ""}`}
+      onMouseEnter={hasTooltip ? handleMouseEnter : undefined}
+    >
       <button
         type="button"
         className={`ai-mini ${className} ${entry.result_url ? "has-link" : ""}`}
         onClick={onClick}
-        title={entry.raw_text || entry.title}
       >
         <div className="ai-mini-top">
-          <div className="ai-mini-title">{entry.title ?? entry.raw_text}</div>
+          <div className="ai-mini-title">
+            {entry.title ??
+              (isImageOnly ? (
+                <img
+                  className="ai-mini-thumb"
+                  src={`/images/${entry.image_path?.split("/").pop()}`}
+                  alt="画像"
+                  loading="lazy"
+                />
+              ) : (
+                entry.raw_text
+              ))}
+          </div>
           {showImplementing && <span className="ai-badge implementing">実装中</span>}
           {showNew && <span className="ai-badge new">NEW</span>}
         </div>
@@ -66,7 +88,19 @@ export const MiniCard = memo(function MiniCard({
           {time && <span className="ai-mini-time">{formatTime(time)}</span>}
         </div>
       </button>
-      {tooltipMarkdown && <div className="ai-hover-modal">{tooltipMarkdown}</div>}
+      {hasTooltip && hovered && (
+        <div className="ai-hover-modal">
+          {entry.image_path && (
+            <img
+              className="ai-hover-thumb"
+              src={`/images/${entry.image_path.split("/").pop()}`}
+              alt={entry.title ?? "添付画像"}
+              loading="lazy"
+            />
+          )}
+          {tooltipMarkdown}
+        </div>
+      )}
     </div>
   );
 });

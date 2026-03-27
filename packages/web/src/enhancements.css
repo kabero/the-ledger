@@ -230,7 +230,7 @@
   background: none;
   border: 1px solid var(--border, #333);
   color: var(--accent, #4fc3f7);
-  font-size: 10px;
+  font-size: 12px;
   padding: 8px 8px;
   min-height: 44px;
   min-width: 44px;
@@ -1461,7 +1461,6 @@ html {
    Subtle expanding ring on FAB tap for tactile feedback
    ============================================================ */
 .fab-add {
-  position: relative;
   overflow: hidden;
 }
 

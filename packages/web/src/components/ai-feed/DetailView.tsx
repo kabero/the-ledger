@@ -1,10 +1,58 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { useClipboard } from "../../hooks/useClipboard";
 import { remarkPlugins, safeUrlTransform } from "../../markdown";
 import { trpc } from "../../trpc";
 import type { EntryItem } from "./types";
 import { formatDateTime, normalizeResult } from "./utils";
+
+const DETAIL_WIDTH_KEY = "detail-panel-width";
+const DEFAULT_WIDTH = 480;
+const MIN_WIDTH = 320;
+const MAX_WIDTH_RATIO = 0.8;
+
+function useResizableWidth() {
+  const [width, setWidth] = useState<number>(() => {
+    const stored = localStorage.getItem(DETAIL_WIDTH_KEY);
+    return stored ? Math.max(MIN_WIDTH, Number(stored)) : DEFAULT_WIDTH;
+  });
+  const dragging = useRef(false);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    const startX = e.clientX;
+    const parent = e.currentTarget.parentElement;
+    const startWidth = parent ? parseInt(getComputedStyle(parent).width, 10) : MIN_WIDTH;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = startX - ev.clientX;
+      const maxW = window.innerWidth * MAX_WIDTH_RATIO;
+      const newWidth = Math.min(maxW, Math.max(MIN_WIDTH, startWidth + delta));
+      setWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      dragging.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(DETAIL_WIDTH_KEY, String(Math.round(width)));
+  }, [width]);
+
+  return { width, onMouseDown };
+}
 
 interface DetailViewProps {
   entry: EntryItem;
@@ -13,6 +61,7 @@ interface DetailViewProps {
 }
 
 export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
+  const { width, onMouseDown } = useResizableWidth();
   const utils = trpc.useUtils();
   const invalidateAll = () => {
     utils.listEntries.invalidate();
@@ -39,6 +88,8 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
     !entry.decision_comment &&
     entry.status !== "done";
 
+  const isImageOnly = !!(entry.image_path && entry.raw_text === "(画像)");
+
   const resultMarkdown = useMemo(
     () =>
       entry.result ? (
@@ -51,16 +102,18 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
 
   const rawTextMarkdown = useMemo(
     () =>
-      !entry.result && entry.raw_text && entry.raw_text !== entry.title ? (
+      !entry.result && entry.raw_text && entry.raw_text !== entry.title && !isImageOnly ? (
         <Markdown remarkPlugins={remarkPlugins} urlTransform={safeUrlTransform}>
           {normalizeResult(entry.raw_text)}
         </Markdown>
       ) : null,
-    [entry.result, entry.raw_text, entry.title],
+    [entry.result, entry.raw_text, entry.title, isImageOnly],
   );
 
   return (
-    <div className="ai-detail-panel">
+    <div className="ai-detail-panel" style={{ "--detail-w": `${width}px` } as React.CSSProperties}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: resize handle */}
+      <div className="ai-detail-resize-handle" onMouseDown={onMouseDown} />
       <div className="ai-detail-panel-header">
         <button type="button" className="ai-detail-back" onClick={onBack}>
           {"<"} 戻る
@@ -80,7 +133,9 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
           {needsDecision && <span className="ai-badge decision">判断待ち</span>}
           {entry.urgent && <span className="ai-badge urgent">!</span>}
         </div>
-        <h2 className="ai-detail-title">{entry.title ?? entry.raw_text}</h2>
+        {(entry.title || !isImageOnly) && (
+          <h2 className="ai-detail-title">{entry.title ?? entry.raw_text}</h2>
+        )}
         <div className="ai-detail-timestamps">
           <span>作成: {formatDateTime(entry.created_at)}</span>
           {entry.completed_at && <span>完了: {formatDateTime(entry.completed_at)}</span>}
@@ -180,6 +235,15 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
                 ? `「${entry.decision_options[selectedOpt]}」で決定して委譲`
                 : "決定して委譲"}
             </button>
+          </div>
+        )}
+        {entry.image_path && (
+          <div className="ai-detail-image">
+            <img
+              src={`/images/${entry.image_path.split("/").pop()}`}
+              alt={entry.title ?? "添付画像"}
+              loading="lazy"
+            />
           </div>
         )}
         {resultMarkdown ? (

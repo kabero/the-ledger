@@ -11,6 +11,8 @@ interface MiniCardProps {
   showNew?: boolean;
   showImplementing?: boolean;
   timeField?: "created_at" | "completed_at";
+  onDelete?: (id: string, label: string) => void;
+  deleteDisabled?: boolean;
 }
 
 export const MiniCard = memo(function MiniCard({
@@ -20,6 +22,8 @@ export const MiniCard = memo(function MiniCard({
   showNew = false,
   showImplementing = false,
   timeField = "created_at",
+  onDelete,
+  deleteDisabled = false,
 }: MiniCardProps) {
   const time = timeField === "completed_at" ? entry.completed_at : entry.created_at;
   const isImageOnly = !!(entry.image_path && entry.raw_text === "(画像)");
@@ -47,10 +51,15 @@ export const MiniCard = memo(function MiniCard({
       className={`ai-mini-wrap ${hasTooltip ? "has-tooltip" : ""}`}
       onMouseEnter={hasTooltip ? handleMouseEnter : undefined}
     >
-      <button
-        type="button"
+      {/* biome-ignore lint/a11y/useSemanticElements: div[role=button] needed to allow nested buttons */}
+      <div
+        role="button"
+        tabIndex={0}
         className={`ai-mini ${className} ${entry.result_url ? "has-link" : ""}`}
         onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onClick();
+        }}
       >
         <div className="ai-mini-top">
           <div className="ai-mini-title">
@@ -68,6 +77,20 @@ export const MiniCard = memo(function MiniCard({
           </div>
           {showImplementing && <span className="ai-badge implementing">実装中</span>}
           {showNew && <span className="ai-badge new">NEW</span>}
+          {onDelete && (
+            <button
+              type="button"
+              className={`ai-mini-delete ${deleteDisabled ? "disabled" : ""}`}
+              disabled={deleteDisabled}
+              title={deleteDisabled ? "進行中は削除できません" : "削除"}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!deleteDisabled) onDelete(entry.id, entry.title ?? entry.raw_text);
+              }}
+            >
+              {"\u00d7"}
+            </button>
+          )}
         </div>
         <div className="ai-mini-meta">
           {entry.source && <span className="ai-badge source">{entry.source}</span>}
@@ -87,7 +110,7 @@ export const MiniCard = memo(function MiniCard({
           )}
           {time && <span className="ai-mini-time">{formatTime(time)}</span>}
         </div>
-      </button>
+      </div>
       {hasTooltip && hovered && (
         <div className="ai-hover-modal">
           {entry.image_path && (

@@ -24,6 +24,7 @@ export function App() {
   const [showMobileInput, setShowMobileInput] = useState(false);
   const [showSourcedModal, setShowSourcedModal] = useState(false);
   const [showFocusMode, setShowFocusMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     applyFont();
@@ -248,6 +249,29 @@ export function App() {
               </button>
             </div>
           </div>
+          <div className="header-search">
+            <span className="header-search-icon" aria-hidden="true">
+              {"\uD83D\uDD0D"}
+            </span>
+            <input
+              type="text"
+              className="header-search-input"
+              placeholder="検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="エントリを検索"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="header-search-clear"
+                onClick={() => setSearchQuery("")}
+                aria-label="検索をクリア"
+              >
+                {"\u2715"}
+              </button>
+            )}
+          </div>
           <div className="desktop-input">
             <EntryInput />
           </div>
@@ -330,7 +354,7 @@ export function App() {
             onTouchMove={swipeHandlers.onTouchMove}
             onTouchEnd={swipeHandlers.onTouchEnd}
           >
-            <EntryList tab={activeTab} />
+            <EntryList tab={activeTab} searchQuery={searchQuery} />
           </div>
         </div>
         {showSettings && <Settings onClose={() => setShowSettings(false)} />}

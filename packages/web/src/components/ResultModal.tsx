@@ -23,6 +23,17 @@ export function ResultModal({ title, result, onClose }: ResultModalProps) {
           >
             {copied ? "\u2713 copied" : "copy"}
           </button>
+          <button
+            type="button"
+            className="result-modal-copy"
+            onClick={() => {
+              document.body.classList.add("printing-result");
+              window.print();
+              document.body.classList.remove("printing-result");
+            }}
+          >
+            pdf
+          </button>
           <button type="button" className="result-modal-close" onClick={onClose}>
             x
           </button>

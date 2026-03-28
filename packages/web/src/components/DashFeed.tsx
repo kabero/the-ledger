@@ -4,40 +4,18 @@ import { remarkPlugins, safeUrlTransform } from "../markdown";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import type { EntryItem } from "./ai-feed/types";
-import { normalizeResult } from "./ai-feed/utils";
+import { getResultBadge as getResultBadgeBase, normalizeResult } from "./ai-feed/utils";
 import sfStyles from "./SideFeed.module.css";
 
-/** Classify the result type for badge display. */
-function getResultBadge(entry: EntryItem): { label: string; className: string } | null {
-  if (entry.result_url) {
-    return { label: "URL", className: sfStyles["sf-type-url"] };
-  }
-  if (!entry.result) return null;
+const badgeStyles = {
+  url: sfStyles["sf-type-url"],
+  research: sfStyles["sf-type-research"],
+  summary: sfStyles["sf-type-summary"],
+  generic: sfStyles["sf-type-generic"],
+};
 
-  const lower = normalizeResult(entry.result).toLowerCase();
-
-  if (
-    lower.includes("調査") ||
-    lower.includes("リサーチ") ||
-    lower.includes("research") ||
-    lower.includes("investigation") ||
-    lower.includes("分析") ||
-    lower.includes("検証")
-  ) {
-    return { label: "調査", className: sfStyles["sf-type-research"] };
-  }
-
-  if (
-    lower.includes("サマリ") ||
-    lower.includes("まとめ") ||
-    lower.includes("要約") ||
-    lower.includes("summary") ||
-    lower.includes("概要")
-  ) {
-    return { label: "サマリ", className: sfStyles["sf-type-summary"] };
-  }
-
-  return { label: "結果あり", className: sfStyles["sf-type-generic"] };
+function getResultBadge(entry: EntryItem) {
+  return getResultBadgeBase(entry, badgeStyles);
 }
 
 interface DashFeedCardProps {

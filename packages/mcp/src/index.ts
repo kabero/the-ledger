@@ -27,7 +27,7 @@ server.tool(
   "add_entry",
   "Add a new raw entry to The Ledger. Just throw in whatever you're thinking. Optionally attach an image.",
   {
-    raw_text: z.string().describe("The raw text of the thought, idea, task, etc."),
+    raw_text: z.string().max(10000).describe("The raw text of the thought, idea, task, etc."),
     image: z.string().optional().describe("Base64-encoded image data (optional)"),
     image_ext: z
       .string()
@@ -38,7 +38,7 @@ server.tool(
     let entry: Entry;
     if (image && image_ext) {
       const imageData = Buffer.from(image, "base64");
-      entry = service.createEntryWithImage(raw_text, imageData, image_ext);
+      entry = service.createEntryWithImage(imageData, image_ext, { raw_text });
     } else {
       entry = service.createEntry({ raw_text });
     }
@@ -80,7 +80,9 @@ server.tool(
   "Submit LLM processing results for an entry: type, title, tags, urgent, delegatable.",
   {
     id: z.string().describe("Entry ID"),
-    type: z.enum(ENTRY_TYPES).describe("Classified type: task, event, note, or wish"),
+    type: z
+      .enum(["task", "note", "wish"] as const)
+      .describe("Classified type: task, note, or wish"),
     title: z.string().describe("Short title summarizing the entry"),
     tags: z.array(z.string()).describe("Auto-assigned tags for categorization"),
     urgent: z.boolean().default(false).describe("Whether this is urgent"),
@@ -158,7 +160,7 @@ server.tool(
 
 server.tool(
   "delete_entry",
-  "Delete an entry permanently.",
+  "Soft-delete an entry (moves to trash, can be restored).",
   {
     id: z.string().describe("Entry ID to delete"),
   },
@@ -172,14 +174,14 @@ server.tool(
 
 server.tool(
   "get_today_tasks",
-  "Get today's top tasks ranked by priority, urgency, and freshness. Default: top 3.",
+  "Get today's briefing: overdue tasks, due today, urgent items, and yesterday's completions.",
   {
-    limit: z.number().int().positive().max(10).default(3).describe("Number of tasks to return"),
+    today: z.string().optional().describe("ISO date string (YYYY-MM-DD), defaults to today"),
   },
-  async ({ limit }) => {
-    const tasks = service.getTodayTasks(limit);
+  async ({ today }) => {
+    const data = service.getTodayBriefingData(today);
     return {
-      content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
   },
 );

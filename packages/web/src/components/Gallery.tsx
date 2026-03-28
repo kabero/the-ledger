@@ -59,10 +59,10 @@ function StatsView() {
     });
     return count > 0 ? (total / count).toFixed(1) : "-";
   })();
-  const peakHour = hourlyCompletions.reduce(
-    (max, h) => (h.count > max.count ? h : max),
-    hourlyCompletions[0],
-  );
+  const peakHour =
+    hourlyCompletions.length > 0
+      ? hourlyCompletions.reduce((max, h) => (h.count > max.count ? h : max), hourlyCompletions[0])
+      : null;
 
   return (
     <div className="dash">
@@ -81,7 +81,9 @@ function StatsView() {
           <div className="dash-kpi-label">平均日数</div>
         </div>
         <div className="dash-card">
-          <div className="dash-kpi-value">{peakHour.count > 0 ? `${peakHour.hour}時` : "-"}</div>
+          <div className="dash-kpi-value">
+            {peakHour && peakHour.count > 0 ? `${peakHour.hour}時` : "-"}
+          </div>
           <div className="dash-kpi-label">ピーク</div>
         </div>
       </div>
@@ -159,7 +161,9 @@ function StatsView() {
               {hourlyCompletions.map((entry, i) => (
                 <Cell
                   key={i}
-                  fill={entry.hour === peakHour.hour && entry.count > 0 ? "#ff0" : "#333"}
+                  fill={
+                    peakHour && entry.hour === peakHour.hour && entry.count > 0 ? "#ff0" : "#333"
+                  }
                 />
               ))}
             </Bar>

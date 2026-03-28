@@ -261,32 +261,14 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
             {entry.status === "done" &&
               entry.delegatable &&
               (showReopenForm ? (
-                <div
-                  style={{
-                    padding: "10px 12px",
-                    background: "var(--bg-card, #0a0a0a)",
-                    border: "1px solid var(--border-subtle, #222)",
-                    borderRadius: 6,
-                    marginTop: 8,
-                  }}
-                >
+                <div className="ai-reopen-form">
                   <textarea
                     ref={reopenInputRef}
                     value={reopenFeedback}
                     onChange={(e) => setReopenFeedback(e.target.value)}
                     placeholder="追加指示（任意）"
                     rows={3}
-                    style={{
-                      width: "100%",
-                      background: "var(--bg, #000)",
-                      color: "var(--fg, #eee)",
-                      border: "1px solid var(--border-subtle, #333)",
-                      borderRadius: 4,
-                      padding: "6px 8px",
-                      fontSize: 13,
-                      fontFamily: "var(--font)",
-                      resize: "vertical",
-                    }}
+                    className="ai-reopen-textarea"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                         reopenTask.mutate({
@@ -300,9 +282,7 @@ export function DetailView({ entry, onBack, onClose }: DetailViewProps) {
                       }
                     }}
                   />
-                  <div
-                    style={{ display: "flex", gap: 6, marginTop: 6, justifyContent: "flex-end" }}
-                  >
+                  <div className="ai-reopen-actions">
                     <button
                       type="button"
                       className="ai-action-btn"

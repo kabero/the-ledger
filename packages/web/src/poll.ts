@@ -21,4 +21,6 @@ export const POLL = {
   pendingDecisions: ms(12_000),
   /** Sidebar external entries (slower) */
   sidebarSourced: ms(30_000),
+  /** Aggregated dashboard data */
+  dashboard: ms(10_000),
 } as const;

@@ -37,7 +37,11 @@ const RATE_LIMIT_MAX = 120; // requests per window
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 const rateLimiter: MiddlewareHandler = async (c, next) => {
-  const ip = c.req.header("x-forwarded-for") || "unknown";
+  // Use remote address from socket, not x-forwarded-for (spoofable)
+  const ip =
+    (c.env?.incoming?.socket?.remoteAddress as string) ??
+    c.req.header("x-forwarded-for") ??
+    "unknown";
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
   if (!entry || now > entry.resetAt) {

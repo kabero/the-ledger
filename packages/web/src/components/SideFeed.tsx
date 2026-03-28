@@ -2,46 +2,20 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
 import type { EntryItem } from "./ai-feed/types";
-import { normalizeResult } from "./ai-feed/utils";
+import { getResultBadge as getResultBadgeBase } from "./ai-feed/utils";
 import styles from "./SideFeed.module.css";
 
 const PAGE_SIZE = 30;
 
-/** Classify the result type for badge display. */
-function getResultBadge(entry: EntryItem): { label: string; className: string } | null {
-  if (entry.result_url) {
-    return { label: "URL", className: styles["sf-type-url"] };
-  }
-  if (!entry.result) return null;
+const badgeStyles = {
+  url: styles["sf-type-url"],
+  research: styles["sf-type-research"],
+  summary: styles["sf-type-summary"],
+  generic: styles["sf-type-generic"],
+};
 
-  const text = normalizeResult(entry.result);
-  const lower = text.toLowerCase();
-
-  // Heuristic: research / investigation
-  if (
-    lower.includes("調査") ||
-    lower.includes("リサーチ") ||
-    lower.includes("research") ||
-    lower.includes("investigation") ||
-    lower.includes("分析") ||
-    lower.includes("検証")
-  ) {
-    return { label: "調査", className: styles["sf-type-research"] };
-  }
-
-  // Heuristic: summary
-  if (
-    lower.includes("サマリ") ||
-    lower.includes("まとめ") ||
-    lower.includes("要約") ||
-    lower.includes("summary") ||
-    lower.includes("概要")
-  ) {
-    return { label: "サマリ", className: styles["sf-type-summary"] };
-  }
-
-  // Generic result
-  return { label: "結果あり", className: styles["sf-type-generic"] };
+function getResultBadge(entry: EntryItem) {
+  return getResultBadgeBase(entry, badgeStyles);
 }
 
 interface FeedCardProps {

@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { POLL } from "../poll";
 import { trpc } from "../trpc";
+import { CompletedSection } from "./ai-feed/CompletedSection";
 import { DetailView } from "./ai-feed/DetailView";
+import { HumanTasksSection } from "./ai-feed/HumanTasksSection";
+import { InProgressSection } from "./ai-feed/InProgressSection";
 import { MiniCard } from "./ai-feed/MiniCard";
 import { PromptCopy } from "./ai-feed/PromptCopy";
+import { SourcedSection } from "./ai-feed/SourcedSection";
 import type { EntryItem } from "./ai-feed/types";
 import { formatTime } from "./ai-feed/utils";
 import { ConfirmModal } from "./ConfirmModal";
@@ -51,25 +55,12 @@ export function AiFeed({ onClose }: AiFeedProps) {
   const [accumulatedCompleted, setAccumulatedCompleted] = useState<EntryItem[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // In-progress delegatable tasks (small set, no pagination needed)
-  const delegatableInProgress = trpc.listEntries.useQuery(
-    { delegatable: true, limit: 100 },
-    { refetchInterval: POLL.delegatable },
-  );
+  // --- Aggregated dashboard query (replaces 6 separate queries) ---
+  const dashboard = trpc.getDashboardData.useQuery(undefined, {
+    refetchInterval: POLL.dashboard,
+  });
 
-  // Completed delegatable tasks — first page with cursor-based pagination
-  const completedPage = trpc.listEntriesWithCursor.useQuery(
-    { delegatable: true, status: "done", sort: "completed_at", limit: COMPLETED_PAGE_SIZE },
-    { refetchInterval: POLL.delegatable },
-  );
-
-  // Total count of completed delegatable tasks for the pipeline display
-  const completedCount = trpc.countEntries.useQuery(
-    { delegatable: true, status: "done" },
-    { refetchInterval: POLL.delegatable },
-  );
-
-  // Next page fetcher (only enabled when user clicks "load more")
+  // Next page fetcher for completed tasks (only enabled when user clicks "load more")
   const nextPage = trpc.listEntriesWithCursor.useQuery(
     {
       delegatable: true,
@@ -93,28 +84,63 @@ export function AiFeed({ onClose }: AiFeedProps) {
     }
   }, [nextPage.data, completedCursor]);
 
+  // Sourced entries — not included in getDashboardData, kept as separate query
   const sourced = trpc.listEntries.useQuery(
     { source: "any", limit: 100 },
     { refetchInterval: POLL.sourced },
   );
-  const unprocessed = trpc.getUnprocessed.useQuery(
-    { limit: 50 },
-    { refetchInterval: POLL.unprocessed },
-  );
-  const humanTasks = trpc.listEntries.useQuery(
-    { type: "task", status: "pending", limit: 50 },
-    { refetchInterval: POLL.humanTasks },
-  );
-  const awaitingJudgment = trpc.listEntries.useQuery(
-    { delegatable: false, limit: 100 },
-    { refetchInterval: POLL.pendingDecisions },
+
+  // --- Derived data from aggregated dashboard query ---
+  const dashData = dashboard.data;
+  const allSourced = sourced.data ?? [];
+  const unprocessedItems = dashData?.unprocessed ?? [];
+  const awaitingItems = dashData?.pendingDecisions ?? [];
+  // inProgress: getDashboardData already filters to delegatable + pending
+  const inProgress = dashData?.inProgress ?? [];
+  const humanPending = useMemo(
+    () => (dashData?.humanTasks ?? []).filter((e) => !e.delegatable),
+    [dashData?.humanTasks],
   );
 
-  // --- All tasks query for epic tree ---
+  // Completed tasks: first page from dashboard + accumulated additional pages
+  const completed = useMemo(() => {
+    const firstPageEntries = dashData?.completed.entries ?? [];
+    if (accumulatedCompleted.length === 0) return firstPageEntries;
+    // Deduplicate: first page entries take priority (fresher from polling)
+    const firstPageIds = new Set(firstPageEntries.map((e) => e.id));
+    const additionalEntries = accumulatedCompleted.filter((e) => !firstPageIds.has(e.id));
+    return [...firstPageEntries, ...additionalEntries];
+  }, [dashData?.completed, accumulatedCompleted]);
+
+  const totalCompletedCount = dashData?.completedCount ?? completed.length;
+
+  // Determine if there are more completed entries to load
+  const completedHasMore = useMemo(() => {
+    if (completedCursor !== null && nextPage.data) {
+      return nextPage.data.nextCursor !== null;
+    }
+    return (
+      dashData?.completed.nextCursor !== null && (dashData?.completed.nextCursor ?? null) !== null
+    );
+  }, [dashData?.completed, nextPage.data, completedCursor]);
+
+  const remainingCompleted = Math.max(0, totalCompletedCount - completed.length);
+
+  const handleLoadMoreCompleted = () => {
+    const cursor =
+      completedCursor !== null && nextPage.data?.nextCursor
+        ? nextPage.data.nextCursor
+        : dashData?.completed.nextCursor;
+    if (cursor) {
+      setIsLoadingMore(true);
+      setCompletedCursor(cursor);
+    }
+  };
+
   // --- Activity timeline: merge completed + in-progress, sort by time ---
   const activityTimeline = useMemo(() => {
     const items: { id: string; title: string; time: string; status: "done" | "pending" }[] = [];
-    for (const e of completedPage.data?.entries ?? []) {
+    for (const e of dashData?.completed.entries ?? []) {
       items.push({
         id: e.id,
         title: e.title ?? e.raw_text,
@@ -122,7 +148,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
         status: "done",
       });
     }
-    for (const e of (delegatableInProgress.data ?? []).filter((x) => x.status === "pending")) {
+    for (const e of inProgress) {
       items.push({
         id: e.id,
         title: e.title ?? e.raw_text,
@@ -132,78 +158,27 @@ export function AiFeed({ onClose }: AiFeedProps) {
     }
     items.sort((a, b) => new Date(`${b.time}Z`).getTime() - new Date(`${a.time}Z`).getTime());
     return items.slice(0, 10);
-  }, [completedPage.data, delegatableInProgress.data]);
+  }, [dashData?.completed, inProgress]);
 
   const utils = trpc.useUtils();
   const invalidateAll = () => {
+    utils.getDashboardData.invalidate();
     utils.listEntries.invalidate();
     utils.listEntriesWithCursor.invalidate();
-    utils.countEntries.invalidate();
-    utils.getUnprocessed.invalidate();
   };
   const updateEntry = trpc.updateEntry.useMutation({ onSuccess: invalidateAll });
   const deleteEntry = trpc.deleteEntry.useMutation({ onSuccess: invalidateAll });
   const markAllSeen = trpc.markAllResultsSeen.useMutation({ onSuccess: invalidateAll });
 
-  // All delegatable items (in-progress only, for pipeline/progress sections)
-  const allInProgressItems = delegatableInProgress.data ?? [];
-  const allSourced = sourced.data ?? [];
-  const unprocessedItems = unprocessed.data ?? [];
-  const awaitingItems = awaitingJudgment.data ?? [];
-  const humanPending = useMemo(
-    () => (humanTasks.data ?? []).filter((e) => !e.delegatable),
-    [humanTasks.data],
-  );
-
-  const inProgress = useMemo(
-    () => allInProgressItems.filter((e) => e.status === "pending"),
-    [allInProgressItems],
-  );
-
-  // Completed tasks: first page from cursor query + accumulated additional pages
-  const completed = useMemo(() => {
-    const firstPageEntries = completedPage.data?.entries ?? [];
-    if (accumulatedCompleted.length === 0) return firstPageEntries;
-    // Deduplicate: first page entries take priority (fresher from polling)
-    const firstPageIds = new Set(firstPageEntries.map((e) => e.id));
-    const additionalEntries = accumulatedCompleted.filter((e) => !firstPageIds.has(e.id));
-    return [...firstPageEntries, ...additionalEntries];
-  }, [completedPage.data, accumulatedCompleted]);
-
-  const totalCompletedCount = completedCount.data?.count ?? completed.length;
-
-  // Determine if there are more completed entries to load
-  const completedHasMore = useMemo(() => {
-    if (completedCursor !== null && nextPage.data) {
-      return nextPage.data.nextCursor !== null;
-    }
-    return (
-      completedPage.data?.nextCursor !== null && (completedPage.data?.nextCursor ?? null) !== null
-    );
-  }, [completedPage.data, nextPage.data, completedCursor]);
-
-  const remainingCompleted = Math.max(0, totalCompletedCount - completed.length);
-
-  const handleLoadMoreCompleted = () => {
-    const cursor =
-      completedCursor !== null && nextPage.data?.nextCursor
-        ? nextPage.data.nextCursor
-        : completedPage.data?.nextCursor;
-    if (cursor) {
-      setIsLoadingMore(true);
-      setCompletedCursor(cursor);
-    }
-  };
-
   // Deduplicated AI-related entries (for sources breakdown, decisions, etc.)
   const allAi = useMemo(() => {
     const map = new Map<string, EntryItem>();
-    for (const e of allInProgressItems) map.set(e.id, e);
+    for (const e of inProgress) map.set(e.id, e);
     for (const e of completed) map.set(e.id, e);
     for (const e of allSourced) map.set(e.id, e);
     for (const e of awaitingItems) map.set(e.id, e);
     return [...map.values()];
-  }, [allInProgressItems, completed, allSourced, awaitingItems]);
+  }, [inProgress, completed, allSourced, awaitingItems]);
 
   const recentSourced = useMemo(
     () =>
@@ -251,6 +226,10 @@ export function AiFeed({ onClose }: AiFeedProps) {
   const [completedVisible, setCompletedVisible] = useState(12);
   const [showAllHumanTasks, setShowAllHumanTasks] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+  const handleDelete = useCallback(
+    (id: string, label: string) => setConfirmDelete({ id, label }),
+    [],
+  );
   const [decisionComment, setDecisionComment] = useState<Record<string, string>>({});
 
   // Escape key: go back from detail or close feed
@@ -288,13 +267,13 @@ export function AiFeed({ onClose }: AiFeedProps) {
     if (!selectedId) return null;
     return (
       allAi.find((e) => e.id === selectedId) ??
-      allInProgressItems.find((e) => e.id === selectedId) ??
+      inProgress.find((e) => e.id === selectedId) ??
       awaitingItems.find((e) => e.id === selectedId) ??
       humanPending.find((e) => e.id === selectedId) ??
       (searchResults.data ?? []).find((e) => e.id === selectedId) ??
       null
     );
-  }, [selectedId, allAi, allInProgressItems, awaitingItems, humanPending, searchResults.data]);
+  }, [selectedId, allAi, inProgress, awaitingItems, humanPending, searchResults.data]);
 
   const mutateRef = useRef(updateEntry.mutate);
   mutateRef.current = updateEntry.mutate;
@@ -323,19 +302,6 @@ export function AiFeed({ onClose }: AiFeedProps) {
           <DetailView entry={selectedEntry} onBack={() => setSelectedId(null)} onClose={onClose} />
         </>
       )}
-      {/* Accessibility & mobile fixes: improve pipe-label contrast, hide kbd shortcut on mobile */}
-      <style>{`
-        .ai-pipe-label {
-          font-size: 0.75rem !important;
-          color: #bbb !important;
-        }
-        @media (max-width: 480px) {
-          .ai-pipe-label { font-size: 0.6875rem !important; }
-        }
-        @media (max-width: 375px) {
-          .ai-pipe-label { font-size: 0.625rem !important; }
-        }
-      `}</style>
       {confirmDelete && (
         <ConfirmModal
           message={`「${confirmDelete.label}」を削除しますか？`}
@@ -398,6 +364,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                     entry={e}
                     className={e.status === "done" ? "done" : e.delegatable ? "" : "human"}
                     onClick={() => setSelectedId(e.id)}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
@@ -669,151 +636,39 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   </div>
                 )}
 
-                {/* In Progress */}
-                <div className="ai-section">
-                  <div className="ai-section-title">
-                    <span className="ai-dot progress" /> 進行中 ({inProgress.length})
-                  </div>
-                  {inProgress.length > 0 && (
-                    <div className="ai-mini-cards">
-                      {inProgress.map((e) => (
-                        <MiniCard
-                          key={e.id}
-                          entry={e}
-                          className={e.urgent ? "urgent" : ""}
-                          onClick={() => setSelectedId(e.id)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Recent completions — paginated */}
-                <div className="ai-section">
-                  <div className="ai-section-title">
-                    <span className="ai-dot done" /> 最近の完了
-                    {totalCompletedCount > completed.length && (
-                      <span className="ai-section-count">
-                        {completed.length} / {totalCompletedCount}件
-                      </span>
-                    )}
-                    {newResults > 0 && (
-                      <button
-                        type="button"
-                        className="ai-mark-all-seen"
-                        onClick={() => markAllSeen.mutate()}
-                      >
-                        すべて既読
-                      </button>
-                    )}
-                  </div>
-                  {completed.length > 0 && (
-                    <div className="ai-mini-cards">
-                      {completed.slice(0, completedVisible).map((e) => (
-                        <MiniCard
-                          key={e.id}
-                          entry={e}
-                          className={`done ${e.result && !e.result_seen ? "has-new" : ""}`}
-                          onClick={() => setSelectedId(e.id)}
-                          showNew={!!(e.result && !e.result_seen)}
-                          timeField="completed_at"
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {completedVisible < completed.length && (
-                    <button
-                      type="button"
-                      className="ai-show-more"
-                      onClick={() => setCompletedVisible((v) => v + 12)}
-                    >
-                      もっと見る ({completed.length - completedVisible}件)
-                    </button>
-                  )}
-                  {completedVisible >= completed.length && completedHasMore && (
-                    <button
-                      type="button"
-                      className="ai-show-more"
-                      onClick={handleLoadMoreCompleted}
-                      disabled={isLoadingMore}
-                    >
-                      {isLoadingMore
-                        ? "読み込み中..."
-                        : `もっと読み込む${remainingCompleted > 0 ? ` (残り${remainingCompleted}件)` : ""}`}
-                    </button>
-                  )}
-                </div>
-
-                {/* Human pending tasks */}
-                {humanPending.length > 0 && (
-                  <div className="ai-section">
-                    <div className="ai-section-title">
-                      <span className="ai-dot human" /> 人間タスク ({humanPending.length})
-                    </div>
-                    <div className="ai-mini-cards">
-                      {(showAllHumanTasks ? humanPending : humanPending.slice(0, 6)).map((e) => (
-                        <div key={e.id} className="ai-human-card-wrap">
-                          <MiniCard
-                            entry={e}
-                            className={`human ${e.urgent ? "urgent" : ""}`}
-                            onClick={() => setSelectedId(e.id)}
-                          />
-                          <div className="ai-human-actions">
-                            <button
-                              type="button"
-                              className="ai-action done"
-                              onClick={() => updateEntry.mutate({ id: e.id, status: "done" })}
-                              title="完了"
-                            >
-                              {"\u2713"}
-                            </button>
-                            <button
-                              type="button"
-                              className="ai-action delegate"
-                              onClick={() => updateEntry.mutate({ id: e.id, delegatable: true })}
-                              title="AIに任せる"
-                            >
-                              AI
-                            </button>
-                            <button
-                              type="button"
-                              className="ai-action trash"
-                              onClick={() =>
-                                setConfirmDelete({ id: e.id, label: e.title ?? e.raw_text })
-                              }
-                              title="削除"
-                            >
-                              {"\u2715"}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {humanPending.length > 6 && (
-                      <button
-                        type="button"
-                        className="ai-show-more"
-                        onClick={() => setShowAllHumanTasks(!showAllHumanTasks)}
-                      >
-                        {showAllHumanTasks ? "閉じる" : `もっと見る (${humanPending.length - 6}件)`}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* External inputs (sourced entries) */}
-                {recentSourced.length > 0 && (
-                  <div className="ai-section">
-                    <div className="ai-section-title">
-                      <span className="ai-dot source" /> 外部入力
-                    </div>
-                    <div className="ai-mini-cards">
-                      {recentSourced.map((e) => (
-                        <MiniCard key={e.id} entry={e} onClick={() => setSelectedId(e.id)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <InProgressSection
+                  entries={inProgress}
+                  onSelect={setSelectedId}
+                  onDelete={handleDelete}
+                />
+                <CompletedSection
+                  entries={completed}
+                  completedVisible={completedVisible}
+                  totalCompletedCount={totalCompletedCount}
+                  newResults={newResults}
+                  completedHasMore={completedHasMore}
+                  remainingCompleted={remainingCompleted}
+                  isLoadingMore={isLoadingMore}
+                  onSelect={setSelectedId}
+                  onDelete={handleDelete}
+                  onShowMore={() => setCompletedVisible((v) => v + 12)}
+                  onLoadMore={handleLoadMoreCompleted}
+                  onMarkAllSeen={() => markAllSeen.mutate()}
+                />
+                <HumanTasksSection
+                  entries={humanPending}
+                  showAll={showAllHumanTasks}
+                  onSelect={setSelectedId}
+                  onToggleShowAll={() => setShowAllHumanTasks(!showAllHumanTasks)}
+                  onMarkDone={(id) => updateEntry.mutate({ id, status: "done" })}
+                  onDelegate={(id) => updateEntry.mutate({ id, delegatable: true })}
+                  onDelete={handleDelete}
+                />
+                <SourcedSection
+                  entries={recentSourced}
+                  onSelect={setSelectedId}
+                  onDelete={handleDelete}
+                />
 
                 {/* Development prompts for Agent teams */}
                 <PromptCopy />

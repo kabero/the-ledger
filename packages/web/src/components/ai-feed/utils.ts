@@ -2,6 +2,49 @@ export function normalizeResult(text: string): string {
   return text.replace(/\\n/g, "\n");
 }
 
+interface BadgeStyles {
+  url: string;
+  research: string;
+  summary: string;
+  generic: string;
+}
+
+/** Classify the result type for badge display. */
+export function getResultBadge(
+  entry: { result?: string | null; result_url?: string | null },
+  cls: BadgeStyles,
+): { label: string; className: string } | null {
+  if (entry.result_url) {
+    return { label: "URL", className: cls.url };
+  }
+  if (!entry.result) return null;
+
+  const lower = normalizeResult(entry.result).toLowerCase();
+
+  if (
+    lower.includes("調査") ||
+    lower.includes("リサーチ") ||
+    lower.includes("research") ||
+    lower.includes("investigation") ||
+    lower.includes("分析") ||
+    lower.includes("検証")
+  ) {
+    return { label: "調査", className: cls.research };
+  }
+
+  if (
+    lower.includes("サマリ") ||
+    lower.includes("まとめ") ||
+    lower.includes("要約") ||
+    lower.includes("summary") ||
+    lower.includes("概要")
+  ) {
+    return { label: "サマリ", className: cls.summary };
+  }
+
+  return { label: "結果あり", className: cls.generic };
+}
+
 export function formatTime(iso: string): string {
   const d = new Date(`${iso}Z`);
   const now = new Date();

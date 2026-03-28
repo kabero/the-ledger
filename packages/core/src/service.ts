@@ -505,7 +505,9 @@ export class EntryService {
       completedCount: this.countEntries({ delegatable: true, status: "done" }),
       unprocessed: this.getUnprocessed(20),
       humanTasks: this.listEntries({ type: "task", status: "pending", limit: 50 }),
-      pendingDecisions: this.listEntries({ delegatable: false, limit: 100 }),
+      pendingDecisions: this.listEntries({ type: "task", status: "pending", limit: 100 }).filter(
+        (e) => e.decision_options && e.decision_options.length > 0 && e.decision_selected == null,
+      ),
     };
   }
 

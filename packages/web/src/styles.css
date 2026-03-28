@@ -1965,6 +1965,11 @@
     display: none;
   }
 
+  .header-search {
+    max-width: 100%;
+    margin: 2px 0 0;
+  }
+
   .box {
     padding: 16px;
     margin: 8px 0;
@@ -2156,12 +2161,6 @@
     min-width: 40px;
     flex-shrink: 0;
   }
-}
-
-/* FAB + Bottom Sheet (mobile input) */
-
-.fab-add {
-  display: none;
 }
 
 .bottom-sheet-overlay {
@@ -3070,4 +3069,105 @@
 }
 .search-bar-clear:hover {
   color: var(--fg);
+}
+
+/* Header search bar */
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 4px;
+  padding: 2px 8px;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+.header-search-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.header-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.6;
+  outline: none;
+  min-width: 0;
+}
+.header-search-input::placeholder {
+  color: #444;
+}
+.header-search-input:focus {
+  color: var(--fg);
+}
+.header-search-clear {
+  background: transparent;
+  border: none;
+  color: #444;
+  font-family: var(--font);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.header-search-clear:hover {
+  color: var(--fg);
+}
+
+/* Print styles for PDF export */
+@media print {
+  body.printing-result * {
+    visibility: hidden;
+  }
+  body.printing-result .result-modal,
+  body.printing-result .result-modal * {
+    visibility: visible;
+  }
+  body.printing-result .result-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 24px;
+    background: #fff;
+    color: #000;
+    box-shadow: none;
+    border: none;
+  }
+  body.printing-result .result-modal-header,
+  body.printing-result .result-modal-close {
+    display: none !important;
+  }
+  body.printing-result .result-modal-title {
+    color: #000;
+    font-size: 18pt;
+    margin-bottom: 12pt;
+  }
+  body.printing-result .result-modal-body {
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  body.printing-result .result-modal-body code {
+    background: #f5f5f5;
+    color: #333;
+  }
+  body.printing-result .result-modal-body pre {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+  }
+  body.printing-result .result-modal-body th,
+  body.printing-result .result-modal-body td {
+    border-color: #ccc;
+    color: #000;
+  }
 }

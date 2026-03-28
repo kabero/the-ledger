@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useEffect, useMemo, useState } from "react";
 import { trpc } from "../trpc";
+import { ConfirmModal } from "./ConfirmModal";
+import { ResultModal } from "./ResultModal";
 
 type Tab = "all" | "task" | "note" | "wish" | "done" | "unprocessed" | "llm";
 
 interface EntryListProps {
   tab: Tab;
+  searchQuery?: string;
 }
 
-export function EntryList({ tab }: EntryListProps) {
+export function EntryList({ tab, searchQuery = "" }: EntryListProps) {
   const filter =
     tab === "all"
       ? { processed: true }
@@ -31,25 +32,21 @@ export function EntryList({ tab }: EntryListProps) {
 
   const updateEntry = trpc.updateEntry.useMutation({
     onSuccess: () => {
-      utils.getTodayTasks.invalidate();
+      utils.listEntries.invalidate();
     },
   });
 
   const deleteEntry = trpc.deleteEntry.useMutation({
     onSuccess: () => {
       utils.listEntries.invalidate();
-      utils.getTodayTasks.invalidate();
     },
   });
 
   // refetch時にローカル上書きをクリア
-  const prevDataRef = useRef(entries.data);
-  if (entries.data !== prevDataRef.current) {
-    prevDataRef.current = entries.data;
-    if (Object.keys(localStatus).length > 0) {
-      setLocalStatus({});
-    }
-  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: entries.dataの変更時のみクリア
+  useEffect(() => {
+    setLocalStatus({});
+  }, [entries.data]);
 
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ message: string; onOk: () => void } | null>(
@@ -102,8 +99,6 @@ export function EntryList({ tab }: EntryListProps) {
     });
   }, [entries.data, localStatus, tab]);
 
-  const [searchQuery, setSearchQuery] = useState("");
-
   const visibleItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
     const q = searchQuery.trim().toLowerCase();
@@ -128,6 +123,10 @@ export function EntryList({ tab }: EntryListProps) {
     );
   }
 
+  if (entries.isLoading) {
+    return <div className="unprocessed-text">読み込み中...</div>;
+  }
+
   if (items.length === 0) {
     return <div className="unprocessed-text">まだ何もない。</div>;
   }
@@ -139,6 +138,7 @@ export function EntryList({ tab }: EntryListProps) {
           message={confirmAction.message}
           onOk={confirmAction.onOk}
           onCancel={() => setConfirmAction(null)}
+          okLabel="OK"
         />
       )}
       {modalEntry && (
@@ -149,31 +149,6 @@ export function EntryList({ tab }: EntryListProps) {
         />
       )}
       <div>
-        {items.length > 3 && (
-          <div className="search-bar">
-            <span className="search-bar-icon" aria-hidden="true">
-              {"\uD83D\uDD0D"}
-            </span>
-            <input
-              type="text"
-              className="search-bar-input"
-              placeholder="検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="エントリを検索"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                className="search-bar-clear"
-                onClick={() => setSearchQuery("")}
-                aria-label="検索をクリア"
-              >
-                {"\u2715"}
-              </button>
-            )}
-          </div>
-        )}
         {visibleItems.length === 0 && searchQuery ? (
           <div className="unprocessed-text">見つからない。</div>
         ) : (
@@ -267,7 +242,15 @@ export function EntryList({ tab }: EntryListProps) {
               <button
                 type="button"
                 className="btn-del"
-                onClick={() => deleteEntry.mutate({ id: entry.id })}
+                onClick={() =>
+                  setConfirmAction({
+                    message: `「${(entry.title ?? entry.raw_text).slice(0, 30)}」を削除しますか？`,
+                    onOk: () => {
+                      deleteEntry.mutate({ id: entry.id });
+                      setConfirmAction(null);
+                    },
+                  })
+                }
               >
                 x
               </button>
@@ -276,73 +259,5 @@ export function EntryList({ tab }: EntryListProps) {
         )}
       </div>
     </>
-  );
-}
-
-function ResultModal({
-  title,
-  result,
-  onClose,
-}: {
-  title: string;
-  result: string;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="result-overlay"
-      role="dialog"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
-    >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-      <div className="result-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="result-modal-close" onClick={onClose}>
-          x
-        </button>
-        <div className="result-modal-title">{title}</div>
-        <div className="result-modal-body">
-          <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ConfirmModal({
-  message,
-  onOk,
-  onCancel,
-}: {
-  message: string;
-  onOk: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div
-      className="result-overlay"
-      role="dialog"
-      onClick={onCancel}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onCancel();
-      }}
-    >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation */}
-      <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="confirm-message">{message}</div>
-        <div className="confirm-buttons">
-          <button type="button" className="confirm-btn confirm-btn-cancel" onClick={onCancel}>
-            やめる
-          </button>
-          <button type="button" className="confirm-btn confirm-btn-ok" onClick={onOk}>
-            戻す
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

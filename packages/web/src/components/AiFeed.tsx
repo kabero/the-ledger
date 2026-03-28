@@ -15,6 +15,20 @@ import { ConfirmModal } from "./ConfirmModal";
 import { DashFeed } from "./DashFeed";
 import { EntryInput } from "./EntryInput";
 
+/** Return urgency CSS class based on entry properties. */
+export function getUrgencyClass(entry: EntryItem): string {
+  const today = new Date().toISOString().slice(0, 10);
+  if (entry.due_date && entry.due_date < today && entry.status !== "done") return "urgency-overdue";
+  if (
+    entry.decision_options &&
+    entry.decision_options.length > 0 &&
+    entry.decision_selected == null
+  )
+    return "urgency-decision";
+  if (entry.urgent && entry.status !== "done") return "urgency-urgent";
+  return "";
+}
+
 function formatRelativeTime(isoTime: string): string {
   const now = Date.now();
   const then = new Date(`${isoTime}Z`).getTime();
@@ -377,7 +391,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
               {/* Pipeline */}
               <div className="ai-pipeline">
                 <div className="ai-pipe-stage">
-                  <div className={`ai-pipe-num ${unprocessedItems.length > 0 ? "danger" : "dim"}`}>
+                  <div
+                    className={`ai-pipe-num ${unprocessedItems.length > 0 ? "danger glow" : "dim"}`}
+                  >
                     {unprocessedItems.length}
                   </div>
                   <div className="ai-pipe-label">未処理</div>
@@ -396,7 +412,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 {pendingDecisions.length > 0 && (
                   <>
                     <div className="ai-pipe-stage">
-                      <div className="ai-pipe-num danger">{pendingDecisions.length}</div>
+                      <div className="ai-pipe-num danger glow">{pendingDecisions.length}</div>
                       <div className="ai-pipe-label">判断待ち</div>
                     </div>
                     <div className="ai-pipe-sep" />
@@ -407,7 +423,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   <div className="ai-pipe-label">人間タスク</div>
                 </div>
                 <div className="ai-pipe-stage">
-                  <div className={`ai-pipe-num ${newResults > 0 ? "new" : "dim"}`}>
+                  <div className={`ai-pipe-num ${newResults > 0 ? "new glow" : "dim"}`}>
                     {newResults}
                   </div>
                   <div className="ai-pipe-label">未読</div>

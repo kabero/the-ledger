@@ -516,6 +516,54 @@
   justify-content: flex-end;
 }
 
+/* Urgency pulse animations */
+@keyframes urgency-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 8px 2px var(--urgency-glow, rgba(255, 0, 0, 0.12));
+  }
+}
+
+.ai-mini.urgency-overdue {
+  border-left-color: var(--danger);
+  --urgency-glow: rgba(255, 0, 0, 0.15);
+  animation: urgency-pulse 3s ease-in-out infinite;
+}
+
+.ai-mini.urgency-decision {
+  border-left-color: var(--warning, #f80);
+  --urgency-glow: rgba(255, 136, 0, 0.15);
+  animation: urgency-pulse 3s ease-in-out infinite;
+}
+
+.ai-mini.urgency-urgent {
+  border-left-color: #f60;
+  --urgency-glow: rgba(255, 102, 0, 0.15);
+  animation: urgency-pulse 3s ease-in-out infinite;
+}
+
+.ai-decision-card.urgency-decision {
+  --urgency-glow: rgba(255, 136, 0, 0.15);
+  animation: urgency-pulse 3s ease-in-out infinite;
+}
+
+@keyframes stat-glow {
+  0%,
+  100% {
+    text-shadow: none;
+  }
+  50% {
+    text-shadow: 0 0 8px currentColor;
+  }
+}
+
+.ai-pipe-num.glow {
+  animation: stat-glow 2.5s ease-in-out infinite;
+}
+
 .ai-mini-meta {
   display: flex;
   align-items: center;

@@ -31,6 +31,8 @@ export function EntryInput({ onSubmitted }: EntryInputProps = {}) {
     setImagePreview(null);
     utils.listEntries.invalidate();
     utils.getUnprocessed.invalidate();
+    utils.getDashboardData.invalidate();
+    utils.listEntriesWithCursor.invalidate();
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }

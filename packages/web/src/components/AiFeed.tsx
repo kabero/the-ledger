@@ -209,12 +209,13 @@ export function AiFeed({ onClose }: AiFeedProps) {
   // Deduplicated AI-related entries (for sources breakdown, decisions, etc.)
   const allAi = useMemo(() => {
     const map = new Map<string, EntryItem>();
+    for (const e of classified) map.set(e.id, e);
     for (const e of inProgress) map.set(e.id, e);
     for (const e of completed) map.set(e.id, e);
     for (const e of allSourced) map.set(e.id, e);
     for (const e of awaitingItems) map.set(e.id, e);
     return [...map.values()];
-  }, [inProgress, completed, allSourced, awaitingItems]);
+  }, [classified, inProgress, completed, allSourced, awaitingItems]);
 
   const recentSourced = useMemo(
     () =>
@@ -622,6 +623,25 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   }}
                 />
 
+                {/* Classified: delegatable pending, not yet started (no result) */}
+                {classified.length > 0 && (
+                  <div className="ai-section">
+                    <div className="ai-section-title">
+                      <span className="ai-dot classified" /> 分類済み ({classified.length})
+                    </div>
+                    <div className="ai-mini-cards">
+                      {filterBySource(classified).map((e) => (
+                        <MiniCard
+                          key={e.id}
+                          entry={e}
+                          className={e.urgent ? "urgent" : ""}
+                          onClick={() => setSelectedId(e.id)}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div ref={sectionInProgressRef} />
                 <InProgressSection
                   entries={filterBySource(inProgress)}

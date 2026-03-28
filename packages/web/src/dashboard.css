@@ -448,6 +448,10 @@
   box-shadow: 0 0 6px var(--danger);
 }
 
+.ai-dot.classified {
+  background: var(--accent);
+}
+
 .ai-dot.human {
   background: var(--human);
 }

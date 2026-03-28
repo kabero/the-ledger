@@ -497,6 +497,43 @@ export class EntryService {
   }
 
   /**
+   * Full situational awareness in one call — for LLM context briefing.
+   */
+  getContextBriefing(today?: string) {
+    const todayStr = today ?? new Date().toISOString().slice(0, 10);
+    const todayBriefing = this.getTodayBriefingData(todayStr);
+    const topTags = this.getTagVocabulary().slice(0, 20);
+    const pendingDelegatable = this.getDelegatableTaskCount();
+    const pendingDecisions = this.getPendingDecisionCount();
+    const unseenResults = this.getUnseenResultCount();
+
+    // Stale tasks: pending > 7 days old
+    const sevenDaysAgo = new Date(`${todayStr}T00:00:00Z`);
+    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+    const staleTasks = this.countEntries({
+      type: "task",
+      status: "pending",
+      until: sevenDaysAgo.toISOString().slice(0, 19).replace("T", " "),
+    });
+
+    // Reopen count
+    const recentReopens = this.listEntries({ type: "task", limit: 100 }).filter(
+      (e) => e.reopen_count > 0,
+    ).length;
+
+    return {
+      today: todayStr,
+      todayBriefing,
+      topTags,
+      pendingDelegatable,
+      pendingDecisions,
+      unseenResults,
+      staleTasks,
+      recentReopens,
+    };
+  }
+
+  /**
    * Get weekly report data for AI-powered review generation.
    * Returns completed tasks, newly added entries, stale pending tasks,
    * tag breakdown, and overall stats for the past week.

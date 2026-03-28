@@ -265,6 +265,18 @@ server.tool(
 );
 
 server.tool(
+  "get_context_briefing",
+  "Get full situational awareness in one call: today's briefing, top tags, pending counts, stale tasks, reopen signals. Use this at the start of every session.",
+  {},
+  async () => {
+    const briefing = service.getContextBriefing();
+    return {
+      content: [{ type: "text", text: JSON.stringify(briefing, null, 2) }],
+    };
+  },
+);
+
+server.tool(
   "ask_human",
   "Ask the human owner a question and present decision options. Creates a decision-pending entry that appears in the human's 判断待ち queue.",
   {

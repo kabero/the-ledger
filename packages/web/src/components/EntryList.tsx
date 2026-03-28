@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useBookmarks } from "../hooks/useBookmarks";
 import { trpc } from "../trpc";
 import { ConfirmModal } from "./ConfirmModal";
 import { ResultModal } from "./ResultModal";
@@ -48,6 +49,8 @@ export function EntryList({ tab, searchQuery = "" }: EntryListProps) {
     setLocalStatus({});
   }, [entries.data]);
 
+  const { toggle: toggleBookmark, isBookmarked } = useBookmarks();
+
   const [modalEntry, setModalEntry] = useState<{ title: string; result: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ message: string; onOk: () => void } | null>(
     null,
@@ -90,14 +93,20 @@ export function EntryList({ tab, searchQuery = "" }: EntryListProps) {
             return 0;
           })
         : filtered;
-    // 最後にローカル上書きを適用（位置は変えない）
-    return sorted.map((e) => {
+    // ローカル上書きを適用（位置は変えない）
+    const withLocal = sorted.map((e) => {
       const local = localStatus[e.id];
       return local
         ? { ...e, status: local.status as typeof e.status, completed_at: local.completed_at }
         : e;
     });
-  }, [entries.data, localStatus, tab]);
+    // ブックマークされたエントリを上部にソート
+    return [...withLocal].sort((a, b) => {
+      const aPin = isBookmarked(a.id) ? 0 : 1;
+      const bPin = isBookmarked(b.id) ? 0 : 1;
+      return aPin - bPin;
+    });
+  }, [entries.data, localStatus, tab, isBookmarked]);
 
   const visibleItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
@@ -239,6 +248,15 @@ export function EntryList({ tab, searchQuery = "" }: EntryListProps) {
                   )}
                 </div>
               </div>
+              <button
+                type="button"
+                className={`btn-bookmark ${isBookmarked(entry.id) ? "active" : ""}`}
+                onClick={() => toggleBookmark(entry.id)}
+                aria-label={isBookmarked(entry.id) ? "ブックマーク解除" : "ブックマーク"}
+                title={isBookmarked(entry.id) ? "ブックマーク解除" : "ブックマーク"}
+              >
+                {isBookmarked(entry.id) ? "\u2605" : "\u2606"}
+              </button>
               <button
                 type="button"
                 className="btn-del"

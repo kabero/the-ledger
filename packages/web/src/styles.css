@@ -1264,6 +1264,38 @@
   }
 }
 
+/* Bookmark / pin button */
+.btn-bookmark {
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  transition:
+    color 0.15s,
+    opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .btn-bookmark {
+    opacity: 0.3;
+  }
+  .entry:hover .btn-bookmark {
+    opacity: 1;
+  }
+  .btn-bookmark:hover {
+    color: var(--accent);
+  }
+}
+
+.btn-bookmark.active {
+  color: var(--accent);
+  opacity: 1;
+}
+
 /* Sticky top area */
 .sticky-top {
   position: sticky;

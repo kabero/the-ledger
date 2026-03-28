@@ -49,6 +49,25 @@ interface AiFeedProps {
 }
 
 export function AiFeed({ onClose }: AiFeedProps) {
+  // --- Source filter state ---
+  const [activeSourceFilters, setActiveSourceFilters] = useState<Set<string>>(new Set());
+
+  const toggleSourceFilter = useCallback((source: string) => {
+    setActiveSourceFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(source)) {
+        next.delete(source);
+      } else {
+        next.add(source);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSourceFilters = useCallback(() => {
+    setActiveSourceFilters(new Set());
+  }, []);
+
   // --- Search state ---
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -249,6 +268,40 @@ export function AiFeed({ onClose }: AiFeedProps) {
   );
   const [decisionComment, setDecisionComment] = useState<Record<string, string>>({});
 
+  // --- Section refs for KPI scroll ---
+  const sectionUnprocessedRef = useRef<HTMLDivElement>(null);
+  const sectionInProgressRef = useRef<HTMLDivElement>(null);
+  const sectionCompletedRef = useRef<HTMLDivElement>(null);
+  const sectionDecisionsRef = useRef<HTMLDivElement>(null);
+  const sectionHumanRef = useRef<HTMLDivElement>(null);
+
+  const scrollToSection = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  // --- KPI tap feedback ---
+  const [tappedKpi, setTappedKpi] = useState<string | null>(null);
+  const handleKpiTap = useCallback(
+    (key: string, ref: React.RefObject<HTMLDivElement | null>) => {
+      setTappedKpi(key);
+      scrollToSection(ref);
+      setTimeout(() => setTappedKpi(null), 300);
+    },
+    [scrollToSection],
+  );
+
+  // --- Source-based entry filtering ---
+  const filterBySource = useCallback(
+    (entries: EntryItem[]) => {
+      if (activeSourceFilters.size === 0) return entries;
+      return entries.filter((e) => {
+        const src = e.source ?? "manual";
+        return activeSourceFilters.has(src);
+      });
+    },
+    [activeSourceFilters],
+  );
+
   // Escape key: go back from detail or close feed
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
@@ -392,59 +445,101 @@ export function AiFeed({ onClose }: AiFeedProps) {
             <div className="ai-dash-top">
               {/* Pipeline */}
               <div className="ai-pipeline">
-                <div className="ai-pipe-stage">
+                <button
+                  type="button"
+                  className={`ai-pipe-stage tappable ${tappedKpi === "unprocessed" ? "tapped" : ""}`}
+                  onClick={() => handleKpiTap("unprocessed", sectionUnprocessedRef)}
+                >
                   <div
-                    className={`ai-pipe-num ${unprocessedItems.length > 0 ? "danger glow" : "dim"}`}
+                    className={`ai-pipe-num actionable ${unprocessedItems.length > 0 ? "danger glow" : "dim"}`}
                   >
                     {unprocessedItems.length}
                   </div>
                   <div className="ai-pipe-label">未処理</div>
-                </div>
+                </button>
                 <div className="ai-pipe-arrow">{"\u2192"}</div>
                 <div className="ai-pipe-stage">
-                  <div className="ai-pipe-num dim">{classified.length}</div>
+                  <div className="ai-pipe-num muted">{classified.length}</div>
                   <div className="ai-pipe-label">分類済み</div>
                 </div>
                 <div className="ai-pipe-arrow">{"\u2192"}</div>
-                <div className="ai-pipe-stage">
-                  <div className="ai-pipe-num accent">{inProgress.length}</div>
+                <button
+                  type="button"
+                  className={`ai-pipe-stage tappable ${tappedKpi === "inprogress" ? "tapped" : ""}`}
+                  onClick={() => handleKpiTap("inprogress", sectionInProgressRef)}
+                >
+                  <div className="ai-pipe-num actionable accent">{inProgress.length}</div>
                   <div className="ai-pipe-label">進行中</div>
-                </div>
+                </button>
                 <div className="ai-pipe-arrow">{"\u2192"}</div>
-                <div className="ai-pipe-stage">
-                  <div className="ai-pipe-num done">{totalCompletedCount}</div>
+                <button
+                  type="button"
+                  className={`ai-pipe-stage tappable ${tappedKpi === "completed" ? "tapped" : ""}`}
+                  onClick={() => handleKpiTap("completed", sectionCompletedRef)}
+                >
+                  <div className="ai-pipe-num actionable done">{totalCompletedCount}</div>
                   <div className="ai-pipe-label">完了</div>
-                </div>
+                </button>
                 <div className="ai-pipe-sep" />
                 {pendingDecisions.length > 0 && (
                   <>
-                    <div className="ai-pipe-stage">
-                      <div className="ai-pipe-num danger glow">{pendingDecisions.length}</div>
+                    <button
+                      type="button"
+                      className={`ai-pipe-stage tappable ${tappedKpi === "decisions" ? "tapped" : ""}`}
+                      onClick={() => handleKpiTap("decisions", sectionDecisionsRef)}
+                    >
+                      <div className="ai-pipe-num actionable danger glow">
+                        {pendingDecisions.length}
+                      </div>
                       <div className="ai-pipe-label">判断待ち</div>
-                    </div>
+                    </button>
                     <div className="ai-pipe-sep" />
                   </>
                 )}
-                <div className="ai-pipe-stage">
-                  <div className="ai-pipe-num human">{humanPending.length}</div>
+                <button
+                  type="button"
+                  className={`ai-pipe-stage tappable ${tappedKpi === "human" ? "tapped" : ""}`}
+                  onClick={() => handleKpiTap("human", sectionHumanRef)}
+                >
+                  <div className="ai-pipe-num actionable human">{humanPending.length}</div>
                   <div className="ai-pipe-label">人間タスク</div>
-                </div>
-                <div className="ai-pipe-stage">
-                  <div className={`ai-pipe-num ${newResults > 0 ? "new glow" : "dim"}`}>
+                </button>
+                <button
+                  type="button"
+                  className={`ai-pipe-stage tappable ${tappedKpi === "newresults" ? "tapped" : ""}`}
+                  onClick={() => handleKpiTap("newresults", sectionCompletedRef)}
+                >
+                  <div
+                    className={`ai-pipe-num ${newResults > 0 ? "actionable new glow" : "muted"}`}
+                  >
                     {newResults}
                   </div>
                   <div className="ai-pipe-label">未読</div>
-                </div>
+                </button>
               </div>
 
               {/* Sources */}
               {sources.length > 0 && (
                 <div className="ai-sources">
+                  {activeSourceFilters.size > 0 && (
+                    <button
+                      type="button"
+                      className="ai-source-chip ai-source-all"
+                      onClick={clearSourceFilters}
+                    >
+                      <span className="ai-source-name">all</span>
+                    </button>
+                  )}
                   {sources.map(([name, count]) => (
-                    <div key={name} className="ai-source-chip">
+                    <button
+                      type="button"
+                      key={name}
+                      className={`ai-source-chip ${activeSourceFilters.has(name) ? "active" : ""}`}
+                      onClick={() => toggleSourceFilter(name)}
+                    >
                       <span className="ai-source-name">{name}</span>
                       <span className="ai-source-count">{count}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -452,34 +547,38 @@ export function AiFeed({ onClose }: AiFeedProps) {
             <div className="ai-dash-body">
               <div className="ai-dash-main">
                 {/* Unprocessed — top priority */}
-                <div className="ai-section">
+                <div className="ai-section" ref={sectionUnprocessedRef}>
                   <div className="ai-section-title">
-                    <span className="ai-dot unprocessed" /> 未処理 ({unprocessedItems.length})
+                    <span className="ai-dot unprocessed" /> 未処理 (
+                    {filterBySource(unprocessedItems).length})
                   </div>
-                  {unprocessedItems.length > 0 && (
+                  {filterBySource(unprocessedItems).length > 0 && (
                     <div className="ai-mini-cards">
-                      {unprocessedItems.slice(0, 6).map((e) => (
-                        <div key={e.id} className="ai-mini unprocessed">
-                          <div className="ai-mini-title">{e.raw_text}</div>
-                          <div className="ai-mini-meta">
-                            <span className="ai-mini-time">{formatTime(e.created_at)}</span>
-                            <button
-                              type="button"
-                              className="ai-action trash"
-                              onClick={() => setConfirmDelete({ id: e.id, label: e.raw_text })}
-                              title="削除"
-                            >
-                              {"\u2715"}
-                            </button>
+                      {filterBySource(unprocessedItems)
+                        .slice(0, 6)
+                        .map((e) => (
+                          <div key={e.id} className="ai-mini unprocessed">
+                            <div className="ai-mini-title">{e.raw_text}</div>
+                            <div className="ai-mini-meta">
+                              <span className="ai-mini-time">{formatTime(e.created_at)}</span>
+                              <button
+                                type="button"
+                                className="ai-action trash"
+                                onClick={() => setConfirmDelete({ id: e.id, label: e.raw_text })}
+                                title="削除"
+                              >
+                                {"\u2715"}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   )}
                 </div>
 
+                <div ref={sectionDecisionsRef} />
                 <PendingDecisionsSection
-                  entries={pendingDecisions}
+                  entries={filterBySource(pendingDecisions)}
                   expandedId={expandedDecisionId}
                   decisionSelected={decisionSelected}
                   decisionComment={decisionComment}
@@ -523,13 +622,15 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   }}
                 />
 
+                <div ref={sectionInProgressRef} />
                 <InProgressSection
-                  entries={inProgress}
+                  entries={filterBySource(inProgress)}
                   onSelect={setSelectedId}
                   onDelete={handleDelete}
                 />
+                <div ref={sectionCompletedRef} />
                 <CompletedSection
-                  entries={completed}
+                  entries={filterBySource(completed)}
                   completedVisible={completedVisible}
                   totalCompletedCount={totalCompletedCount}
                   newResults={newResults}
@@ -542,8 +643,9 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   onLoadMore={handleLoadMoreCompleted}
                   onMarkAllSeen={() => markAllSeen.mutate()}
                 />
+                <div ref={sectionHumanRef} />
                 <HumanTasksSection
-                  entries={humanPending}
+                  entries={filterBySource(humanPending)}
                   showAll={showAllHumanTasks}
                   onSelect={setSelectedId}
                   onToggleShowAll={() => setShowAllHumanTasks(!showAllHumanTasks)}
@@ -552,7 +654,7 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   onDelete={handleDelete}
                 />
                 <SourcedSection
-                  entries={recentSourced}
+                  entries={filterBySource(recentSourced)}
                   onSelect={setSelectedId}
                   onDelete={handleDelete}
                 />

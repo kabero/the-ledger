@@ -224,12 +224,46 @@
   align-items: center;
   gap: 2px;
   min-width: 48px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font);
+}
+
+.ai-pipe-stage.tappable {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 6px;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ai-pipe-stage.tappable:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.ai-pipe-stage.tappable:active,
+.ai-pipe-stage.tappable.tapped {
+  transform: scale(0.92);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .ai-pipe-num {
   font-size: 28px;
   font-weight: bold;
   line-height: 1;
+}
+
+.ai-pipe-num.actionable {
+  font-size: 32px;
+}
+
+.ai-pipe-num.muted {
+  color: var(--dim);
+  font-size: 22px;
+  opacity: 0.6;
 }
 
 .ai-pipe-num.accent {
@@ -273,12 +307,19 @@
   margin: 0 4px;
 }
 
-/* Source chips */
+/* Source chips — tappable filter */
 
 .ai-sources {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.ai-sources::-webkit-scrollbar {
+  display: none;
 }
 
 .ai-source-chip {
@@ -289,6 +330,53 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   font-size: 11px;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ai-source-chip:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.ai-source-chip.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.ai-source-chip.active .ai-source-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-source-chip.active .ai-source-count {
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.ai-source-chip.ai-source-all {
+  border-color: var(--dim);
+  color: var(--dim);
+}
+
+.ai-source-chip.ai-source-all:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+.ai-source-chip.ai-source-all .ai-source-name {
+  color: inherit;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .ai-source-name {
@@ -1712,7 +1800,19 @@
     font-size: 20px;
   }
 
+  .ai-pipe-num.actionable {
+    font-size: 24px;
+  }
+
+  .ai-pipe-num.muted {
+    font-size: 16px;
+  }
+
   .ai-pipe-label {
     font-size: 0.6875rem;
+  }
+
+  .ai-pipe-stage.tappable {
+    padding: 2px 4px;
   }
 }

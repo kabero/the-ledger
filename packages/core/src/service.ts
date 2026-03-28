@@ -11,6 +11,7 @@ import {
   type Entry,
   type ListEntriesFilter,
   MAX_IMAGE_SIZE,
+  type ReopenCycle,
   type ScheduledTask,
   type SubmitProcessedInput,
   type SubtaskInput,
@@ -332,18 +333,12 @@ export class EntryService {
 
     // Snapshot current result into entry_history
     if (entry.result) {
-      // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
-      const db = (this.repository as any).db;
-      db.prepare(
-        "INSERT INTO entry_history (id, entry_id, result, result_type, feedback, completed_at, reopened_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      ).run(
-        uuidv4(),
+      this.repository.addHistoryEntry(
         id,
         entry.result,
         entry.result_type ?? null,
         feedback ?? "",
         entry.completed_at ?? new Date().toISOString(),
-        new Date().toISOString(),
       );
     }
 
@@ -359,12 +354,7 @@ export class EntryService {
       result_seen: true,
     });
 
-    // Increment reopen_count and clear completed_at
-    const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
-      (this.repository as any).db;
-    db.prepare(
-      "UPDATE entries SET reopen_count = reopen_count + 1, completed_at = NULL WHERE id = ?",
-    ).run(id);
+    this.repository.incrementReopenCount(id);
 
     if (!updated) {
       throw new Error(`Failed to reopen entry: ${id}`);
@@ -373,13 +363,8 @@ export class EntryService {
     return this.repository.getById(id)!;
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: returns raw DB rows
-  getEntryHistory(entryId: string): any[] {
-    const db = // biome-ignore lint/suspicious/noExplicitAny: accessing internal db
-      (this.repository as any).db;
-    return db
-      .prepare("SELECT * FROM entry_history WHERE entry_id = ? ORDER BY reopened_at DESC")
-      .all(entryId);
+  getEntryHistory(entryId: string): ReopenCycle[] {
+    return this.repository.getEntryHistory(entryId);
   }
 
   /**

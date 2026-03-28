@@ -159,6 +159,55 @@ server.tool(
 );
 
 server.tool(
+  "complete_task",
+  "Complete a delegatable task: mark as done, write result summary, and optionally attach a result file.",
+  {
+    id: z.string().describe("Entry ID of the task to complete"),
+    result: z
+      .string()
+      .max(50000)
+      .describe(
+        "Markdown-formatted summary of completed work. Use headings, lists, bold for structure.",
+      ),
+    result_file: z
+      .string()
+      .optional()
+      .describe(
+        "Absolute path to a local file to attach as the task result (e.g. generated report, image).",
+      ),
+  },
+  async ({ id, result, result_file }) => {
+    const entry = service.updateEntry({
+      id,
+      status: "done",
+      result,
+    });
+    if (!entry) {
+      return { content: [{ type: "text", text: "Entry not found" }] };
+    }
+    if (result_file) {
+      try {
+        const fs = await import("node:fs");
+        const path = await import("node:path");
+        if (fs.existsSync(result_file)) {
+          const ext = path.extname(result_file).slice(1).toLowerCase();
+          const destDir = path.join((await import("node:os")).homedir(), ".theledger", "results");
+          if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+          const destFile = `${id}.${ext}`;
+          fs.copyFileSync(result_file, path.join(destDir, destFile));
+          service.updateEntry({ id, result_url: `/results/${destFile}` });
+        }
+      } catch {
+        // File attachment is best-effort
+      }
+    }
+    return {
+      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+    };
+  },
+);
+
+server.tool(
   "delete_entry",
   "Soft-delete an entry (moves to trash, can be restored).",
   {

@@ -138,7 +138,7 @@ export function EntryList({ tab, searchQuery = "" }: EntryListProps) {
           message={confirmAction.message}
           onOk={confirmAction.onOk}
           onCancel={() => setConfirmAction(null)}
-          okLabel="OK"
+          okLabel="削除"
         />
       )}
       {modalEntry && (

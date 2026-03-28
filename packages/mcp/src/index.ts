@@ -264,6 +264,37 @@ server.tool(
   },
 );
 
+server.tool(
+  "ask_human",
+  "Ask the human owner a question and present decision options. Creates a decision-pending entry that appears in the human's 判断待ち queue.",
+  {
+    question: z
+      .string()
+      .describe("The question or context for the decision. Explain what you need decided and why."),
+    options: z
+      .array(z.string())
+      .min(2)
+      .max(20)
+      .describe('The options for the human to choose from. E.g. ["Approve", "Reject"]'),
+    tags: z.array(z.string()).optional().describe("Tags for categorization"),
+    urgent: z.boolean().default(false).describe("Whether this decision is urgent"),
+  },
+  async ({ question, options, tags, urgent }) => {
+    const entry = service.createEntry({
+      raw_text: question,
+      type: "task",
+      title: question.length > 200 ? `${question.slice(0, 197)}...` : question,
+      tags: tags ?? ["decision"],
+      urgent,
+      delegatable: true,
+      decision_options: options,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(entry, null, 2) }],
+    };
+  },
+);
+
 // --- Start ---
 
 async function main() {

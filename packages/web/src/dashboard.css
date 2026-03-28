@@ -564,6 +564,49 @@
   animation: stat-glow 2.5s ease-in-out infinite;
 }
 
+/* Triage mode highlight */
+.ai-decision-card.triage-active {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 0 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.ai-triage-hint {
+  font-size: 12px;
+  color: var(--accent);
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.ai-triage-enter-hint {
+  font-size: 11px;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+
+.ai-triage-enter-hint kbd {
+  display: inline-block;
+  background: var(--bg-elevated, #1a1a1a);
+  border: 1px solid var(--border-muted);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--fg);
+}
+
+@media (hover: none) {
+  .ai-triage-hint,
+  .ai-triage-enter-hint {
+    display: none;
+  }
+}
+
 .ai-mini-meta {
   display: flex;
   align-items: center;

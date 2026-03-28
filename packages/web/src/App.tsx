@@ -56,6 +56,11 @@ export function App() {
           e.preventDefault();
         }
       }
+      // Cmd+D or Ctrl+D: open AI Dashboard
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === "d") {
+        e.preventDefault();
+        setShowAiFeed(true);
+      }
       // Cmd+Shift+K or Ctrl+Shift+K: focus the search/input textarea
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "K") {
         e.preventDefault();

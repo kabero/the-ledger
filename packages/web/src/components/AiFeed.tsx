@@ -6,6 +6,7 @@ import { DetailView } from "./ai-feed/DetailView";
 import { HumanTasksSection } from "./ai-feed/HumanTasksSection";
 import { InProgressSection } from "./ai-feed/InProgressSection";
 import { MiniCard } from "./ai-feed/MiniCard";
+import { PendingDecisionsSection } from "./ai-feed/PendingDecisionsSection";
 import { PromptCopy } from "./ai-feed/PromptCopy";
 import { SourcedSection } from "./ai-feed/SourcedSection";
 import type { EntryItem } from "./ai-feed/types";
@@ -454,187 +455,50 @@ export function AiFeed({ onClose }: AiFeedProps) {
                   )}
                 </div>
 
-                {/* Pending Decisions — human judgment needed */}
-                {pendingDecisions.length > 0 && (
-                  <div className="ai-section">
-                    <div className="ai-section-title">
-                      <span className="ai-dot decision" /> 判断待ち ({pendingDecisions.length})
-                    </div>
-                    <div className="ai-decision-cards">
-                      {pendingDecisions.map((e) => {
-                        const hasOptions = e.decision_options && e.decision_options.length > 0;
-                        const selected = decisionSelected[e.id] ?? null;
-                        const isExpanded = expandedDecisionId === e.id;
-                        const isBinary =
-                          hasOptions && e.decision_options && e.decision_options.length === 2;
-                        return (
-                          <div
-                            key={e.id}
-                            className={`ai-decision-card ${isExpanded ? "expanded" : "compact"}`}
-                          >
-                            <button
-                              type="button"
-                              className="ai-decision-compact-row"
-                              onClick={() => setExpandedDecisionId(isExpanded ? null : e.id)}
-                            >
-                              <span className="ai-decision-compact-title">
-                                {e.title ?? e.raw_text}
-                              </span>
-                              {e.tags.length > 0 && (
-                                <span className="ai-decision-compact-tags">
-                                  {e.tags.map((t) => (
-                                    <span key={t} className="tag">
-                                      {t}
-                                    </span>
-                                  ))}
-                                </span>
-                              )}
-                              <span className="ai-mini-time">{formatTime(e.created_at)}</span>
-                              <span className="ai-decision-chevron">
-                                {isExpanded ? "\u25B2" : "\u25BC"}
-                              </span>
-                            </button>
-                            {/* One-click inline buttons for binary decisions */}
-                            {isBinary && !isExpanded && (
-                              <div className="ai-decision-inline-actions">
-                                {(e.decision_options ?? []).map((opt, idx) => (
-                                  <button
-                                    key={opt}
-                                    type="button"
-                                    className="ai-decision-inline-btn"
-                                    onClick={(ev) => {
-                                      ev.stopPropagation();
-                                      updateEntry.mutate({
-                                        id: e.id,
-                                        delegatable: true,
-                                        decision_selected: idx,
-                                        decision_comment: null,
-                                      });
-                                    }}
-                                    title={opt}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                            <button
-                              type="button"
-                              className="ai-action trash ai-decision-delete"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                setConfirmDelete({ id: e.id, label: e.title ?? e.raw_text });
-                              }}
-                              title="削除"
-                            >
-                              {"\u2715"}
-                            </button>
-                            {isExpanded && (
-                              <div className="ai-decision-expanded">
-                                <button
-                                  type="button"
-                                  className="ai-decision-detail-link"
-                                  onMouseDown={(ev) => ev.stopPropagation()}
-                                  onClick={(ev) => {
-                                    ev.stopPropagation();
-                                    setSelectedId(e.id);
-                                  }}
-                                >
-                                  詳細を見る
-                                </button>
-                                {hasOptions && (
-                                  <div className="ai-decision-options">
-                                    {(e.decision_options ?? []).map((opt, idx) => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        className={`ai-decision-opt ${selected === idx ? "selected" : ""}`}
-                                        onMouseDown={(ev) => ev.stopPropagation()}
-                                        onClick={(ev) => {
-                                          ev.stopPropagation();
-                                          setDecisionSelected((prev) => ({
-                                            ...prev,
-                                            [e.id]: prev[e.id] === idx ? null : idx,
-                                          }));
-                                        }}
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                                <input
-                                  type="text"
-                                  className="ai-decision-comment"
-                                  placeholder="コメント（任意）"
-                                  aria-label="判断コメント"
-                                  value={decisionComment[e.id] ?? ""}
-                                  onMouseDown={(ev) => ev.stopPropagation()}
-                                  onClick={(ev) => ev.stopPropagation()}
-                                  onChange={(ev) =>
-                                    setDecisionComment((prev) => ({
-                                      ...prev,
-                                      [e.id]: ev.target.value,
-                                    }))
-                                  }
-                                />
-                                <div className="ai-decision-footer">
-                                  <button
-                                    type="button"
-                                    className="ai-decision-delegate-btn"
-                                    onMouseDown={(ev) => ev.stopPropagation()}
-                                    onClick={(ev) => {
-                                      ev.stopPropagation();
-                                      updateEntry.mutate({
-                                        id: e.id,
-                                        delegatable: true,
-                                        ...(selected != null
-                                          ? { decision_selected: selected }
-                                          : {}),
-                                        decision_comment: decisionComment[e.id] || null,
-                                      });
-                                      setDecisionSelected((prev) => {
-                                        const next = { ...prev };
-                                        delete next[e.id];
-                                        return next;
-                                      });
-                                      setDecisionComment((prev) => {
-                                        const next = { ...prev };
-                                        delete next[e.id];
-                                        return next;
-                                      });
-                                      setExpandedDecisionId(null);
-                                    }}
-                                  >
-                                    {hasOptions && selected != null
-                                      ? `「${(e.decision_options ?? [])[selected]}」で決定して委譲`
-                                      : "決定して委譲"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="ai-decision-delegate-btn"
-                                    onMouseDown={(ev) => ev.stopPropagation()}
-                                    onClick={(ev) => {
-                                      ev.stopPropagation();
-                                      updateEntry.mutate({
-                                        id: e.id,
-                                        delegatable: false,
-                                        type: "task",
-                                      });
-                                      setExpandedDecisionId(null);
-                                    }}
-                                  >
-                                    人間タスクに変更
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                <PendingDecisionsSection
+                  entries={pendingDecisions}
+                  expandedId={expandedDecisionId}
+                  decisionSelected={decisionSelected}
+                  decisionComment={decisionComment}
+                  onExpand={setExpandedDecisionId}
+                  onSelect={(id, idx) => setDecisionSelected((prev) => ({ ...prev, [id]: idx }))}
+                  onCommentChange={(id, value) =>
+                    setDecisionComment((prev) => ({ ...prev, [id]: value }))
+                  }
+                  onSubmit={(e, selected, comment) => {
+                    updateEntry.mutate({
+                      id: e.id,
+                      delegatable: true,
+                      ...(selected != null ? { decision_selected: selected } : {}),
+                      decision_comment: comment,
+                    });
+                    setDecisionSelected((prev) => {
+                      const next = { ...prev };
+                      delete next[e.id];
+                      return next;
+                    });
+                    setDecisionComment((prev) => {
+                      const next = { ...prev };
+                      delete next[e.id];
+                      return next;
+                    });
+                    setExpandedDecisionId(null);
+                  }}
+                  onConvertToHuman={(e) => {
+                    updateEntry.mutate({ id: e.id, delegatable: false, type: "task" });
+                    setExpandedDecisionId(null);
+                  }}
+                  onDelete={handleDelete}
+                  onOpenDetail={setSelectedId}
+                  onInlineDecide={(e, idx) => {
+                    updateEntry.mutate({
+                      id: e.id,
+                      delegatable: true,
+                      decision_selected: idx,
+                      decision_comment: null,
+                    });
+                  }}
+                />
 
                 <InProgressSection
                   entries={inProgress}

@@ -277,6 +277,50 @@ server.tool(
 );
 
 server.tool(
+  "work_on_next",
+  "Get the highest-priority delegatable task to work on. Returns full context: entry data, reopen history, related entries (subtasks/siblings). If no tasks available, returns current system status instead.",
+  {},
+  async () => {
+    const result = service.getNextDelegatableTask();
+    if (!result) {
+      // No delegatable tasks — return system status
+      const briefing = service.getContextBriefing();
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                status: "no_delegatable_tasks",
+                message: "No delegatable tasks available. Here is the current system state.",
+                system: briefing,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              status: "task_found",
+              ...result,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    };
+  },
+);
+
+server.tool(
   "ask_human",
   "Ask the human owner a question and present decision options. Creates a decision-pending entry that appears in the human's 判断待ち queue.",
   {

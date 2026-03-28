@@ -647,6 +647,115 @@ export class EntryService {
     };
   }
 
+  /**
+   * Pick the highest-priority delegatable task using a scoring system.
+   * Returns the task with full context (entry, reopen history, related entries)
+   * or null if no delegatable tasks are available.
+   *
+   * Scoring:
+   *   Overdue (due_date < today): +100
+   *   Urgent flag: +50
+   *   Reopened with feedback: +40
+   *   Due within 24h: +30
+   *   Age bonus: +1 per day since creation
+   *   3+ reopens penalty: -200 (likely needs human)
+   */
+  getNextDelegatableTask(today?: string): {
+    task: Entry;
+    score: number;
+    history: ReopenCycle[];
+    relatedEntries: Entry[];
+  } | null {
+    const todayStr = today ?? new Date().toISOString().slice(0, 10);
+    const todayMs = new Date(`${todayStr}T00:00:00Z`).getTime();
+    const tomorrowMs = todayMs + 24 * 60 * 60 * 1000;
+
+    // Get all pending delegatable tasks (exclude decision-pending entries)
+    const candidates = this.listEntries({
+      type: "task",
+      status: "pending",
+      delegatable: true,
+      limit: 200,
+    }).filter(
+      (e) => !(e.decision_options && e.decision_options.length > 0 && e.decision_selected == null),
+    );
+
+    if (candidates.length === 0) return null;
+
+    let bestTask: Entry | null = null;
+    let bestScore = -Infinity;
+
+    for (const task of candidates) {
+      let score = 0;
+
+      // Overdue: +100
+      if (task.due_date) {
+        const dueMs = new Date(`${task.due_date.slice(0, 10)}T00:00:00Z`).getTime();
+        if (dueMs < todayMs) {
+          score += 100;
+        } else if (dueMs < tomorrowMs) {
+          // Due within 24h: +30
+          score += 30;
+        }
+      }
+
+      // Urgent: +50
+      if (task.urgent) {
+        score += 50;
+      }
+
+      // Reopened with feedback: +40
+      if (task.reopen_count > 0 && task.reopen_count < 3) {
+        score += 40;
+      }
+
+      // 3+ reopens: penalty (likely needs human intervention)
+      if (task.reopen_count >= 3) {
+        score -= 200;
+      }
+
+      // Age bonus: +1 per day since creation
+      const createdMs = new Date(task.created_at).getTime();
+      const ageDays = Math.floor((todayMs - createdMs) / (24 * 60 * 60 * 1000));
+      score += Math.max(0, ageDays);
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestTask = task;
+      }
+    }
+
+    if (!bestTask) return null;
+
+    // Gather full context
+    const history = this.getEntryHistory(bestTask.id);
+
+    // Related entries: subtasks + siblings (if this is a subtask)
+    const relatedEntries: Entry[] = [];
+    // Get subtasks of this task
+    const subtasks = this.repository.getSubtasks(bestTask.id);
+    relatedEntries.push(...subtasks);
+
+    // If this is a subtask, get parent and siblings
+    if (bestTask.parent_id) {
+      const parent = this.getEntry(bestTask.parent_id);
+      if (parent) {
+        relatedEntries.push(parent);
+        const siblings = this.repository
+          .getSubtasks(bestTask.parent_id)
+          .filter((e) => e.id !== bestTask?.id);
+        relatedEntries.push(...siblings);
+      }
+    }
+
+    return {
+      task: bestTask,
+      score: bestScore,
+      history,
+      relatedEntries,
+    };
+  }
+
   runDueScheduledTasks(): Entry[] {
     const repo = this.ensureScheduledTaskRepo();
     const dueTasks = repo.getDue();

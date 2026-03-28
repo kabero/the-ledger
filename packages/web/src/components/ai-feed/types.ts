@@ -1,22 +1,5 @@
-export type EntryItem = {
-  id: string;
-  title: string | null;
-  raw_text: string;
-  type: string | null;
-  status: string | null;
-  source: string | null;
-  result: string | null;
-  result_url: string | null;
-  result_seen: boolean;
-  urgent: boolean;
-  delegatable: boolean;
-  created_at: string;
-  completed_at: string | null;
-  tags: string[];
-  due_date: string | null;
-  decision_options: string[] | null;
-  decision_selected: number | null;
-  decision_comment: string | null;
-  archived_at: string | null;
-  image_path: string | null;
-};
+import type { AppRouter } from "@theledger/api";
+import type { inferRouterOutputs } from "@trpc/server";
+
+type RouterOutput = inferRouterOutputs<AppRouter>;
+export type EntryItem = RouterOutput["listEntries"][number];

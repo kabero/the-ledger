@@ -110,8 +110,10 @@ export function AiFeed({ onClose }: AiFeedProps) {
   const allSourced = sourced.data ?? [];
   const unprocessedItems = dashData?.unprocessed ?? [];
   const awaitingItems = dashData?.pendingDecisions ?? [];
-  // inProgress: getDashboardData already filters to delegatable + pending
-  const inProgress = dashData?.inProgress ?? [];
+  // Split delegatable pending into classified (no result yet) and in-progress (has result)
+  const allDelegatablePending = dashData?.inProgress ?? [];
+  const classified = allDelegatablePending.filter((e) => !e.result);
+  const inProgress = allDelegatablePending.filter((e) => !!e.result);
   const humanPending = useMemo(
     () => (dashData?.humanTasks ?? []).filter((e) => !e.delegatable),
     [dashData?.humanTasks],
@@ -400,13 +402,18 @@ export function AiFeed({ onClose }: AiFeedProps) {
                 </div>
                 <div className="ai-pipe-arrow">{"\u2192"}</div>
                 <div className="ai-pipe-stage">
+                  <div className="ai-pipe-num dim">{classified.length}</div>
+                  <div className="ai-pipe-label">分類済み</div>
+                </div>
+                <div className="ai-pipe-arrow">{"\u2192"}</div>
+                <div className="ai-pipe-stage">
                   <div className="ai-pipe-num accent">{inProgress.length}</div>
-                  <div className="ai-pipe-label">AI進行中</div>
+                  <div className="ai-pipe-label">進行中</div>
                 </div>
                 <div className="ai-pipe-arrow">{"\u2192"}</div>
                 <div className="ai-pipe-stage">
                   <div className="ai-pipe-num done">{totalCompletedCount}</div>
-                  <div className="ai-pipe-label">AI完了</div>
+                  <div className="ai-pipe-label">完了</div>
                 </div>
                 <div className="ai-pipe-sep" />
                 {pendingDecisions.length > 0 && (
